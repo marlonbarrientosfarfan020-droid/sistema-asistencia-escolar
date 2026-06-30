@@ -101,9 +101,6 @@ export default function LoginPage() {
             {nombreColegio}
           </h1>
 
-          <p className="text-gray-500 text-sm sm:text-base mt-2">
-            Sistema de Control de Asistencia Escolar
-          </p>
         </div>
 
         {error && (
