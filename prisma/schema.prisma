@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Estudiante {
+  id          Int      @id @default(autoincrement())
+  codigo      String   @unique
+  dni         String   @unique
+  nombres     String
+  apellidos   String
+  grado       String
+  seccion     String
+  nombreTutor String   @default("")
+  whatsapp    String   @default("")
+  telegramChatId String @default("")
+  estado      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  asistencias Asistencia[]
+}
+
+
+model Asistencia {
+  id           Int       @id @default(autoincrement())
+  fecha        DateTime  @default(now())
+  horaEntrada  DateTime?
+  horaSalida   DateTime?
+  metodo       String
+
+  estudianteId Int
+  estudiante   Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+}
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  usuario   String   @unique
+  password  String
+  rol       String
+  estado    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+model Configuracion {
+  id              Int      @id @default(autoincrement())
+  nombreColegio   String   @default("Santa Rita de Casia")
+  logoUrl String @default("")
+  direccion       String   @default("")
+  telefono        String   @default("")
+  correo          String   @default("")
+  director        String   @default("")
+  horaEntrada     String   @default("07:30")
+  tiempoMinSalida Int      @default(30)
+  createdAt       DateTime @default(now())
+}
