@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 import { FaIdCard } from "react-icons/fa";
 
 export default function MarcarPage() {
@@ -18,7 +18,7 @@ export default function MarcarPage() {
   >("normal");
 
   const procesandoQR = useRef(false);
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+ const scannerRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
   const logueado = localStorage.getItem("logueado");
@@ -104,26 +104,21 @@ export default function MarcarPage() {
     });
   }
 
-  function activarCamara() {
-    setCamaraActiva(true);
-    procesandoQR.current = false;
+  async function activarCamara() {
+  setCamaraActiva(true);
+  procesandoQR.current = false;
 
-    setTimeout(() => {
-      const scanner = new Html5QrcodeScanner(
-        "lector-qr",
+  setTimeout(async () => {
+    const lector = new Html5Qrcode("lector-qr");
+    scannerRef.current = lector;
+
+    try {
+      await lector.start(
+        { facingMode: "environment" },
         {
           fps: 10,
-          qrbox: {
-            width: 250,
-            height: 250,
-          },
+          qrbox: { width: 250, height: 250 },
         },
-        false
-      );
-
-      scannerRef.current = scanner;
-
-      scanner.render(
         async (codigoLeido) => {
           if (procesandoQR.current) return;
 
@@ -140,18 +135,24 @@ export default function MarcarPage() {
         },
         () => {}
       );
-    }, 300);
-  }
-
-  async function detenerCamara() {
-    if (scannerRef.current) {
-      await scannerRef.current.clear();
-      scannerRef.current = null;
+    } catch (error) {
+      console.error(error);
+      setMensaje("❌ No se pudo activar la cámara. Verifique permisos.");
+      setCamaraActiva(false);
     }
+  }, 300);
+}
 
-    setCamaraActiva(false);
-    procesandoQR.current = false;
+async function detenerCamara() {
+  if (scannerRef.current) {
+    await scannerRef.current.stop();
+    scannerRef.current.clear();
+    scannerRef.current = null;
   }
+
+  setCamaraActiva(false);
+  procesandoQR.current = false;
+}
 
   const textoPrincipal =
     estadoVisual === "entrada"
@@ -186,7 +187,12 @@ export default function MarcarPage() {
       >
         🚪 Cerrar sesión
       </button>
-
+<button
+  onClick={() => router.replace("/dashboard")}
+  className="absolute top-5 left-5 z-20 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold shadow"
+>
+  ⬅️ Volver al panel
+</button>
       <div className="relative z-10 bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-8 w-full max-w-5xl">
         <div className="text-center">
           <Image
@@ -245,7 +251,10 @@ export default function MarcarPage() {
 
             {camaraActiva && (
               <div className="mt-6">
-                <div id="lector-qr" />
+                <div
+  id="lector-qr"
+  className="overflow-hidden rounded-2xl border-4 border-blue-600"
+/>
 
                 <button
                   onClick={detenerCamara}

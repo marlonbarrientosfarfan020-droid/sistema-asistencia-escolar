@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 type Usuario = {
   id: number;
   usuario: string;
-  password: string;
   rol: string;
   estado: boolean;
 };
@@ -23,15 +22,33 @@ export default function UsuariosPage() {
     estado: true,
   });
 
-  async function cargarUsuarios() {
-    const res = await fetch("/api/usuarios");
-    const data = await res.json();
-    setUsuarios(data);
-  }
-
   useEffect(() => {
+    const rolGuardado = localStorage.getItem("rol");
+
+    if (rolGuardado !== "ADMIN") {
+      window.location.href = "/dashboard";
+      return;
+    }
+
     cargarUsuarios();
   }, []);
+
+  async function cargarUsuarios() {
+    const res = await fetch("/api/usuarios", {
+      headers: {
+        "x-user-role": localStorage.getItem("rol") || "",
+      },
+    });
+
+    const data = await res.json();
+
+    if (Array.isArray(data)) {
+      setUsuarios(data);
+    } else {
+      setUsuarios([]);
+      setMensaje(`❌ ${data.message || "No autorizado"}`);
+    }
+  }
 
   function limpiarFormulario() {
     setForm({
@@ -58,22 +75,11 @@ export default function UsuariosPage() {
   async function guardarUsuario(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!form.usuario) {
-      setMensaje("⚠️ Ingrese el usuario");
-      return;
-    }
-
-    if (!editando && (!form.password || !form.confirmar)) {
-      setMensaje("⚠️ Ingrese la contraseña");
-      return;
-    }
-
-    if (form.password !== form.confirmar) {
-      setMensaje("⚠️ Las contraseñas no coinciden");
-      return;
-    }
-
-    const metodo = editando ? "PUT" : "POST";
+    if (!form.usuario) return setMensaje("⚠️ Ingrese el usuario");
+    if (!editando && (!form.password || !form.confirmar))
+      return setMensaje("⚠️ Ingrese la contraseña");
+    if (form.password !== form.confirmar)
+      return setMensaje("⚠️ Las contraseñas no coinciden");
 
     const body: any = {
       usuario: form.usuario,
@@ -81,19 +87,15 @@ export default function UsuariosPage() {
       estado: form.estado,
     };
 
-    if (editando) {
-      body.id = editando.id;
-    }
-
-    if (form.password) {
-      body.password = form.password;
-    } else if (editando) {
-      body.password = editando.password;
-    }
+    if (editando) body.id = editando.id;
+    if (form.password) body.password = form.password;
 
     const res = await fetch("/api/usuarios", {
-      method: metodo,
-      headers: { "Content-Type": "application/json" },
+      method: editando ? "PUT" : "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-user-role": localStorage.getItem("rol") || "",
+      },
       body: JSON.stringify(body),
     });
 
@@ -109,26 +111,29 @@ export default function UsuariosPage() {
   }
 
   async function eliminarUsuario(id: number, usuario: string) {
-  const usuarioActual = localStorage.getItem("usuario");
+    if (localStorage.getItem("usuario") === usuario) {
+      setMensaje("⚠️ No puedes eliminar tu propio usuario.");
+      return;
+    }
 
-  if (usuarioActual === usuario) {
-    setMensaje("⚠️ No puedes eliminar tu propio usuario.");
-    return;
+    if (!confirm("¿Seguro que deseas eliminar este usuario?")) return;
+
+    const res = await fetch(`/api/usuarios?id=${id}`, {
+      method: "DELETE",
+      headers: {
+        "x-user-role": localStorage.getItem("rol") || "",
+      },
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      setMensaje("🗑️ Usuario eliminado correctamente");
+      cargarUsuarios();
+    } else {
+      setMensaje(`❌ ${data.message || "Error al eliminar usuario"}`);
+    }
   }
-
-  if (!confirm("¿Seguro que deseas eliminar este usuario?")) return;
-
-  const res = await fetch(`/api/usuarios?id=${id}`, {
-    method: "DELETE",
-  });
-
-  if (res.ok) {
-    setMensaje("🗑️ Usuario eliminado correctamente");
-    cargarUsuarios();
-  } else {
-    setMensaje("❌ Error al eliminar usuario");
-  }
-}
 
   return (
     <>
@@ -155,6 +160,7 @@ export default function UsuariosPage() {
             className="border rounded-xl p-3"
           >
             <option value="ADMIN">Administrador</option>
+            <option value="DEMO">Demo</option>
             <option value="PERSONAL">Personal</option>
           </select>
 
@@ -218,7 +224,13 @@ export default function UsuariosPage() {
             {usuarios.map((usuario) => (
               <tr key={usuario.id} className="border-b">
                 <td className="py-3">{usuario.usuario}</td>
-                <td>{usuario.rol === "ADMIN" ? "Administrador" : "Personal"}</td>
+                <td>
+                  {usuario.rol === "ADMIN"
+                    ? "Administrador"
+                    : usuario.rol === "DEMO"
+                    ? "Demo"
+                    : "Personal"}
+                </td>
                 <td>{usuario.estado ? "✅ Activo" : "❌ Inactivo"}</td>
                 <td className="flex gap-2 py-2">
                   <button

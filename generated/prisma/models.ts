@@ -9,7 +9,9 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/Estudiante'
+export type * from './models/Turno'
 export type * from './models/Asistencia'
 export type * from './models/Usuario'
 export type * from './models/Configuracion'
+export type * from './models/Auditoria'
 export type * from './commonInputTypes'

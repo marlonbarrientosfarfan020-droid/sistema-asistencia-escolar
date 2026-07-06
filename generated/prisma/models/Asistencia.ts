@@ -42,6 +42,7 @@ export type AsistenciaMinAggregateOutputType = {
   horaEntrada: Date | null
   horaSalida: Date | null
   metodo: string | null
+  estado: string | null
   estudianteId: number | null
 }
 
@@ -51,6 +52,7 @@ export type AsistenciaMaxAggregateOutputType = {
   horaEntrada: Date | null
   horaSalida: Date | null
   metodo: string | null
+  estado: string | null
   estudianteId: number | null
 }
 
@@ -60,6 +62,7 @@ export type AsistenciaCountAggregateOutputType = {
   horaEntrada: number
   horaSalida: number
   metodo: number
+  estado: number
   estudianteId: number
   _all: number
 }
@@ -81,6 +84,7 @@ export type AsistenciaMinAggregateInputType = {
   horaEntrada?: true
   horaSalida?: true
   metodo?: true
+  estado?: true
   estudianteId?: true
 }
 
@@ -90,6 +94,7 @@ export type AsistenciaMaxAggregateInputType = {
   horaEntrada?: true
   horaSalida?: true
   metodo?: true
+  estado?: true
   estudianteId?: true
 }
 
@@ -99,6 +104,7 @@ export type AsistenciaCountAggregateInputType = {
   horaEntrada?: true
   horaSalida?: true
   metodo?: true
+  estado?: true
   estudianteId?: true
   _all?: true
 }
@@ -195,6 +201,7 @@ export type AsistenciaGroupByOutputType = {
   horaEntrada: Date | null
   horaSalida: Date | null
   metodo: string
+  estado: string
   estudianteId: number
   _count: AsistenciaCountAggregateOutputType | null
   _avg: AsistenciaAvgAggregateOutputType | null
@@ -227,6 +234,7 @@ export type AsistenciaWhereInput = {
   horaEntrada?: Prisma.DateTimeNullableFilter<"Asistencia"> | Date | string | null
   horaSalida?: Prisma.DateTimeNullableFilter<"Asistencia"> | Date | string | null
   metodo?: Prisma.StringFilter<"Asistencia"> | string
+  estado?: Prisma.StringFilter<"Asistencia"> | string
   estudianteId?: Prisma.IntFilter<"Asistencia"> | number
   estudiante?: Prisma.XOR<Prisma.EstudianteScalarRelationFilter, Prisma.EstudianteWhereInput>
 }
@@ -237,6 +245,7 @@ export type AsistenciaOrderByWithRelationInput = {
   horaEntrada?: Prisma.SortOrderInput | Prisma.SortOrder
   horaSalida?: Prisma.SortOrderInput | Prisma.SortOrder
   metodo?: Prisma.SortOrder
+  estado?: Prisma.SortOrder
   estudianteId?: Prisma.SortOrder
   estudiante?: Prisma.EstudianteOrderByWithRelationInput
 }
@@ -250,6 +259,7 @@ export type AsistenciaWhereUniqueInput = Prisma.AtLeast<{
   horaEntrada?: Prisma.DateTimeNullableFilter<"Asistencia"> | Date | string | null
   horaSalida?: Prisma.DateTimeNullableFilter<"Asistencia"> | Date | string | null
   metodo?: Prisma.StringFilter<"Asistencia"> | string
+  estado?: Prisma.StringFilter<"Asistencia"> | string
   estudianteId?: Prisma.IntFilter<"Asistencia"> | number
   estudiante?: Prisma.XOR<Prisma.EstudianteScalarRelationFilter, Prisma.EstudianteWhereInput>
 }, "id">
@@ -260,6 +270,7 @@ export type AsistenciaOrderByWithAggregationInput = {
   horaEntrada?: Prisma.SortOrderInput | Prisma.SortOrder
   horaSalida?: Prisma.SortOrderInput | Prisma.SortOrder
   metodo?: Prisma.SortOrder
+  estado?: Prisma.SortOrder
   estudianteId?: Prisma.SortOrder
   _count?: Prisma.AsistenciaCountOrderByAggregateInput
   _avg?: Prisma.AsistenciaAvgOrderByAggregateInput
@@ -277,6 +288,7 @@ export type AsistenciaScalarWhereWithAggregatesInput = {
   horaEntrada?: Prisma.DateTimeNullableWithAggregatesFilter<"Asistencia"> | Date | string | null
   horaSalida?: Prisma.DateTimeNullableWithAggregatesFilter<"Asistencia"> | Date | string | null
   metodo?: Prisma.StringWithAggregatesFilter<"Asistencia"> | string
+  estado?: Prisma.StringWithAggregatesFilter<"Asistencia"> | string
   estudianteId?: Prisma.IntWithAggregatesFilter<"Asistencia"> | number
 }
 
@@ -285,6 +297,7 @@ export type AsistenciaCreateInput = {
   horaEntrada?: Date | string | null
   horaSalida?: Date | string | null
   metodo: string
+  estado?: string
   estudiante: Prisma.EstudianteCreateNestedOneWithoutAsistenciasInput
 }
 
@@ -294,6 +307,7 @@ export type AsistenciaUncheckedCreateInput = {
   horaEntrada?: Date | string | null
   horaSalida?: Date | string | null
   metodo: string
+  estado?: string
   estudianteId: number
 }
 
@@ -302,6 +316,7 @@ export type AsistenciaUpdateInput = {
   horaEntrada?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metodo?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
   estudiante?: Prisma.EstudianteUpdateOneRequiredWithoutAsistenciasNestedInput
 }
 
@@ -311,6 +326,7 @@ export type AsistenciaUncheckedUpdateInput = {
   horaEntrada?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metodo?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
   estudianteId?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -320,6 +336,7 @@ export type AsistenciaCreateManyInput = {
   horaEntrada?: Date | string | null
   horaSalida?: Date | string | null
   metodo: string
+  estado?: string
   estudianteId: number
 }
 
@@ -328,6 +345,7 @@ export type AsistenciaUpdateManyMutationInput = {
   horaEntrada?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metodo?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type AsistenciaUncheckedUpdateManyInput = {
@@ -336,6 +354,7 @@ export type AsistenciaUncheckedUpdateManyInput = {
   horaEntrada?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metodo?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
   estudianteId?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -355,6 +374,7 @@ export type AsistenciaCountOrderByAggregateInput = {
   horaEntrada?: Prisma.SortOrder
   horaSalida?: Prisma.SortOrder
   metodo?: Prisma.SortOrder
+  estado?: Prisma.SortOrder
   estudianteId?: Prisma.SortOrder
 }
 
@@ -369,6 +389,7 @@ export type AsistenciaMaxOrderByAggregateInput = {
   horaEntrada?: Prisma.SortOrder
   horaSalida?: Prisma.SortOrder
   metodo?: Prisma.SortOrder
+  estado?: Prisma.SortOrder
   estudianteId?: Prisma.SortOrder
 }
 
@@ -378,6 +399,7 @@ export type AsistenciaMinOrderByAggregateInput = {
   horaEntrada?: Prisma.SortOrder
   horaSalida?: Prisma.SortOrder
   metodo?: Prisma.SortOrder
+  estado?: Prisma.SortOrder
   estudianteId?: Prisma.SortOrder
 }
 
@@ -437,6 +459,7 @@ export type AsistenciaCreateWithoutEstudianteInput = {
   horaEntrada?: Date | string | null
   horaSalida?: Date | string | null
   metodo: string
+  estado?: string
 }
 
 export type AsistenciaUncheckedCreateWithoutEstudianteInput = {
@@ -445,6 +468,7 @@ export type AsistenciaUncheckedCreateWithoutEstudianteInput = {
   horaEntrada?: Date | string | null
   horaSalida?: Date | string | null
   metodo: string
+  estado?: string
 }
 
 export type AsistenciaCreateOrConnectWithoutEstudianteInput = {
@@ -482,6 +506,7 @@ export type AsistenciaScalarWhereInput = {
   horaEntrada?: Prisma.DateTimeNullableFilter<"Asistencia"> | Date | string | null
   horaSalida?: Prisma.DateTimeNullableFilter<"Asistencia"> | Date | string | null
   metodo?: Prisma.StringFilter<"Asistencia"> | string
+  estado?: Prisma.StringFilter<"Asistencia"> | string
   estudianteId?: Prisma.IntFilter<"Asistencia"> | number
 }
 
@@ -491,6 +516,7 @@ export type AsistenciaCreateManyEstudianteInput = {
   horaEntrada?: Date | string | null
   horaSalida?: Date | string | null
   metodo: string
+  estado?: string
 }
 
 export type AsistenciaUpdateWithoutEstudianteInput = {
@@ -498,6 +524,7 @@ export type AsistenciaUpdateWithoutEstudianteInput = {
   horaEntrada?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metodo?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type AsistenciaUncheckedUpdateWithoutEstudianteInput = {
@@ -506,6 +533,7 @@ export type AsistenciaUncheckedUpdateWithoutEstudianteInput = {
   horaEntrada?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metodo?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type AsistenciaUncheckedUpdateManyWithoutEstudianteInput = {
@@ -514,6 +542,7 @@ export type AsistenciaUncheckedUpdateManyWithoutEstudianteInput = {
   horaEntrada?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metodo?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 
@@ -524,6 +553,7 @@ export type AsistenciaSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   horaEntrada?: boolean
   horaSalida?: boolean
   metodo?: boolean
+  estado?: boolean
   estudianteId?: boolean
   estudiante?: boolean | Prisma.EstudianteDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["asistencia"]>
@@ -534,6 +564,7 @@ export type AsistenciaSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   horaEntrada?: boolean
   horaSalida?: boolean
   metodo?: boolean
+  estado?: boolean
   estudianteId?: boolean
   estudiante?: boolean | Prisma.EstudianteDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["asistencia"]>
@@ -544,6 +575,7 @@ export type AsistenciaSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   horaEntrada?: boolean
   horaSalida?: boolean
   metodo?: boolean
+  estado?: boolean
   estudianteId?: boolean
   estudiante?: boolean | Prisma.EstudianteDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["asistencia"]>
@@ -554,10 +586,11 @@ export type AsistenciaSelectScalar = {
   horaEntrada?: boolean
   horaSalida?: boolean
   metodo?: boolean
+  estado?: boolean
   estudianteId?: boolean
 }
 
-export type AsistenciaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "fecha" | "horaEntrada" | "horaSalida" | "metodo" | "estudianteId", ExtArgs["result"]["asistencia"]>
+export type AsistenciaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "fecha" | "horaEntrada" | "horaSalida" | "metodo" | "estado" | "estudianteId", ExtArgs["result"]["asistencia"]>
 export type AsistenciaInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   estudiante?: boolean | Prisma.EstudianteDefaultArgs<ExtArgs>
 }
@@ -579,6 +612,7 @@ export type $AsistenciaPayload<ExtArgs extends runtime.Types.Extensions.Internal
     horaEntrada: Date | null
     horaSalida: Date | null
     metodo: string
+    estado: string
     estudianteId: number
   }, ExtArgs["result"]["asistencia"]>
   composites: {}
@@ -1009,6 +1043,7 @@ export interface AsistenciaFieldRefs {
   readonly horaEntrada: Prisma.FieldRef<"Asistencia", 'DateTime'>
   readonly horaSalida: Prisma.FieldRef<"Asistencia", 'DateTime'>
   readonly metodo: Prisma.FieldRef<"Asistencia", 'String'>
+  readonly estado: Prisma.FieldRef<"Asistencia", 'String'>
   readonly estudianteId: Prisma.FieldRef<"Asistencia", 'Int'>
 }
     

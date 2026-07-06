@@ -28,7 +28,11 @@ export async function GET(request: Request) {
       fecha: "desc",
     },
     include: {
-      estudiante: true,
+      estudiante: {
+        include: {
+          turno: true,
+        },
+      },
     },
   });
 
@@ -42,18 +46,33 @@ function formatoHora(fecha: Date) {
   });
 }
 
+function horaTurnoPermitida(horaSalida: string) {
+  const [hora, minuto] = horaSalida.split(":").map(Number);
+
+  const fechaPermitida = new Date();
+  fechaPermitida.setHours(hora, minuto, 0, 0);
+
+  return fechaPermitida;
+}
+
 async function notificarTelegram({
   chatId,
   estudiante,
   tipo,
   hora,
+  metodo,
+  estado,
 }: {
   chatId: string;
   estudiante: any;
   tipo: "ENTRADA" | "SALIDA";
   hora: string;
+  metodo: string;
+  estado: string;
 }) {
   if (!chatId) return;
+
+  const iconoEstado = estado === "TARDE" ? "🟠" : "🟢";
 
   await enviarTelegram(
     chatId,
@@ -67,11 +86,17 @@ ${estudiante.nombres} ${estudiante.apellidos}
 📚 Grado:
 ${estudiante.grado} - ${estudiante.seccion}
 
+⏰ Turno:
+${estudiante.turno?.nombre || "Sin turno"} (${estudiante.turno?.horaEntrada || "--:--"} - ${estudiante.turno?.horaSalida || "--:--"})
+
+${iconoEstado} Estado:
+${estado}
+
 🕒 Hora:
 ${hora}
 
 📌 Método:
-Sistema de Asistencia Escolar`
+${metodo}`
   );
 }
 
@@ -80,11 +105,14 @@ export async function POST(request: Request) {
     const body = await request.json();
     const dni = String(body.dni || "").trim();
     const codigo = String(body.codigo || "").trim();
-    const metodo = body.metodo;
+    const metodo = String(body.metodo || "DNI").trim();
 
     const estudiante = await prisma.estudiante.findFirst({
       where: {
         OR: [{ dni }, { codigo }],
+      },
+      include: {
+        turno: true,
       },
     });
 
@@ -98,6 +126,16 @@ export async function POST(request: Request) {
     if (!estudiante.estado) {
       return NextResponse.json(
         { message: "Estudiante inactivo" },
+        { status: 400 }
+      );
+    }
+
+    if (!estudiante.turno) {
+      return NextResponse.json(
+        {
+          message:
+            "El estudiante no tiene turno asignado. Asigne un turno antes de registrar asistencia.",
+        },
         { status: 400 }
       );
     }
@@ -120,31 +158,55 @@ export async function POST(request: Request) {
 
     const ahora = new Date();
     const horaActual = formatoHora(ahora);
+    const [horaEntrada, minutoEntrada] =
+  estudiante.turno.horaEntrada.split(":").map(Number);
+
+const horaPermitida = new Date();
+
+horaPermitida.setHours(horaEntrada, minutoEntrada, 0, 0);
+
+const estadoAsistencia =
+  ahora <= horaPermitida ? "PUNTUAL" : "TARDE";
 
     if (!asistencia) {
       asistencia = await prisma.asistencia.create({
-        data: {
-          estudianteId: estudiante.id,
-          fecha: ahora,
-          horaEntrada: ahora,
-          metodo: metodo || "DNI",
-        },
-      });
+  data: {
+    estudianteId: estudiante.id,
+    fecha: ahora,
+    horaEntrada: ahora,
+    metodo,
+    estado: estadoAsistencia,
+  },
+});
 
-      enviarWhatsApp({
-        telefono: estudiante.whatsapp,
-        tutor: estudiante.nombreTutor,
-        estudiante: `${estudiante.nombres} ${estudiante.apellidos}`,
-        tipo: "ENTRADA",
-        hora: horaActual,
-      });
-
-      await notificarTelegram({
-        chatId: estudiante.telegramChatId,
-        estudiante,
-        tipo: "ENTRADA",
-        hora: horaActual,
-      });
+ try {
+  await enviarWhatsApp({
+    telefono: estudiante.whatsapp,
+    tutor: estudiante.nombreTutor,
+    estudiante: `${estudiante.nombres} ${estudiante.apellidos}`,
+    tipo: "ENTRADA",
+    hora: horaActual,
+    grado: estudiante.grado,
+    seccion: estudiante.seccion,
+    turno: `${estudiante.turno.nombre} (${estudiante.turno.horaEntrada} - ${estudiante.turno.horaSalida})`,
+    estado: estadoAsistencia,
+    metodo,
+  });
+} catch (error) {
+  console.error("Error enviando WhatsApp:", error);
+}
+      try {
+  await notificarTelegram({
+  chatId: estudiante.telegramChatId,
+  estudiante,
+  tipo: "ENTRADA",
+  hora: horaActual,
+  metodo,
+  estado: estadoAsistencia,
+});
+} catch (error) {
+  console.error("Error enviando Telegram:", error);
+}
 
       return NextResponse.json({
         tipo: "ENTRADA",
@@ -155,20 +217,15 @@ export async function POST(request: Request) {
     }
 
     if (!asistencia.horaSalida) {
-      if (asistencia.horaEntrada) {
-        const minutosDesdeEntrada =
-          (ahora.getTime() - asistencia.horaEntrada.getTime()) / 1000 / 60;
+      const horaSalidaPermitida = horaTurnoPermitida(estudiante.turno.horaSalida);
 
-        const minutosMinimosParaSalida = 1;
-
-        if (minutosDesdeEntrada < minutosMinimosParaSalida) {
-          return NextResponse.json(
-            {
-              message: `Salida bloqueada. Deben pasar al menos ${minutosMinimosParaSalida} minutos desde la entrada.`,
-            },
-            { status: 400 }
-          );
-        }
+      if (ahora < horaSalidaPermitida) {
+        return NextResponse.json(
+          {
+            message: `El estudiante ya registró entrada hoy. La salida estará habilitada desde las ${estudiante.turno.horaSalida} del turno ${estudiante.turno.nombre}.`,
+          },
+          { status: 400 }
+        );
       }
 
       asistencia = await prisma.asistencia.update({
@@ -178,20 +235,35 @@ export async function POST(request: Request) {
         },
       });
 
-      enviarWhatsApp({
-        telefono: estudiante.whatsapp,
-        tutor: estudiante.nombreTutor,
-        estudiante: `${estudiante.nombres} ${estudiante.apellidos}`,
-        tipo: "SALIDA",
-        hora: horaActual,
-      });
+    try {
+  await enviarWhatsApp({
+    telefono: estudiante.whatsapp,
+    tutor: estudiante.nombreTutor,
+    estudiante: `${estudiante.nombres} ${estudiante.apellidos}`,
+    tipo: "SALIDA",
+    hora: horaActual,
+    grado: estudiante.grado,
+    seccion: estudiante.seccion,
+    turno: `${estudiante.turno.nombre} (${estudiante.turno.horaEntrada} - ${estudiante.turno.horaSalida})`,
+    estado: asistencia.estado,
+    metodo,
+  });
+} catch (error) {
+  console.error("Error enviando WhatsApp:", error);
+}
 
-      await notificarTelegram({
-        chatId: estudiante.telegramChatId,
-        estudiante,
-        tipo: "SALIDA",
-        hora: horaActual,
-      });
+      try {
+  await notificarTelegram({
+  chatId: estudiante.telegramChatId,
+  estudiante,
+  tipo: "SALIDA",
+  hora: horaActual,
+  metodo,
+  estado: asistencia.estado,
+});
+} catch (error) {
+  console.error("Error enviando Telegram:", error);
+}
 
       return NextResponse.json({
         tipo: "SALIDA",

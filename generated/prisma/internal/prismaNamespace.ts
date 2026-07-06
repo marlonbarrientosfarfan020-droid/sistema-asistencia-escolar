@@ -385,9 +385,11 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   Estudiante: 'Estudiante',
+  Turno: 'Turno',
   Asistencia: 'Asistencia',
   Usuario: 'Usuario',
-  Configuracion: 'Configuracion'
+  Configuracion: 'Configuracion',
+  Auditoria: 'Auditoria'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -403,7 +405,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "estudiante" | "asistencia" | "usuario" | "configuracion"
+    modelProps: "estudiante" | "turno" | "asistencia" | "usuario" | "configuracion" | "auditoria"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -478,6 +480,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.EstudianteCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.EstudianteCountAggregateOutputType> | number
+        }
+      }
+    }
+    Turno: {
+      payload: Prisma.$TurnoPayload<ExtArgs>
+      fields: Prisma.TurnoFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TurnoFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TurnoPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TurnoFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TurnoPayload>
+        }
+        findFirst: {
+          args: Prisma.TurnoFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TurnoPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TurnoFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TurnoPayload>
+        }
+        findMany: {
+          args: Prisma.TurnoFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TurnoPayload>[]
+        }
+        create: {
+          args: Prisma.TurnoCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TurnoPayload>
+        }
+        createMany: {
+          args: Prisma.TurnoCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TurnoCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TurnoPayload>[]
+        }
+        delete: {
+          args: Prisma.TurnoDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TurnoPayload>
+        }
+        update: {
+          args: Prisma.TurnoUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TurnoPayload>
+        }
+        deleteMany: {
+          args: Prisma.TurnoDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TurnoUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TurnoUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TurnoPayload>[]
+        }
+        upsert: {
+          args: Prisma.TurnoUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TurnoPayload>
+        }
+        aggregate: {
+          args: Prisma.TurnoAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTurno>
+        }
+        groupBy: {
+          args: Prisma.TurnoGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TurnoGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TurnoCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TurnoCountAggregateOutputType> | number
         }
       }
     }
@@ -703,6 +779,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Auditoria: {
+      payload: Prisma.$AuditoriaPayload<ExtArgs>
+      fields: Prisma.AuditoriaFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AuditoriaFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditoriaPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AuditoriaFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditoriaPayload>
+        }
+        findFirst: {
+          args: Prisma.AuditoriaFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditoriaPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AuditoriaFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditoriaPayload>
+        }
+        findMany: {
+          args: Prisma.AuditoriaFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditoriaPayload>[]
+        }
+        create: {
+          args: Prisma.AuditoriaCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditoriaPayload>
+        }
+        createMany: {
+          args: Prisma.AuditoriaCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AuditoriaCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditoriaPayload>[]
+        }
+        delete: {
+          args: Prisma.AuditoriaDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditoriaPayload>
+        }
+        update: {
+          args: Prisma.AuditoriaUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditoriaPayload>
+        }
+        deleteMany: {
+          args: Prisma.AuditoriaDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AuditoriaUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AuditoriaUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditoriaPayload>[]
+        }
+        upsert: {
+          args: Prisma.AuditoriaUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditoriaPayload>
+        }
+        aggregate: {
+          args: Prisma.AuditoriaAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAuditoria>
+        }
+        groupBy: {
+          args: Prisma.AuditoriaGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AuditoriaGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AuditoriaCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AuditoriaCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -754,10 +904,23 @@ export const EstudianteScalarFieldEnum = {
   whatsapp: 'whatsapp',
   telegramChatId: 'telegramChatId',
   estado: 'estado',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  turnoId: 'turnoId'
 } as const
 
 export type EstudianteScalarFieldEnum = (typeof EstudianteScalarFieldEnum)[keyof typeof EstudianteScalarFieldEnum]
+
+
+export const TurnoScalarFieldEnum = {
+  id: 'id',
+  nombre: 'nombre',
+  horaEntrada: 'horaEntrada',
+  horaSalida: 'horaSalida',
+  estado: 'estado',
+  createdAt: 'createdAt'
+} as const
+
+export type TurnoScalarFieldEnum = (typeof TurnoScalarFieldEnum)[keyof typeof TurnoScalarFieldEnum]
 
 
 export const AsistenciaScalarFieldEnum = {
@@ -766,6 +929,7 @@ export const AsistenciaScalarFieldEnum = {
   horaEntrada: 'horaEntrada',
   horaSalida: 'horaSalida',
   metodo: 'metodo',
+  estado: 'estado',
   estudianteId: 'estudianteId'
 } as const
 
@@ -792,12 +956,30 @@ export const ConfiguracionScalarFieldEnum = {
   telefono: 'telefono',
   correo: 'correo',
   director: 'director',
-  horaEntrada: 'horaEntrada',
-  tiempoMinSalida: 'tiempoMinSalida',
+  reporteTelegramActivo: 'reporteTelegramActivo',
+  horaReporteDiario: 'horaReporteDiario',
+  telegramDirectorChatId: 'telegramDirectorChatId',
+  enviarReporteExcel: 'enviarReporteExcel',
+  enviarReportePdf: 'enviarReportePdf',
+  ultimoReporteTelegramAt: 'ultimoReporteTelegramAt',
+  ultimoReporteTelegramEstado: 'ultimoReporteTelegramEstado',
   createdAt: 'createdAt'
 } as const
 
 export type ConfiguracionScalarFieldEnum = (typeof ConfiguracionScalarFieldEnum)[keyof typeof ConfiguracionScalarFieldEnum]
+
+
+export const AuditoriaScalarFieldEnum = {
+  id: 'id',
+  usuario: 'usuario',
+  rol: 'rol',
+  accion: 'accion',
+  modulo: 'modulo',
+  detalle: 'detalle',
+  createdAt: 'createdAt'
+} as const
+
+export type AuditoriaScalarFieldEnum = (typeof AuditoriaScalarFieldEnum)[keyof typeof AuditoriaScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1003,9 +1185,11 @@ export type PrismaClientOptions = ({
 }
 export type GlobalOmitConfig = {
   estudiante?: Prisma.EstudianteOmit
+  turno?: Prisma.TurnoOmit
   asistencia?: Prisma.AsistenciaOmit
   usuario?: Prisma.UsuarioOmit
   configuracion?: Prisma.ConfiguracionOmit
+  auditoria?: Prisma.AuditoriaOmit
 }
 
 /* Types for Logging */

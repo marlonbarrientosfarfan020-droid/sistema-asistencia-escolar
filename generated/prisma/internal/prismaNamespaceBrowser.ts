@@ -52,9 +52,11 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   Estudiante: 'Estudiante',
+  Turno: 'Turno',
   Asistencia: 'Asistencia',
   Usuario: 'Usuario',
-  Configuracion: 'Configuracion'
+  Configuracion: 'Configuracion',
+  Auditoria: 'Auditoria'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -85,10 +87,23 @@ export const EstudianteScalarFieldEnum = {
   whatsapp: 'whatsapp',
   telegramChatId: 'telegramChatId',
   estado: 'estado',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  turnoId: 'turnoId'
 } as const
 
 export type EstudianteScalarFieldEnum = (typeof EstudianteScalarFieldEnum)[keyof typeof EstudianteScalarFieldEnum]
+
+
+export const TurnoScalarFieldEnum = {
+  id: 'id',
+  nombre: 'nombre',
+  horaEntrada: 'horaEntrada',
+  horaSalida: 'horaSalida',
+  estado: 'estado',
+  createdAt: 'createdAt'
+} as const
+
+export type TurnoScalarFieldEnum = (typeof TurnoScalarFieldEnum)[keyof typeof TurnoScalarFieldEnum]
 
 
 export const AsistenciaScalarFieldEnum = {
@@ -97,6 +112,7 @@ export const AsistenciaScalarFieldEnum = {
   horaEntrada: 'horaEntrada',
   horaSalida: 'horaSalida',
   metodo: 'metodo',
+  estado: 'estado',
   estudianteId: 'estudianteId'
 } as const
 
@@ -123,12 +139,30 @@ export const ConfiguracionScalarFieldEnum = {
   telefono: 'telefono',
   correo: 'correo',
   director: 'director',
-  horaEntrada: 'horaEntrada',
-  tiempoMinSalida: 'tiempoMinSalida',
+  reporteTelegramActivo: 'reporteTelegramActivo',
+  horaReporteDiario: 'horaReporteDiario',
+  telegramDirectorChatId: 'telegramDirectorChatId',
+  enviarReporteExcel: 'enviarReporteExcel',
+  enviarReportePdf: 'enviarReportePdf',
+  ultimoReporteTelegramAt: 'ultimoReporteTelegramAt',
+  ultimoReporteTelegramEstado: 'ultimoReporteTelegramEstado',
   createdAt: 'createdAt'
 } as const
 
 export type ConfiguracionScalarFieldEnum = (typeof ConfiguracionScalarFieldEnum)[keyof typeof ConfiguracionScalarFieldEnum]
+
+
+export const AuditoriaScalarFieldEnum = {
+  id: 'id',
+  usuario: 'usuario',
+  rol: 'rol',
+  accion: 'accion',
+  modulo: 'modulo',
+  detalle: 'detalle',
+  createdAt: 'createdAt'
+} as const
+
+export type AuditoriaScalarFieldEnum = (typeof AuditoriaScalarFieldEnum)[keyof typeof AuditoriaScalarFieldEnum]
 
 
 export const SortOrder = {

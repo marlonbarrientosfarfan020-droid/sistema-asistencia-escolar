@@ -4,6 +4,11 @@ type DatosWhatsApp = {
   estudiante: string;
   tipo: "ENTRADA" | "SALIDA";
   hora: string;
+  grado?: string;
+  seccion?: string;
+  turno?: string;
+  estado?: string;
+  metodo?: string;
 };
 
 export async function enviarWhatsApp({
@@ -12,10 +17,15 @@ export async function enviarWhatsApp({
   estudiante,
   tipo,
   hora,
+  grado,
+  seccion,
+  turno,
+  estado,
+  metodo,
 }: DatosWhatsApp) {
   if (process.env.WHATSAPP_ENABLED !== "true") {
     console.log("WhatsApp desactivado");
-    return;
+    return false;
   }
 
   const token = process.env.WHATSAPP_TOKEN;
@@ -23,52 +33,71 @@ export async function enviarWhatsApp({
 
   if (!token || !phoneNumberId) {
     console.error("Falta configurar WHATSAPP_TOKEN o WHATSAPP_PHONE_NUMBER_ID");
-    return;
+    return false;
   }
 
-  console.log("Enviando WhatsApp a:", telefono);
+  if (!telefono) {
+    console.warn("El estudiante no tiene WhatsApp registrado");
+    return false;
+  }
 
-  const mensaje =
-    tipo === "ENTRADA"
-      ? `🏫 Asistencia Escolar
+  const iconoEstado = estado === "TARDE" ? "🟠" : "🟢";
 
-Hola ${tutor}.
+  const mensaje = `🏫 I.E. Santa Rita de Casia
 
-Le informamos que ${estudiante} registró su ENTRADA al colegio a las ${hora}.`
-      : `🏫 Asistencia Escolar
+Hola ${tutor || "tutor"}.
 
-Hola ${tutor}.
+${tipo === "ENTRADA" ? "✅ ENTRADA REGISTRADA" : "👋 SALIDA REGISTRADA"}
 
-Le informamos que ${estudiante} registró su SALIDA del colegio a las ${hora}.`;
+👨‍🎓 Estudiante:
+${estudiante}
 
-  const response = await fetch(
-    `https://graph.facebook.com/v20.0/${phoneNumberId}/messages`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: telefono,
-        type: "text",
-        text: {
-          body: mensaje,
+📚 Grado:
+${grado || "-"} - ${seccion || "-"}
+
+⏰ Turno:
+${turno || "Sin turno"}
+
+${iconoEstado} Estado:
+${estado || "-"}
+
+🕒 Hora:
+${hora}
+
+📌 Método:
+${metodo || "Sistema de Asistencia"}`;
+
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v20.0/${phoneNumberId}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-      }),
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: telefono,
+          type: "text",
+          text: {
+            body: mensaje,
+          },
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("❌ Error enviando WhatsApp:", data);
+      return false;
     }
-  );
 
-  const data = await response.json();
-
-  console.log("Respuesta WhatsApp:", data);
-
-  if (!response.ok) {
-    console.error("Error enviando WhatsApp:", data);
-  } else {
-    console.log("✅ WhatsApp enviado correctamente");
+    console.log("✅ WhatsApp enviado correctamente:", data);
+    return true;
+  } catch (error) {
+    console.error("❌ Error inesperado enviando WhatsApp:", error);
+    return false;
   }
-
-  return data;
 }

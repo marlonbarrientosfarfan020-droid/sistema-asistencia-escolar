@@ -28,12 +28,10 @@ export type AggregateConfiguracion = {
 
 export type ConfiguracionAvgAggregateOutputType = {
   id: number | null
-  tiempoMinSalida: number | null
 }
 
 export type ConfiguracionSumAggregateOutputType = {
   id: number | null
-  tiempoMinSalida: number | null
 }
 
 export type ConfiguracionMinAggregateOutputType = {
@@ -44,8 +42,13 @@ export type ConfiguracionMinAggregateOutputType = {
   telefono: string | null
   correo: string | null
   director: string | null
-  horaEntrada: string | null
-  tiempoMinSalida: number | null
+  reporteTelegramActivo: boolean | null
+  horaReporteDiario: string | null
+  telegramDirectorChatId: string | null
+  enviarReporteExcel: boolean | null
+  enviarReportePdf: boolean | null
+  ultimoReporteTelegramAt: Date | null
+  ultimoReporteTelegramEstado: string | null
   createdAt: Date | null
 }
 
@@ -57,8 +60,13 @@ export type ConfiguracionMaxAggregateOutputType = {
   telefono: string | null
   correo: string | null
   director: string | null
-  horaEntrada: string | null
-  tiempoMinSalida: number | null
+  reporteTelegramActivo: boolean | null
+  horaReporteDiario: string | null
+  telegramDirectorChatId: string | null
+  enviarReporteExcel: boolean | null
+  enviarReportePdf: boolean | null
+  ultimoReporteTelegramAt: Date | null
+  ultimoReporteTelegramEstado: string | null
   createdAt: Date | null
 }
 
@@ -70,8 +78,13 @@ export type ConfiguracionCountAggregateOutputType = {
   telefono: number
   correo: number
   director: number
-  horaEntrada: number
-  tiempoMinSalida: number
+  reporteTelegramActivo: number
+  horaReporteDiario: number
+  telegramDirectorChatId: number
+  enviarReporteExcel: number
+  enviarReportePdf: number
+  ultimoReporteTelegramAt: number
+  ultimoReporteTelegramEstado: number
   createdAt: number
   _all: number
 }
@@ -79,12 +92,10 @@ export type ConfiguracionCountAggregateOutputType = {
 
 export type ConfiguracionAvgAggregateInputType = {
   id?: true
-  tiempoMinSalida?: true
 }
 
 export type ConfiguracionSumAggregateInputType = {
   id?: true
-  tiempoMinSalida?: true
 }
 
 export type ConfiguracionMinAggregateInputType = {
@@ -95,8 +106,13 @@ export type ConfiguracionMinAggregateInputType = {
   telefono?: true
   correo?: true
   director?: true
-  horaEntrada?: true
-  tiempoMinSalida?: true
+  reporteTelegramActivo?: true
+  horaReporteDiario?: true
+  telegramDirectorChatId?: true
+  enviarReporteExcel?: true
+  enviarReportePdf?: true
+  ultimoReporteTelegramAt?: true
+  ultimoReporteTelegramEstado?: true
   createdAt?: true
 }
 
@@ -108,8 +124,13 @@ export type ConfiguracionMaxAggregateInputType = {
   telefono?: true
   correo?: true
   director?: true
-  horaEntrada?: true
-  tiempoMinSalida?: true
+  reporteTelegramActivo?: true
+  horaReporteDiario?: true
+  telegramDirectorChatId?: true
+  enviarReporteExcel?: true
+  enviarReportePdf?: true
+  ultimoReporteTelegramAt?: true
+  ultimoReporteTelegramEstado?: true
   createdAt?: true
 }
 
@@ -121,8 +142,13 @@ export type ConfiguracionCountAggregateInputType = {
   telefono?: true
   correo?: true
   director?: true
-  horaEntrada?: true
-  tiempoMinSalida?: true
+  reporteTelegramActivo?: true
+  horaReporteDiario?: true
+  telegramDirectorChatId?: true
+  enviarReporteExcel?: true
+  enviarReportePdf?: true
+  ultimoReporteTelegramAt?: true
+  ultimoReporteTelegramEstado?: true
   createdAt?: true
   _all?: true
 }
@@ -221,8 +247,13 @@ export type ConfiguracionGroupByOutputType = {
   telefono: string
   correo: string
   director: string
-  horaEntrada: string
-  tiempoMinSalida: number
+  reporteTelegramActivo: boolean
+  horaReporteDiario: string
+  telegramDirectorChatId: string
+  enviarReporteExcel: boolean
+  enviarReportePdf: boolean
+  ultimoReporteTelegramAt: Date | null
+  ultimoReporteTelegramEstado: string
   createdAt: Date
   _count: ConfiguracionCountAggregateOutputType | null
   _avg: ConfiguracionAvgAggregateOutputType | null
@@ -257,8 +288,13 @@ export type ConfiguracionWhereInput = {
   telefono?: Prisma.StringFilter<"Configuracion"> | string
   correo?: Prisma.StringFilter<"Configuracion"> | string
   director?: Prisma.StringFilter<"Configuracion"> | string
-  horaEntrada?: Prisma.StringFilter<"Configuracion"> | string
-  tiempoMinSalida?: Prisma.IntFilter<"Configuracion"> | number
+  reporteTelegramActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
+  horaReporteDiario?: Prisma.StringFilter<"Configuracion"> | string
+  telegramDirectorChatId?: Prisma.StringFilter<"Configuracion"> | string
+  enviarReporteExcel?: Prisma.BoolFilter<"Configuracion"> | boolean
+  enviarReportePdf?: Prisma.BoolFilter<"Configuracion"> | boolean
+  ultimoReporteTelegramAt?: Prisma.DateTimeNullableFilter<"Configuracion"> | Date | string | null
+  ultimoReporteTelegramEstado?: Prisma.StringFilter<"Configuracion"> | string
   createdAt?: Prisma.DateTimeFilter<"Configuracion"> | Date | string
 }
 
@@ -270,8 +306,13 @@ export type ConfiguracionOrderByWithRelationInput = {
   telefono?: Prisma.SortOrder
   correo?: Prisma.SortOrder
   director?: Prisma.SortOrder
-  horaEntrada?: Prisma.SortOrder
-  tiempoMinSalida?: Prisma.SortOrder
+  reporteTelegramActivo?: Prisma.SortOrder
+  horaReporteDiario?: Prisma.SortOrder
+  telegramDirectorChatId?: Prisma.SortOrder
+  enviarReporteExcel?: Prisma.SortOrder
+  enviarReportePdf?: Prisma.SortOrder
+  ultimoReporteTelegramAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  ultimoReporteTelegramEstado?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -286,8 +327,13 @@ export type ConfiguracionWhereUniqueInput = Prisma.AtLeast<{
   telefono?: Prisma.StringFilter<"Configuracion"> | string
   correo?: Prisma.StringFilter<"Configuracion"> | string
   director?: Prisma.StringFilter<"Configuracion"> | string
-  horaEntrada?: Prisma.StringFilter<"Configuracion"> | string
-  tiempoMinSalida?: Prisma.IntFilter<"Configuracion"> | number
+  reporteTelegramActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
+  horaReporteDiario?: Prisma.StringFilter<"Configuracion"> | string
+  telegramDirectorChatId?: Prisma.StringFilter<"Configuracion"> | string
+  enviarReporteExcel?: Prisma.BoolFilter<"Configuracion"> | boolean
+  enviarReportePdf?: Prisma.BoolFilter<"Configuracion"> | boolean
+  ultimoReporteTelegramAt?: Prisma.DateTimeNullableFilter<"Configuracion"> | Date | string | null
+  ultimoReporteTelegramEstado?: Prisma.StringFilter<"Configuracion"> | string
   createdAt?: Prisma.DateTimeFilter<"Configuracion"> | Date | string
 }, "id">
 
@@ -299,8 +345,13 @@ export type ConfiguracionOrderByWithAggregationInput = {
   telefono?: Prisma.SortOrder
   correo?: Prisma.SortOrder
   director?: Prisma.SortOrder
-  horaEntrada?: Prisma.SortOrder
-  tiempoMinSalida?: Prisma.SortOrder
+  reporteTelegramActivo?: Prisma.SortOrder
+  horaReporteDiario?: Prisma.SortOrder
+  telegramDirectorChatId?: Prisma.SortOrder
+  enviarReporteExcel?: Prisma.SortOrder
+  enviarReportePdf?: Prisma.SortOrder
+  ultimoReporteTelegramAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  ultimoReporteTelegramEstado?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.ConfiguracionCountOrderByAggregateInput
   _avg?: Prisma.ConfiguracionAvgOrderByAggregateInput
@@ -320,8 +371,13 @@ export type ConfiguracionScalarWhereWithAggregatesInput = {
   telefono?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
   correo?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
   director?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
-  horaEntrada?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
-  tiempoMinSalida?: Prisma.IntWithAggregatesFilter<"Configuracion"> | number
+  reporteTelegramActivo?: Prisma.BoolWithAggregatesFilter<"Configuracion"> | boolean
+  horaReporteDiario?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
+  telegramDirectorChatId?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
+  enviarReporteExcel?: Prisma.BoolWithAggregatesFilter<"Configuracion"> | boolean
+  enviarReportePdf?: Prisma.BoolWithAggregatesFilter<"Configuracion"> | boolean
+  ultimoReporteTelegramAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Configuracion"> | Date | string | null
+  ultimoReporteTelegramEstado?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Configuracion"> | Date | string
 }
 
@@ -332,8 +388,13 @@ export type ConfiguracionCreateInput = {
   telefono?: string
   correo?: string
   director?: string
-  horaEntrada?: string
-  tiempoMinSalida?: number
+  reporteTelegramActivo?: boolean
+  horaReporteDiario?: string
+  telegramDirectorChatId?: string
+  enviarReporteExcel?: boolean
+  enviarReportePdf?: boolean
+  ultimoReporteTelegramAt?: Date | string | null
+  ultimoReporteTelegramEstado?: string
   createdAt?: Date | string
 }
 
@@ -345,8 +406,13 @@ export type ConfiguracionUncheckedCreateInput = {
   telefono?: string
   correo?: string
   director?: string
-  horaEntrada?: string
-  tiempoMinSalida?: number
+  reporteTelegramActivo?: boolean
+  horaReporteDiario?: string
+  telegramDirectorChatId?: string
+  enviarReporteExcel?: boolean
+  enviarReportePdf?: boolean
+  ultimoReporteTelegramAt?: Date | string | null
+  ultimoReporteTelegramEstado?: string
   createdAt?: Date | string
 }
 
@@ -357,8 +423,13 @@ export type ConfiguracionUpdateInput = {
   telefono?: Prisma.StringFieldUpdateOperationsInput | string
   correo?: Prisma.StringFieldUpdateOperationsInput | string
   director?: Prisma.StringFieldUpdateOperationsInput | string
-  horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
-  tiempoMinSalida?: Prisma.IntFieldUpdateOperationsInput | number
+  reporteTelegramActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  horaReporteDiario?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramDirectorChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  enviarReporteExcel?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  enviarReportePdf?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  ultimoReporteTelegramAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ultimoReporteTelegramEstado?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -370,8 +441,13 @@ export type ConfiguracionUncheckedUpdateInput = {
   telefono?: Prisma.StringFieldUpdateOperationsInput | string
   correo?: Prisma.StringFieldUpdateOperationsInput | string
   director?: Prisma.StringFieldUpdateOperationsInput | string
-  horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
-  tiempoMinSalida?: Prisma.IntFieldUpdateOperationsInput | number
+  reporteTelegramActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  horaReporteDiario?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramDirectorChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  enviarReporteExcel?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  enviarReportePdf?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  ultimoReporteTelegramAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ultimoReporteTelegramEstado?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -383,8 +459,13 @@ export type ConfiguracionCreateManyInput = {
   telefono?: string
   correo?: string
   director?: string
-  horaEntrada?: string
-  tiempoMinSalida?: number
+  reporteTelegramActivo?: boolean
+  horaReporteDiario?: string
+  telegramDirectorChatId?: string
+  enviarReporteExcel?: boolean
+  enviarReportePdf?: boolean
+  ultimoReporteTelegramAt?: Date | string | null
+  ultimoReporteTelegramEstado?: string
   createdAt?: Date | string
 }
 
@@ -395,8 +476,13 @@ export type ConfiguracionUpdateManyMutationInput = {
   telefono?: Prisma.StringFieldUpdateOperationsInput | string
   correo?: Prisma.StringFieldUpdateOperationsInput | string
   director?: Prisma.StringFieldUpdateOperationsInput | string
-  horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
-  tiempoMinSalida?: Prisma.IntFieldUpdateOperationsInput | number
+  reporteTelegramActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  horaReporteDiario?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramDirectorChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  enviarReporteExcel?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  enviarReportePdf?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  ultimoReporteTelegramAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ultimoReporteTelegramEstado?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -408,8 +494,13 @@ export type ConfiguracionUncheckedUpdateManyInput = {
   telefono?: Prisma.StringFieldUpdateOperationsInput | string
   correo?: Prisma.StringFieldUpdateOperationsInput | string
   director?: Prisma.StringFieldUpdateOperationsInput | string
-  horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
-  tiempoMinSalida?: Prisma.IntFieldUpdateOperationsInput | number
+  reporteTelegramActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  horaReporteDiario?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramDirectorChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  enviarReporteExcel?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  enviarReportePdf?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  ultimoReporteTelegramAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ultimoReporteTelegramEstado?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -421,14 +512,18 @@ export type ConfiguracionCountOrderByAggregateInput = {
   telefono?: Prisma.SortOrder
   correo?: Prisma.SortOrder
   director?: Prisma.SortOrder
-  horaEntrada?: Prisma.SortOrder
-  tiempoMinSalida?: Prisma.SortOrder
+  reporteTelegramActivo?: Prisma.SortOrder
+  horaReporteDiario?: Prisma.SortOrder
+  telegramDirectorChatId?: Prisma.SortOrder
+  enviarReporteExcel?: Prisma.SortOrder
+  enviarReportePdf?: Prisma.SortOrder
+  ultimoReporteTelegramAt?: Prisma.SortOrder
+  ultimoReporteTelegramEstado?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type ConfiguracionAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  tiempoMinSalida?: Prisma.SortOrder
 }
 
 export type ConfiguracionMaxOrderByAggregateInput = {
@@ -439,8 +534,13 @@ export type ConfiguracionMaxOrderByAggregateInput = {
   telefono?: Prisma.SortOrder
   correo?: Prisma.SortOrder
   director?: Prisma.SortOrder
-  horaEntrada?: Prisma.SortOrder
-  tiempoMinSalida?: Prisma.SortOrder
+  reporteTelegramActivo?: Prisma.SortOrder
+  horaReporteDiario?: Prisma.SortOrder
+  telegramDirectorChatId?: Prisma.SortOrder
+  enviarReporteExcel?: Prisma.SortOrder
+  enviarReportePdf?: Prisma.SortOrder
+  ultimoReporteTelegramAt?: Prisma.SortOrder
+  ultimoReporteTelegramEstado?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -452,14 +552,18 @@ export type ConfiguracionMinOrderByAggregateInput = {
   telefono?: Prisma.SortOrder
   correo?: Prisma.SortOrder
   director?: Prisma.SortOrder
-  horaEntrada?: Prisma.SortOrder
-  tiempoMinSalida?: Prisma.SortOrder
+  reporteTelegramActivo?: Prisma.SortOrder
+  horaReporteDiario?: Prisma.SortOrder
+  telegramDirectorChatId?: Prisma.SortOrder
+  enviarReporteExcel?: Prisma.SortOrder
+  enviarReportePdf?: Prisma.SortOrder
+  ultimoReporteTelegramAt?: Prisma.SortOrder
+  ultimoReporteTelegramEstado?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type ConfiguracionSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  tiempoMinSalida?: Prisma.SortOrder
 }
 
 
@@ -472,8 +576,13 @@ export type ConfiguracionSelect<ExtArgs extends runtime.Types.Extensions.Interna
   telefono?: boolean
   correo?: boolean
   director?: boolean
-  horaEntrada?: boolean
-  tiempoMinSalida?: boolean
+  reporteTelegramActivo?: boolean
+  horaReporteDiario?: boolean
+  telegramDirectorChatId?: boolean
+  enviarReporteExcel?: boolean
+  enviarReportePdf?: boolean
+  ultimoReporteTelegramAt?: boolean
+  ultimoReporteTelegramEstado?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["configuracion"]>
 
@@ -485,8 +594,13 @@ export type ConfiguracionSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   telefono?: boolean
   correo?: boolean
   director?: boolean
-  horaEntrada?: boolean
-  tiempoMinSalida?: boolean
+  reporteTelegramActivo?: boolean
+  horaReporteDiario?: boolean
+  telegramDirectorChatId?: boolean
+  enviarReporteExcel?: boolean
+  enviarReportePdf?: boolean
+  ultimoReporteTelegramAt?: boolean
+  ultimoReporteTelegramEstado?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["configuracion"]>
 
@@ -498,8 +612,13 @@ export type ConfiguracionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   telefono?: boolean
   correo?: boolean
   director?: boolean
-  horaEntrada?: boolean
-  tiempoMinSalida?: boolean
+  reporteTelegramActivo?: boolean
+  horaReporteDiario?: boolean
+  telegramDirectorChatId?: boolean
+  enviarReporteExcel?: boolean
+  enviarReportePdf?: boolean
+  ultimoReporteTelegramAt?: boolean
+  ultimoReporteTelegramEstado?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["configuracion"]>
 
@@ -511,12 +630,17 @@ export type ConfiguracionSelectScalar = {
   telefono?: boolean
   correo?: boolean
   director?: boolean
-  horaEntrada?: boolean
-  tiempoMinSalida?: boolean
+  reporteTelegramActivo?: boolean
+  horaReporteDiario?: boolean
+  telegramDirectorChatId?: boolean
+  enviarReporteExcel?: boolean
+  enviarReportePdf?: boolean
+  ultimoReporteTelegramAt?: boolean
+  ultimoReporteTelegramEstado?: boolean
   createdAt?: boolean
 }
 
-export type ConfiguracionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nombreColegio" | "logoUrl" | "direccion" | "telefono" | "correo" | "director" | "horaEntrada" | "tiempoMinSalida" | "createdAt", ExtArgs["result"]["configuracion"]>
+export type ConfiguracionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nombreColegio" | "logoUrl" | "direccion" | "telefono" | "correo" | "director" | "reporteTelegramActivo" | "horaReporteDiario" | "telegramDirectorChatId" | "enviarReporteExcel" | "enviarReportePdf" | "ultimoReporteTelegramAt" | "ultimoReporteTelegramEstado" | "createdAt", ExtArgs["result"]["configuracion"]>
 
 export type $ConfiguracionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Configuracion"
@@ -529,8 +653,13 @@ export type $ConfiguracionPayload<ExtArgs extends runtime.Types.Extensions.Inter
     telefono: string
     correo: string
     director: string
-    horaEntrada: string
-    tiempoMinSalida: number
+    reporteTelegramActivo: boolean
+    horaReporteDiario: string
+    telegramDirectorChatId: string
+    enviarReporteExcel: boolean
+    enviarReportePdf: boolean
+    ultimoReporteTelegramAt: Date | null
+    ultimoReporteTelegramEstado: string
     createdAt: Date
   }, ExtArgs["result"]["configuracion"]>
   composites: {}
@@ -962,8 +1091,13 @@ export interface ConfiguracionFieldRefs {
   readonly telefono: Prisma.FieldRef<"Configuracion", 'String'>
   readonly correo: Prisma.FieldRef<"Configuracion", 'String'>
   readonly director: Prisma.FieldRef<"Configuracion", 'String'>
-  readonly horaEntrada: Prisma.FieldRef<"Configuracion", 'String'>
-  readonly tiempoMinSalida: Prisma.FieldRef<"Configuracion", 'Int'>
+  readonly reporteTelegramActivo: Prisma.FieldRef<"Configuracion", 'Boolean'>
+  readonly horaReporteDiario: Prisma.FieldRef<"Configuracion", 'String'>
+  readonly telegramDirectorChatId: Prisma.FieldRef<"Configuracion", 'String'>
+  readonly enviarReporteExcel: Prisma.FieldRef<"Configuracion", 'Boolean'>
+  readonly enviarReportePdf: Prisma.FieldRef<"Configuracion", 'Boolean'>
+  readonly ultimoReporteTelegramAt: Prisma.FieldRef<"Configuracion", 'DateTime'>
+  readonly ultimoReporteTelegramEstado: Prisma.FieldRef<"Configuracion", 'String'>
   readonly createdAt: Prisma.FieldRef<"Configuracion", 'DateTime'>
 }
     

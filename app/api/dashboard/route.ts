@@ -1,7 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+function obtenerRol(request: Request) {
+  return request.headers.get("x-user-role") || "";
+}
+
+function esAdminODemo(request: Request) {
+  const rol = obtenerRol(request);
+  return rol === "ADMIN" || rol === "DEMO";
+}
+
+function noAutorizado() {
+  return NextResponse.json({ message: "No autorizado" }, { status: 401 });
+}
+
+export async function GET(request: Request) {
+  if (!esAdminODemo(request)) return noAutorizado();
+
   try {
     const inicioDia = new Date();
     inicioDia.setHours(0, 0, 0, 0);
@@ -11,16 +26,8 @@ export async function GET() {
 
     const configuracion = await prisma.configuracion.findFirst();
 
-    const horaEntradaConfig = configuracion?.horaEntrada || "07:30";
-    const [hora, minuto] = horaEntradaConfig.split(":").map(Number);
-
-    const horaLimite = new Date();
-    horaLimite.setHours(hora, minuto, 0, 0);
-
     const totalEstudiantes = await prisma.estudiante.count({
-      where: {
-        estado: true,
-      },
+      where: { estado: true },
     });
 
     const asistenciasHoy = await prisma.asistencia.findMany({
@@ -28,6 +35,13 @@ export async function GET() {
         fecha: {
           gte: inicioDia,
           lte: finDia,
+        },
+      },
+      include: {
+        estudiante: {
+          include: {
+            turno: true,
+          },
         },
       },
     });
@@ -38,23 +52,68 @@ export async function GET() {
         fecha: "desc",
       },
       include: {
-        estudiante: true,
+        estudiante: {
+          include: {
+            turno: true,
+          },
+        },
       },
     });
 
+    const turnos = await prisma.turno.findMany({
+      where: { estado: true },
+      orderBy: { id: "asc" },
+    });
+
     const presentes = asistenciasHoy.length;
-    const ausentes = totalEstudiantes - presentes;
+    const ausentes = Math.max(totalEstudiantes - presentes, 0);
 
     const entradas = asistenciasHoy.filter((a) => a.horaEntrada !== null).length;
-
     const salidas = asistenciasHoy.filter((a) => a.horaSalida !== null).length;
+
     const sinSalida = asistenciasHoy.filter(
-  (a) => a.horaEntrada && !a.horaSalida
-).length;
+      (a) => a.horaEntrada && !a.horaSalida
+    ).length;
+
+    const puntuales = asistenciasHoy.filter(
+      (a) => a.estado === "PUNTUAL"
+    ).length;
 
     const tardanzas = asistenciasHoy.filter(
-      (a) => a.horaEntrada && a.horaEntrada > horaLimite
+      (a) => a.estado === "TARDE"
     ).length;
+
+    const resumenTurnos = await Promise.all(
+      turnos.map(async (turno) => {
+        const total = await prisma.estudiante.count({
+          where: {
+            estado: true,
+            turnoId: turno.id,
+          },
+        });
+
+        const asistenciasTurno = asistenciasHoy.filter(
+          (a) => a.estudiante.turnoId === turno.id
+        );
+
+        return {
+          id: turno.id,
+          nombre: turno.nombre,
+          horaEntrada: turno.horaEntrada,
+          horaSalida: turno.horaSalida,
+          total,
+          presentes: asistenciasTurno.length,
+          ausentes: Math.max(total - asistenciasTurno.length, 0),
+          puntuales: asistenciasTurno.filter((a) => a.estado === "PUNTUAL")
+            .length,
+          tardanzas: asistenciasTurno.filter((a) => a.estado === "TARDE")
+            .length,
+          sinSalida: asistenciasTurno.filter(
+            (a) => a.horaEntrada && !a.horaSalida
+          ).length,
+        };
+      })
+    );
 
     return NextResponse.json({
       totalEstudiantes,
@@ -62,8 +121,14 @@ export async function GET() {
       ausentes,
       entradas,
       salidas,
+      puntuales,
       tardanzas,
       sinSalida,
+      horaReporteDiario: configuracion?.horaReporteDiario || "21:00",
+      ultimoReporteTelegramAt: configuracion?.ultimoReporteTelegramAt || null,
+      ultimoReporteTelegramEstado:
+        configuracion?.ultimoReporteTelegramEstado || "",
+      resumenTurnos,
       ultimasAsistencias,
     });
   } catch (error) {

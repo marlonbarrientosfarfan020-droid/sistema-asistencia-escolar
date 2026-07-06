@@ -1,15 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
 import Card from "../ui/Card";
+
+type Turno = {
+  id: number;
+  nombre: string;
+  horaEntrada: string;
+  horaSalida: string;
+};
 
 export default function EstudianteForm({
   onGuardado,
 }: {
   onGuardado: () => void;
 }) {
+  const [turnos, setTurnos] = useState<Turno[]>([]);
+
   const [form, setForm] = useState({
     codigo: "",
     dni: "",
@@ -19,12 +28,37 @@ export default function EstudianteForm({
     seccion: "",
     nombreTutor: "",
     whatsapp: "",
+    telegramChatId: "",
+    turnoId: "",
   });
 
   const [mensaje, setMensaje] = useState("");
   const [guardando, setGuardando] = useState(false);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+  useEffect(() => {
+    async function cargarTurnos() {
+      const res = await fetch("/api/turnos", {
+        headers: {
+          "x-user-role": localStorage.getItem("rol") || "",
+          "x-user-name": localStorage.getItem("usuario") || "",
+        },
+      });
+
+      const data = await res.json();
+
+      if (Array.isArray(data)) {
+        setTurnos(data);
+      } else {
+        setTurnos([]);
+      }
+    }
+
+    cargarTurnos();
+  }, []);
+
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) {
     const { name, value } = e.target;
 
     if (name === "dni") {
@@ -37,10 +71,15 @@ export default function EstudianteForm({
       return;
     }
 
-    setForm({
-      ...form,
-      [name]: value,
-    });
+    if (name === "telegramChatId") {
+      setForm({
+        ...form,
+        telegramChatId: value.replace(/\D/g, "").slice(0, 20),
+      });
+      return;
+    }
+
+    setForm({ ...form, [name]: value });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -54,9 +93,10 @@ export default function EstudianteForm({
       !form.grado.trim() ||
       !form.seccion.trim() ||
       !form.nombreTutor.trim() ||
-      !form.whatsapp.trim()
+      !form.whatsapp.trim() ||
+      !form.turnoId
     ) {
-      setMensaje("⚠️ Complete todos los campos");
+      setMensaje("⚠️ Complete todos los campos obligatorios");
       return;
     }
 
@@ -77,6 +117,8 @@ export default function EstudianteForm({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-user-role": localStorage.getItem("rol") || "",
+        "x-user-name": localStorage.getItem("usuario") || "",
       },
       body: JSON.stringify({
         ...form,
@@ -87,8 +129,12 @@ export default function EstudianteForm({
         seccion: form.seccion.trim(),
         nombreTutor: form.nombreTutor.trim(),
         whatsapp: form.whatsapp.trim(),
+        telegramChatId: form.telegramChatId.trim(),
+        turnoId: Number(form.turnoId),
       }),
     });
+
+    const data = await res.json();
 
     if (res.ok) {
       setMensaje("✅ Estudiante registrado correctamente");
@@ -102,11 +148,13 @@ export default function EstudianteForm({
         seccion: "",
         nombreTutor: "",
         whatsapp: "",
+        telegramChatId: "",
+        turnoId: "",
       });
 
       onGuardado();
     } else {
-      setMensaje("❌ Error al registrar estudiante. Verifica que el código o DNI no estén repetidos.");
+      setMensaje(`❌ ${data.message || "Error al registrar estudiante"}`);
     }
 
     setGuardando(false);
@@ -128,9 +176,32 @@ export default function EstudianteForm({
         <Input name="nombreTutor" value={form.nombreTutor} onChange={handleChange} placeholder="Nombre del tutor" />
         <Input name="whatsapp" value={form.whatsapp} onChange={handleChange} placeholder="WhatsApp del tutor" />
 
+        <Input
+          name="telegramChatId"
+          value={form.telegramChatId}
+          onChange={handleChange}
+          placeholder="Telegram Chat ID del tutor"
+        />
+
+        <select
+          name="turnoId"
+          value={form.turnoId}
+          onChange={handleChange}
+          className="border rounded-xl p-3 w-full"
+        >
+          <option value="">Seleccione turno</option>
+          {turnos.map((turno) => (
+            <option key={turno.id} value={turno.id}>
+              {turno.nombre} ({turno.horaEntrada} - {turno.horaSalida})
+            </option>
+          ))}
+        </select>
+
         <Button
           type="submit"
-          className="col-span-2 bg-slate-900 text-white disabled:opacity-50"
+          className={`col-span-2 bg-slate-900 text-white ${
+            guardando ? "opacity-50 pointer-events-none" : ""
+          }`}
         >
           {guardando ? "Guardando..." : "Guardar estudiante"}
         </Button>

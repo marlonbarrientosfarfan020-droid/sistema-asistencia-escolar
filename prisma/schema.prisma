@@ -8,22 +8,35 @@ datasource db {
 }
 
 model Estudiante {
+  id             Int      @id @default(autoincrement())
+  codigo         String   @unique
+  dni            String   @unique
+  nombres        String
+  apellidos      String
+  grado          String
+  seccion        String
+  nombreTutor    String   @default("")
+  whatsapp       String   @default("")
+  telegramChatId String   @default("")
+  estado         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  turnoId        Int?
+  turno          Turno?   @relation(fields: [turnoId], references: [id])
+
+  asistencias    Asistencia[]
+}
+
+model Turno {
   id          Int      @id @default(autoincrement())
-  codigo      String   @unique
-  dni         String   @unique
-  nombres     String
-  apellidos   String
-  grado       String
-  seccion     String
-  nombreTutor String   @default("")
-  whatsapp    String   @default("")
-  telegramChatId String @default("")
+  nombre      String   @unique
+  horaEntrada String
+  horaSalida  String
   estado      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
-  asistencias Asistencia[]
+  estudiantes Estudiante[]
 }
-
 
 model Asistencia {
   id           Int       @id @default(autoincrement())
@@ -31,10 +44,12 @@ model Asistencia {
   horaEntrada  DateTime?
   horaSalida   DateTime?
   metodo       String
+  estado       String    @default("PUNTUAL")
 
   estudianteId Int
   estudiante   Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
 }
+
 model Usuario {
   id        Int      @id @default(autoincrement())
   usuario   String   @unique
@@ -43,15 +58,31 @@ model Usuario {
   estado    Boolean  @default(true)
   createdAt DateTime @default(now())
 }
+
 model Configuracion {
   id              Int      @id @default(autoincrement())
   nombreColegio   String   @default("Santa Rita de Casia")
-  logoUrl String @default("")
-  direccion       String   @default("")
-  telefono        String   @default("")
-  correo          String   @default("")
-  director        String   @default("")
-  horaEntrada     String   @default("07:30")
-  tiempoMinSalida Int      @default(30)
-  createdAt       DateTime @default(now())
+  logoUrl          String   @default("")
+  direccion        String   @default("")
+  telefono         String   @default("")
+  correo           String   @default("")
+  director         String   @default("")
+
+  reporteTelegramActivo  Boolean @default(false)
+  horaReporteDiario      String  @default("21:00")
+  telegramDirectorChatId String  @default("")
+  enviarReporteExcel     Boolean @default(true)
+  enviarReportePdf       Boolean @default(true)
+  ultimoReporteTelegramAt     DateTime?
+  ultimoReporteTelegramEstado String   @default("")
+  createdAt        DateTime @default(now())
+}
+model Auditoria {
+  id        Int      @id @default(autoincrement())
+  usuario   String
+  rol       String
+  accion    String
+  modulo    String
+  detalle   String
+  createdAt DateTime @default(now())
 }

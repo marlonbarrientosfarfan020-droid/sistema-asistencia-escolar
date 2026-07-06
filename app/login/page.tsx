@@ -10,43 +10,29 @@ export default function LoginPage() {
   const [usuario, setUsuario] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [nombreColegio, setNombreColegio] = useState(
-    "Sistema de Asistencia Escolar"
-  );
+  const [mostrarPassword, setMostrarPassword] = useState(false);
+  const [modalOlvido, setModalOlvido] = useState(false);
+  const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
     const logueado = localStorage.getItem("logueado");
     const rol = localStorage.getItem("rol");
 
     if (logueado === "true") {
-      if (rol === "PERSONAL") {
-        router.replace("/marcar");
-      } else {
-        router.replace("/dashboard");
-      }
+      router.replace(rol === "PERSONAL" ? "/marcar" : "/dashboard");
     }
   }, [router]);
-
-  useEffect(() => {
-    async function cargarConfiguracion() {
-      try {
-        const res = await fetch("/api/configuracion");
-        const data = await res.json();
-
-        if (data.nombreColegio) {
-          setNombreColegio(data.nombreColegio);
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    }
-
-    cargarConfiguracion();
-  }, []);
 
   async function ingresar(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (!usuario.trim() || !password.trim()) {
+      setError("Ingrese usuario y contraseña");
+      return;
+    }
+
+    setCargando(true);
 
     const res = await fetch("/api/login", {
       method: "POST",
@@ -54,15 +40,17 @@ export default function LoginPage() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        usuario,
+        usuario: usuario.trim(),
         password,
       }),
     });
 
     const data = await res.json();
 
+    setCargando(false);
+
     if (!res.ok) {
-      setError(data.message);
+      setError(data.message || "Error al iniciar sesión");
       return;
     }
 
@@ -70,11 +58,7 @@ export default function LoginPage() {
     localStorage.setItem("usuario", data.usuario);
     localStorage.setItem("rol", data.rol);
 
-    if (data.rol === "ADMIN") {
-      router.replace("/dashboard");
-    } else {
-      router.replace("/marcar");
-    }
+    router.replace(data.rol === "PERSONAL" ? "/marcar" : "/dashboard");
   }
 
   return (
@@ -84,48 +68,82 @@ export default function LoginPage() {
         backgroundImage: "url('/img/colegio-santa-rita.jpg')",
       }}
     >
+      <div className="absolute inset-0 bg-slate-950/50" />
+
       <form
         onSubmit={ingresar}
-        className="bg-white/90 backdrop-blur-md rounded-3xl shadow-xl p-6 sm:p-8 w-full max-w-md mx-auto"
+        className="relative bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-7 sm:p-8 w-full max-w-md mx-auto border border-white/40"
       >
         <div className="text-center mb-6">
           <Image
             src="/img/logo-santa-rita.png"
             alt="Logo"
-            width={100}
-            height={100}
-            className="mx-auto mb-4"
+            width={105}
+            height={105}
+            className="mx-auto mb-4 bg-white rounded-2xl p-2 shadow"
           />
 
-          <h1 className="text-2xl sm:text-3xl font-bold leading-tight">
-            {nombreColegio}
+          <h1 className="text-3xl font-extrabold text-slate-900 leading-tight">
+            Sistema Inteligente de Asistencia Escolar
           </h1>
 
+          <p className="text-slate-500 mt-2 font-semibold">
+            I.E. Santa Rita de Casia
+          </p>
         </div>
 
         {error && (
-          <div className="bg-red-100 text-red-700 p-3 rounded-xl mb-4 text-sm">
+          <div className="bg-red-100 text-red-700 p-3 rounded-xl mb-4 text-sm font-bold">
             {error}
           </div>
         )}
 
-        <input
-          value={usuario}
-          onChange={(e) => setUsuario(e.target.value)}
-          placeholder="Usuario"
-          className="border rounded-xl p-3 w-full mb-4 text-base"
-        />
+        <label className="font-bold text-slate-700 text-sm">Usuario</label>
+        <div className="relative mb-4 mt-1">
+          <span className="absolute left-3 top-3">👤</span>
+          <input
+            value={usuario}
+            onChange={(e) => setUsuario(e.target.value)}
+            placeholder="Ingrese su usuario"
+            className="border rounded-xl p-3 pl-10 w-full text-base outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
 
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Contraseña"
-          className="border rounded-xl p-3 w-full mb-6 text-base"
-        />
+        <label className="font-bold text-slate-700 text-sm">Contraseña</label>
+        <div className="relative mb-3 mt-1">
+          <span className="absolute left-3 top-3">🔒</span>
+          <input
+            type={mostrarPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Ingrese su contraseña"
+            className="border rounded-xl p-3 pl-10 pr-12 w-full text-base outline-none focus:ring-2 focus:ring-blue-500"
+          />
 
-        <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-3 rounded-xl font-bold">
-          Ingresar
+          <button
+            type="button"
+            onClick={() => setMostrarPassword(!mostrarPassword)}
+            className="absolute right-3 top-3 text-slate-500"
+          >
+            {mostrarPassword ? "🙈" : "👁️"}
+          </button>
+        </div>
+
+        <div className="text-right mb-6">
+          <button
+            type="button"
+            onClick={() => setModalOlvido(true)}
+            className="text-sm text-blue-700 font-bold hover:underline"
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+        </div>
+
+        <button
+          disabled={cargando}
+          className="bg-blue-600 hover:bg-blue-700 text-white w-full py-3 rounded-xl font-bold disabled:opacity-50"
+        >
+          {cargando ? "Ingresando..." : "Ingresar"}
         </button>
 
         <div className="mt-8 pt-5 border-t border-slate-300 text-center">
@@ -133,7 +151,7 @@ export default function LoginPage() {
             Desarrollado por
           </p>
 
-          <h3 className="mt-2 text-base sm:text-lg font-bold text-slate-800">
+          <h3 className="mt-2 text-lg font-bold text-slate-800">
             Marlon Barrientos Farfán
           </h3>
 
@@ -141,9 +159,36 @@ export default function LoginPage() {
             Desarrollador de Software
           </p>
 
-          <p className="mt-2 text-xs text-slate-400">© 2026</p>
+          <p className="mt-2 text-xs text-slate-400">Versión 1.0 © 2026</p>
         </div>
       </form>
+
+      {modalOlvido && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center px-4 z-50">
+          <div className="bg-white rounded-3xl shadow-2xl p-7 max-w-md w-full">
+            <h2 className="text-2xl font-bold mb-3">
+              Recuperar contraseña
+            </h2>
+
+            <p className="text-slate-600">
+              Por seguridad, la contraseña debe ser restablecida por el
+              administrador del sistema.
+            </p>
+
+            <div className="bg-blue-50 text-blue-800 rounded-xl p-4 mt-5 font-semibold">
+              Comunícate con el administrador para que cambie tu contraseña
+              desde el módulo de Usuarios.
+            </div>
+
+            <button
+              onClick={() => setModalOlvido(false)}
+              className="mt-6 bg-slate-900 text-white w-full py-3 rounded-xl font-bold"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

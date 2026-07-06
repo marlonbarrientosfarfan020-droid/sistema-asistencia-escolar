@@ -23,6 +23,11 @@ export * from './enums';
  */
 export type Estudiante = Prisma.EstudianteModel
 /**
+ * Model Turno
+ * 
+ */
+export type Turno = Prisma.TurnoModel
+/**
  * Model Asistencia
  * 
  */
@@ -37,3 +42,8 @@ export type Usuario = Prisma.UsuarioModel
  * 
  */
 export type Configuracion = Prisma.ConfiguracionModel
+/**
+ * Model Auditoria
+ * 
+ */
+export type Auditoria = Prisma.AuditoriaModel
