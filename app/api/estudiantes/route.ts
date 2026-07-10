@@ -27,11 +27,12 @@ export async function GET(request: Request) {
   if (!esAdminODemo(request)) return noAutorizado();
 
   const estudiantes = await prisma.estudiante.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      turno: true,
-    },
-  });
+  orderBy: { createdAt: "desc" },
+  include: {
+    turno: true,
+    riesgoIA: true,
+  },
+});
 
   return NextResponse.json(estudiantes);
 }

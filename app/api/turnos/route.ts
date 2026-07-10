@@ -15,10 +15,7 @@ function esAdminODemo(request: Request) {
 }
 
 function noAutorizado() {
-  return NextResponse.json(
-    { message: "No autorizado" },
-    { status: 401 }
-  );
+  return NextResponse.json({ message: "No autorizado" }, { status: 401 });
 }
 
 export async function GET(request: Request) {
@@ -41,12 +38,29 @@ export async function PUT(request: Request) {
 
     const id = Number(body.id);
 
+    const margenAlertaMinutos = Number(body.margenAlertaMinutos || 120);
+
+    if (!id) {
+      return NextResponse.json(
+        { message: "ID de turno inválido" },
+        { status: 400 }
+      );
+    }
+
+    if (margenAlertaMinutos < 1) {
+      return NextResponse.json(
+        { message: "El margen de alerta debe ser mayor a 0 minutos" },
+        { status: 400 }
+      );
+    }
+
     const turno = await prisma.turno.update({
       where: { id },
       data: {
         nombre: String(body.nombre || "").trim(),
         horaEntrada: String(body.horaEntrada || "").trim(),
         horaSalida: String(body.horaSalida || "").trim(),
+        margenAlertaMinutos,
         estado: Boolean(body.estado),
       },
     });

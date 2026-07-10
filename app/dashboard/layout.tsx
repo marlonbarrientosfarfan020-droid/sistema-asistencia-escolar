@@ -142,6 +142,7 @@ export default function DashboardLayout({
           >
             📅 Asistencias
           </a>
+          
 
           <a
             href="/dashboard/reportes-mensuales"
@@ -156,6 +157,24 @@ export default function DashboardLayout({
           >
             👨‍🎓 Reporte estudiante
           </a>
+         <a
+  href="/dashboard/inteligencia"
+  className={linkClass("/dashboard/inteligencia")}
+>
+  🧠 Inteligencia Escolar
+</a>
+<a
+  href="/dashboard/inteligencia/historial"
+  className={linkClass("/dashboard/inteligencia/historial")}
+>
+  📚 Historial IA
+</a>
+<a
+  href="/dashboard/inteligencia/ranking"
+  className={linkClass("/dashboard/inteligencia/ranking")}
+>
+  🔥 Ranking IA
+</a>
 
           {rol === "ADMIN" && (
             <a
@@ -187,12 +206,21 @@ export default function DashboardLayout({
           >
             ⚙️ Configuración
           </a>
+          <a
+  href="/dashboard/calendario"
+  className={linkClass("/dashboard/calendario")}
+>
+  📅 Calendario escolar
+</a>
 
           {rol === "ADMIN" && (
             <a href="/dashboard/backup" className={linkClass("/dashboard/backup")}>
               💾 Backup
             </a>
+            
           )}
+
+          
 
           {rol === "ADMIN" && (
             <a
@@ -203,6 +231,7 @@ export default function DashboardLayout({
             </a>
           )}
         </nav>
+        
 
         <button
           onClick={cerrarSesion}

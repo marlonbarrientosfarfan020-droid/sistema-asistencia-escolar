@@ -284,6 +284,9 @@ export type EstudianteWhereInput = {
   estado?: Prisma.BoolFilter<"Estudiante"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Estudiante"> | Date | string
   turnoId?: Prisma.IntNullableFilter<"Estudiante"> | number | null
+  alertasAsistencia?: Prisma.AlertaAsistenciaListRelationFilter
+  riesgoIA?: Prisma.XOR<Prisma.RiesgoEstudianteIANullableScalarRelationFilter, Prisma.RiesgoEstudianteIAWhereInput> | null
+  historialReportes?: Prisma.HistorialReporteAutomaticoListRelationFilter
   turno?: Prisma.XOR<Prisma.TurnoNullableScalarRelationFilter, Prisma.TurnoWhereInput> | null
   asistencias?: Prisma.AsistenciaListRelationFilter
 }
@@ -302,6 +305,9 @@ export type EstudianteOrderByWithRelationInput = {
   estado?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   turnoId?: Prisma.SortOrderInput | Prisma.SortOrder
+  alertasAsistencia?: Prisma.AlertaAsistenciaOrderByRelationAggregateInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAOrderByWithRelationInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoOrderByRelationAggregateInput
   turno?: Prisma.TurnoOrderByWithRelationInput
   asistencias?: Prisma.AsistenciaOrderByRelationAggregateInput
 }
@@ -323,6 +329,9 @@ export type EstudianteWhereUniqueInput = Prisma.AtLeast<{
   estado?: Prisma.BoolFilter<"Estudiante"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Estudiante"> | Date | string
   turnoId?: Prisma.IntNullableFilter<"Estudiante"> | number | null
+  alertasAsistencia?: Prisma.AlertaAsistenciaListRelationFilter
+  riesgoIA?: Prisma.XOR<Prisma.RiesgoEstudianteIANullableScalarRelationFilter, Prisma.RiesgoEstudianteIAWhereInput> | null
+  historialReportes?: Prisma.HistorialReporteAutomaticoListRelationFilter
   turno?: Prisma.XOR<Prisma.TurnoNullableScalarRelationFilter, Prisma.TurnoWhereInput> | null
   asistencias?: Prisma.AsistenciaListRelationFilter
 }, "id" | "codigo" | "dni">
@@ -379,6 +388,9 @@ export type EstudianteCreateInput = {
   telegramChatId?: string
   estado?: boolean
   createdAt?: Date | string
+  alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
+  riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
   turno?: Prisma.TurnoCreateNestedOneWithoutEstudiantesInput
   asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
 }
@@ -397,6 +409,9 @@ export type EstudianteUncheckedCreateInput = {
   estado?: boolean
   createdAt?: Date | string
   turnoId?: number | null
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
   asistencias?: Prisma.AsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
 }
 
@@ -412,6 +427,9 @@ export type EstudianteUpdateInput = {
   telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
   turno?: Prisma.TurnoUpdateOneWithoutEstudiantesNestedInput
   asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
 }
@@ -430,6 +448,9 @@ export type EstudianteUncheckedUpdateInput = {
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   turnoId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
   asistencias?: Prisma.AsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
 }
 
@@ -552,6 +573,11 @@ export type EstudianteScalarRelationFilter = {
   isNot?: Prisma.EstudianteWhereInput
 }
 
+export type EstudianteNullableScalarRelationFilter = {
+  is?: Prisma.EstudianteWhereInput | null
+  isNot?: Prisma.EstudianteWhereInput | null
+}
+
 export type StringFieldUpdateOperationsInput = {
   set?: string
 }
@@ -636,6 +662,50 @@ export type EstudianteUpdateOneRequiredWithoutAsistenciasNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.EstudianteUpdateToOneWithWhereWithoutAsistenciasInput, Prisma.EstudianteUpdateWithoutAsistenciasInput>, Prisma.EstudianteUncheckedUpdateWithoutAsistenciasInput>
 }
 
+export type EstudianteCreateNestedOneWithoutAlertasAsistenciaInput = {
+  create?: Prisma.XOR<Prisma.EstudianteCreateWithoutAlertasAsistenciaInput, Prisma.EstudianteUncheckedCreateWithoutAlertasAsistenciaInput>
+  connectOrCreate?: Prisma.EstudianteCreateOrConnectWithoutAlertasAsistenciaInput
+  connect?: Prisma.EstudianteWhereUniqueInput
+}
+
+export type EstudianteUpdateOneRequiredWithoutAlertasAsistenciaNestedInput = {
+  create?: Prisma.XOR<Prisma.EstudianteCreateWithoutAlertasAsistenciaInput, Prisma.EstudianteUncheckedCreateWithoutAlertasAsistenciaInput>
+  connectOrCreate?: Prisma.EstudianteCreateOrConnectWithoutAlertasAsistenciaInput
+  upsert?: Prisma.EstudianteUpsertWithoutAlertasAsistenciaInput
+  connect?: Prisma.EstudianteWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.EstudianteUpdateToOneWithWhereWithoutAlertasAsistenciaInput, Prisma.EstudianteUpdateWithoutAlertasAsistenciaInput>, Prisma.EstudianteUncheckedUpdateWithoutAlertasAsistenciaInput>
+}
+
+export type EstudianteCreateNestedOneWithoutRiesgoIAInput = {
+  create?: Prisma.XOR<Prisma.EstudianteCreateWithoutRiesgoIAInput, Prisma.EstudianteUncheckedCreateWithoutRiesgoIAInput>
+  connectOrCreate?: Prisma.EstudianteCreateOrConnectWithoutRiesgoIAInput
+  connect?: Prisma.EstudianteWhereUniqueInput
+}
+
+export type EstudianteUpdateOneRequiredWithoutRiesgoIANestedInput = {
+  create?: Prisma.XOR<Prisma.EstudianteCreateWithoutRiesgoIAInput, Prisma.EstudianteUncheckedCreateWithoutRiesgoIAInput>
+  connectOrCreate?: Prisma.EstudianteCreateOrConnectWithoutRiesgoIAInput
+  upsert?: Prisma.EstudianteUpsertWithoutRiesgoIAInput
+  connect?: Prisma.EstudianteWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.EstudianteUpdateToOneWithWhereWithoutRiesgoIAInput, Prisma.EstudianteUpdateWithoutRiesgoIAInput>, Prisma.EstudianteUncheckedUpdateWithoutRiesgoIAInput>
+}
+
+export type EstudianteCreateNestedOneWithoutHistorialReportesInput = {
+  create?: Prisma.XOR<Prisma.EstudianteCreateWithoutHistorialReportesInput, Prisma.EstudianteUncheckedCreateWithoutHistorialReportesInput>
+  connectOrCreate?: Prisma.EstudianteCreateOrConnectWithoutHistorialReportesInput
+  connect?: Prisma.EstudianteWhereUniqueInput
+}
+
+export type EstudianteUpdateOneWithoutHistorialReportesNestedInput = {
+  create?: Prisma.XOR<Prisma.EstudianteCreateWithoutHistorialReportesInput, Prisma.EstudianteUncheckedCreateWithoutHistorialReportesInput>
+  connectOrCreate?: Prisma.EstudianteCreateOrConnectWithoutHistorialReportesInput
+  upsert?: Prisma.EstudianteUpsertWithoutHistorialReportesInput
+  disconnect?: Prisma.EstudianteWhereInput | boolean
+  delete?: Prisma.EstudianteWhereInput | boolean
+  connect?: Prisma.EstudianteWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.EstudianteUpdateToOneWithWhereWithoutHistorialReportesInput, Prisma.EstudianteUpdateWithoutHistorialReportesInput>, Prisma.EstudianteUncheckedUpdateWithoutHistorialReportesInput>
+}
+
 export type EstudianteCreateWithoutTurnoInput = {
   codigo: string
   dni: string
@@ -648,6 +718,9 @@ export type EstudianteCreateWithoutTurnoInput = {
   telegramChatId?: string
   estado?: boolean
   createdAt?: Date | string
+  alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
+  riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
   asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
 }
 
@@ -664,6 +737,9 @@ export type EstudianteUncheckedCreateWithoutTurnoInput = {
   telegramChatId?: string
   estado?: boolean
   createdAt?: Date | string
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
   asistencias?: Prisma.AsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
 }
 
@@ -724,6 +800,9 @@ export type EstudianteCreateWithoutAsistenciasInput = {
   telegramChatId?: string
   estado?: boolean
   createdAt?: Date | string
+  alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
+  riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
   turno?: Prisma.TurnoCreateNestedOneWithoutEstudiantesInput
 }
 
@@ -741,6 +820,9 @@ export type EstudianteUncheckedCreateWithoutAsistenciasInput = {
   estado?: boolean
   createdAt?: Date | string
   turnoId?: number | null
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteCreateOrConnectWithoutAsistenciasInput = {
@@ -771,6 +853,9 @@ export type EstudianteUpdateWithoutAsistenciasInput = {
   telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
   turno?: Prisma.TurnoUpdateOneWithoutEstudiantesNestedInput
 }
 
@@ -788,6 +873,279 @@ export type EstudianteUncheckedUpdateWithoutAsistenciasInput = {
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   turnoId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
+}
+
+export type EstudianteCreateWithoutAlertasAsistenciaInput = {
+  codigo: string
+  dni: string
+  nombres: string
+  apellidos: string
+  grado: string
+  seccion: string
+  nombreTutor?: string
+  whatsapp?: string
+  telegramChatId?: string
+  estado?: boolean
+  createdAt?: Date | string
+  riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
+  turno?: Prisma.TurnoCreateNestedOneWithoutEstudiantesInput
+  asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
+}
+
+export type EstudianteUncheckedCreateWithoutAlertasAsistenciaInput = {
+  id?: number
+  codigo: string
+  dni: string
+  nombres: string
+  apellidos: string
+  grado: string
+  seccion: string
+  nombreTutor?: string
+  whatsapp?: string
+  telegramChatId?: string
+  estado?: boolean
+  createdAt?: Date | string
+  turnoId?: number | null
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
+  asistencias?: Prisma.AsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
+}
+
+export type EstudianteCreateOrConnectWithoutAlertasAsistenciaInput = {
+  where: Prisma.EstudianteWhereUniqueInput
+  create: Prisma.XOR<Prisma.EstudianteCreateWithoutAlertasAsistenciaInput, Prisma.EstudianteUncheckedCreateWithoutAlertasAsistenciaInput>
+}
+
+export type EstudianteUpsertWithoutAlertasAsistenciaInput = {
+  update: Prisma.XOR<Prisma.EstudianteUpdateWithoutAlertasAsistenciaInput, Prisma.EstudianteUncheckedUpdateWithoutAlertasAsistenciaInput>
+  create: Prisma.XOR<Prisma.EstudianteCreateWithoutAlertasAsistenciaInput, Prisma.EstudianteUncheckedCreateWithoutAlertasAsistenciaInput>
+  where?: Prisma.EstudianteWhereInput
+}
+
+export type EstudianteUpdateToOneWithWhereWithoutAlertasAsistenciaInput = {
+  where?: Prisma.EstudianteWhereInput
+  data: Prisma.XOR<Prisma.EstudianteUpdateWithoutAlertasAsistenciaInput, Prisma.EstudianteUncheckedUpdateWithoutAlertasAsistenciaInput>
+}
+
+export type EstudianteUpdateWithoutAlertasAsistenciaInput = {
+  codigo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.StringFieldUpdateOperationsInput | string
+  nombres?: Prisma.StringFieldUpdateOperationsInput | string
+  apellidos?: Prisma.StringFieldUpdateOperationsInput | string
+  grado?: Prisma.StringFieldUpdateOperationsInput | string
+  seccion?: Prisma.StringFieldUpdateOperationsInput | string
+  nombreTutor?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsapp?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
+  turno?: Prisma.TurnoUpdateOneWithoutEstudiantesNestedInput
+  asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
+}
+
+export type EstudianteUncheckedUpdateWithoutAlertasAsistenciaInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  codigo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.StringFieldUpdateOperationsInput | string
+  nombres?: Prisma.StringFieldUpdateOperationsInput | string
+  apellidos?: Prisma.StringFieldUpdateOperationsInput | string
+  grado?: Prisma.StringFieldUpdateOperationsInput | string
+  seccion?: Prisma.StringFieldUpdateOperationsInput | string
+  nombreTutor?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsapp?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  turnoId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
+  asistencias?: Prisma.AsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
+}
+
+export type EstudianteCreateWithoutRiesgoIAInput = {
+  codigo: string
+  dni: string
+  nombres: string
+  apellidos: string
+  grado: string
+  seccion: string
+  nombreTutor?: string
+  whatsapp?: string
+  telegramChatId?: string
+  estado?: boolean
+  createdAt?: Date | string
+  alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
+  turno?: Prisma.TurnoCreateNestedOneWithoutEstudiantesInput
+  asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
+}
+
+export type EstudianteUncheckedCreateWithoutRiesgoIAInput = {
+  id?: number
+  codigo: string
+  dni: string
+  nombres: string
+  apellidos: string
+  grado: string
+  seccion: string
+  nombreTutor?: string
+  whatsapp?: string
+  telegramChatId?: string
+  estado?: boolean
+  createdAt?: Date | string
+  turnoId?: number | null
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
+  asistencias?: Prisma.AsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
+}
+
+export type EstudianteCreateOrConnectWithoutRiesgoIAInput = {
+  where: Prisma.EstudianteWhereUniqueInput
+  create: Prisma.XOR<Prisma.EstudianteCreateWithoutRiesgoIAInput, Prisma.EstudianteUncheckedCreateWithoutRiesgoIAInput>
+}
+
+export type EstudianteUpsertWithoutRiesgoIAInput = {
+  update: Prisma.XOR<Prisma.EstudianteUpdateWithoutRiesgoIAInput, Prisma.EstudianteUncheckedUpdateWithoutRiesgoIAInput>
+  create: Prisma.XOR<Prisma.EstudianteCreateWithoutRiesgoIAInput, Prisma.EstudianteUncheckedCreateWithoutRiesgoIAInput>
+  where?: Prisma.EstudianteWhereInput
+}
+
+export type EstudianteUpdateToOneWithWhereWithoutRiesgoIAInput = {
+  where?: Prisma.EstudianteWhereInput
+  data: Prisma.XOR<Prisma.EstudianteUpdateWithoutRiesgoIAInput, Prisma.EstudianteUncheckedUpdateWithoutRiesgoIAInput>
+}
+
+export type EstudianteUpdateWithoutRiesgoIAInput = {
+  codigo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.StringFieldUpdateOperationsInput | string
+  nombres?: Prisma.StringFieldUpdateOperationsInput | string
+  apellidos?: Prisma.StringFieldUpdateOperationsInput | string
+  grado?: Prisma.StringFieldUpdateOperationsInput | string
+  seccion?: Prisma.StringFieldUpdateOperationsInput | string
+  nombreTutor?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsapp?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
+  turno?: Prisma.TurnoUpdateOneWithoutEstudiantesNestedInput
+  asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
+}
+
+export type EstudianteUncheckedUpdateWithoutRiesgoIAInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  codigo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.StringFieldUpdateOperationsInput | string
+  nombres?: Prisma.StringFieldUpdateOperationsInput | string
+  apellidos?: Prisma.StringFieldUpdateOperationsInput | string
+  grado?: Prisma.StringFieldUpdateOperationsInput | string
+  seccion?: Prisma.StringFieldUpdateOperationsInput | string
+  nombreTutor?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsapp?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  turnoId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
+  asistencias?: Prisma.AsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
+}
+
+export type EstudianteCreateWithoutHistorialReportesInput = {
+  codigo: string
+  dni: string
+  nombres: string
+  apellidos: string
+  grado: string
+  seccion: string
+  nombreTutor?: string
+  whatsapp?: string
+  telegramChatId?: string
+  estado?: boolean
+  createdAt?: Date | string
+  alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
+  riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
+  turno?: Prisma.TurnoCreateNestedOneWithoutEstudiantesInput
+  asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
+}
+
+export type EstudianteUncheckedCreateWithoutHistorialReportesInput = {
+  id?: number
+  codigo: string
+  dni: string
+  nombres: string
+  apellidos: string
+  grado: string
+  seccion: string
+  nombreTutor?: string
+  whatsapp?: string
+  telegramChatId?: string
+  estado?: boolean
+  createdAt?: Date | string
+  turnoId?: number | null
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
+  asistencias?: Prisma.AsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
+}
+
+export type EstudianteCreateOrConnectWithoutHistorialReportesInput = {
+  where: Prisma.EstudianteWhereUniqueInput
+  create: Prisma.XOR<Prisma.EstudianteCreateWithoutHistorialReportesInput, Prisma.EstudianteUncheckedCreateWithoutHistorialReportesInput>
+}
+
+export type EstudianteUpsertWithoutHistorialReportesInput = {
+  update: Prisma.XOR<Prisma.EstudianteUpdateWithoutHistorialReportesInput, Prisma.EstudianteUncheckedUpdateWithoutHistorialReportesInput>
+  create: Prisma.XOR<Prisma.EstudianteCreateWithoutHistorialReportesInput, Prisma.EstudianteUncheckedCreateWithoutHistorialReportesInput>
+  where?: Prisma.EstudianteWhereInput
+}
+
+export type EstudianteUpdateToOneWithWhereWithoutHistorialReportesInput = {
+  where?: Prisma.EstudianteWhereInput
+  data: Prisma.XOR<Prisma.EstudianteUpdateWithoutHistorialReportesInput, Prisma.EstudianteUncheckedUpdateWithoutHistorialReportesInput>
+}
+
+export type EstudianteUpdateWithoutHistorialReportesInput = {
+  codigo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.StringFieldUpdateOperationsInput | string
+  nombres?: Prisma.StringFieldUpdateOperationsInput | string
+  apellidos?: Prisma.StringFieldUpdateOperationsInput | string
+  grado?: Prisma.StringFieldUpdateOperationsInput | string
+  seccion?: Prisma.StringFieldUpdateOperationsInput | string
+  nombreTutor?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsapp?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
+  turno?: Prisma.TurnoUpdateOneWithoutEstudiantesNestedInput
+  asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
+}
+
+export type EstudianteUncheckedUpdateWithoutHistorialReportesInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  codigo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.StringFieldUpdateOperationsInput | string
+  nombres?: Prisma.StringFieldUpdateOperationsInput | string
+  apellidos?: Prisma.StringFieldUpdateOperationsInput | string
+  grado?: Prisma.StringFieldUpdateOperationsInput | string
+  seccion?: Prisma.StringFieldUpdateOperationsInput | string
+  nombreTutor?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsapp?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  turnoId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
+  asistencias?: Prisma.AsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteCreateManyTurnoInput = {
@@ -817,6 +1175,9 @@ export type EstudianteUpdateWithoutTurnoInput = {
   telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
   asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
 }
 
@@ -833,6 +1194,9 @@ export type EstudianteUncheckedUpdateWithoutTurnoInput = {
   telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
   asistencias?: Prisma.AsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
 }
 
@@ -857,10 +1221,14 @@ export type EstudianteUncheckedUpdateManyWithoutTurnoInput = {
  */
 
 export type EstudianteCountOutputType = {
+  alertasAsistencia: number
+  historialReportes: number
   asistencias: number
 }
 
 export type EstudianteCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  alertasAsistencia?: boolean | EstudianteCountOutputTypeCountAlertasAsistenciaArgs
+  historialReportes?: boolean | EstudianteCountOutputTypeCountHistorialReportesArgs
   asistencias?: boolean | EstudianteCountOutputTypeCountAsistenciasArgs
 }
 
@@ -872,6 +1240,20 @@ export type EstudianteCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.E
    * Select specific fields to fetch from the EstudianteCountOutputType
    */
   select?: Prisma.EstudianteCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * EstudianteCountOutputType without action
+ */
+export type EstudianteCountOutputTypeCountAlertasAsistenciaArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AlertaAsistenciaWhereInput
+}
+
+/**
+ * EstudianteCountOutputType without action
+ */
+export type EstudianteCountOutputTypeCountHistorialReportesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.HistorialReporteAutomaticoWhereInput
 }
 
 /**
@@ -896,6 +1278,9 @@ export type EstudianteSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   estado?: boolean
   createdAt?: boolean
   turnoId?: boolean
+  alertasAsistencia?: boolean | Prisma.Estudiante$alertasAsistenciaArgs<ExtArgs>
+  riesgoIA?: boolean | Prisma.Estudiante$riesgoIAArgs<ExtArgs>
+  historialReportes?: boolean | Prisma.Estudiante$historialReportesArgs<ExtArgs>
   turno?: boolean | Prisma.Estudiante$turnoArgs<ExtArgs>
   asistencias?: boolean | Prisma.Estudiante$asistenciasArgs<ExtArgs>
   _count?: boolean | Prisma.EstudianteCountOutputTypeDefaultArgs<ExtArgs>
@@ -953,6 +1338,9 @@ export type EstudianteSelectScalar = {
 
 export type EstudianteOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "codigo" | "dni" | "nombres" | "apellidos" | "grado" | "seccion" | "nombreTutor" | "whatsapp" | "telegramChatId" | "estado" | "createdAt" | "turnoId", ExtArgs["result"]["estudiante"]>
 export type EstudianteInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  alertasAsistencia?: boolean | Prisma.Estudiante$alertasAsistenciaArgs<ExtArgs>
+  riesgoIA?: boolean | Prisma.Estudiante$riesgoIAArgs<ExtArgs>
+  historialReportes?: boolean | Prisma.Estudiante$historialReportesArgs<ExtArgs>
   turno?: boolean | Prisma.Estudiante$turnoArgs<ExtArgs>
   asistencias?: boolean | Prisma.Estudiante$asistenciasArgs<ExtArgs>
   _count?: boolean | Prisma.EstudianteCountOutputTypeDefaultArgs<ExtArgs>
@@ -967,6 +1355,9 @@ export type EstudianteIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.E
 export type $EstudiantePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Estudiante"
   objects: {
+    alertasAsistencia: Prisma.$AlertaAsistenciaPayload<ExtArgs>[]
+    riesgoIA: Prisma.$RiesgoEstudianteIAPayload<ExtArgs> | null
+    historialReportes: Prisma.$HistorialReporteAutomaticoPayload<ExtArgs>[]
     turno: Prisma.$TurnoPayload<ExtArgs> | null
     asistencias: Prisma.$AsistenciaPayload<ExtArgs>[]
   }
@@ -1378,6 +1769,9 @@ readonly fields: EstudianteFieldRefs;
  */
 export interface Prisma__EstudianteClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  alertasAsistencia<T extends Prisma.Estudiante$alertasAsistenciaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Estudiante$alertasAsistenciaArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AlertaAsistenciaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  riesgoIA<T extends Prisma.Estudiante$riesgoIAArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Estudiante$riesgoIAArgs<ExtArgs>>): Prisma.Prisma__RiesgoEstudianteIAClient<runtime.Types.Result.GetResult<Prisma.$RiesgoEstudianteIAPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  historialReportes<T extends Prisma.Estudiante$historialReportesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Estudiante$historialReportesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$HistorialReporteAutomaticoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   turno<T extends Prisma.Estudiante$turnoArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Estudiante$turnoArgs<ExtArgs>>): Prisma.Prisma__TurnoClient<runtime.Types.Result.GetResult<Prisma.$TurnoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   asistencias<T extends Prisma.Estudiante$asistenciasArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Estudiante$asistenciasArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AsistenciaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -1820,6 +2214,73 @@ export type EstudianteDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.In
    * Limit how many Estudiantes to delete.
    */
   limit?: number
+}
+
+/**
+ * Estudiante.alertasAsistencia
+ */
+export type Estudiante$alertasAsistenciaArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AlertaAsistencia
+   */
+  select?: Prisma.AlertaAsistenciaSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AlertaAsistencia
+   */
+  omit?: Prisma.AlertaAsistenciaOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AlertaAsistenciaInclude<ExtArgs> | null
+  where?: Prisma.AlertaAsistenciaWhereInput
+  orderBy?: Prisma.AlertaAsistenciaOrderByWithRelationInput | Prisma.AlertaAsistenciaOrderByWithRelationInput[]
+  cursor?: Prisma.AlertaAsistenciaWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AlertaAsistenciaScalarFieldEnum | Prisma.AlertaAsistenciaScalarFieldEnum[]
+}
+
+/**
+ * Estudiante.riesgoIA
+ */
+export type Estudiante$riesgoIAArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RiesgoEstudianteIA
+   */
+  select?: Prisma.RiesgoEstudianteIASelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the RiesgoEstudianteIA
+   */
+  omit?: Prisma.RiesgoEstudianteIAOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RiesgoEstudianteIAInclude<ExtArgs> | null
+  where?: Prisma.RiesgoEstudianteIAWhereInput
+}
+
+/**
+ * Estudiante.historialReportes
+ */
+export type Estudiante$historialReportesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the HistorialReporteAutomatico
+   */
+  select?: Prisma.HistorialReporteAutomaticoSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the HistorialReporteAutomatico
+   */
+  omit?: Prisma.HistorialReporteAutomaticoOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.HistorialReporteAutomaticoInclude<ExtArgs> | null
+  where?: Prisma.HistorialReporteAutomaticoWhereInput
+  orderBy?: Prisma.HistorialReporteAutomaticoOrderByWithRelationInput | Prisma.HistorialReporteAutomaticoOrderByWithRelationInput[]
+  cursor?: Prisma.HistorialReporteAutomaticoWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.HistorialReporteAutomaticoScalarFieldEnum | Prisma.HistorialReporteAutomaticoScalarFieldEnum[]
 }
 
 /**

@@ -6,16 +6,20 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
+    "alertas:local": "node scripts/alertas-local.js",
     "lint": "eslint",
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@google/genai": "^2.10.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "axios": "^1.18.1",
     "bcryptjs": "^3.0.3",
     "form-data": "^4.0.6",
+    "groq-sdk": "^1.3.0",
     "html5-qrcode": "^2.3.8",
+    "jose": "^6.2.3",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "next": "16.2.9",
@@ -38,6 +42,8 @@
     "eslint-config-next": "16.2.9",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5"
   }
 }

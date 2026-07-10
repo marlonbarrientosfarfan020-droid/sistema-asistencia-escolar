@@ -28,10 +28,12 @@ export type AggregateTurno = {
 
 export type TurnoAvgAggregateOutputType = {
   id: number | null
+  margenAlertaMinutos: number | null
 }
 
 export type TurnoSumAggregateOutputType = {
   id: number | null
+  margenAlertaMinutos: number | null
 }
 
 export type TurnoMinAggregateOutputType = {
@@ -40,6 +42,7 @@ export type TurnoMinAggregateOutputType = {
   horaEntrada: string | null
   horaSalida: string | null
   estado: boolean | null
+  margenAlertaMinutos: number | null
   createdAt: Date | null
 }
 
@@ -49,6 +52,7 @@ export type TurnoMaxAggregateOutputType = {
   horaEntrada: string | null
   horaSalida: string | null
   estado: boolean | null
+  margenAlertaMinutos: number | null
   createdAt: Date | null
 }
 
@@ -58,6 +62,7 @@ export type TurnoCountAggregateOutputType = {
   horaEntrada: number
   horaSalida: number
   estado: number
+  margenAlertaMinutos: number
   createdAt: number
   _all: number
 }
@@ -65,10 +70,12 @@ export type TurnoCountAggregateOutputType = {
 
 export type TurnoAvgAggregateInputType = {
   id?: true
+  margenAlertaMinutos?: true
 }
 
 export type TurnoSumAggregateInputType = {
   id?: true
+  margenAlertaMinutos?: true
 }
 
 export type TurnoMinAggregateInputType = {
@@ -77,6 +84,7 @@ export type TurnoMinAggregateInputType = {
   horaEntrada?: true
   horaSalida?: true
   estado?: true
+  margenAlertaMinutos?: true
   createdAt?: true
 }
 
@@ -86,6 +94,7 @@ export type TurnoMaxAggregateInputType = {
   horaEntrada?: true
   horaSalida?: true
   estado?: true
+  margenAlertaMinutos?: true
   createdAt?: true
 }
 
@@ -95,6 +104,7 @@ export type TurnoCountAggregateInputType = {
   horaEntrada?: true
   horaSalida?: true
   estado?: true
+  margenAlertaMinutos?: true
   createdAt?: true
   _all?: true
 }
@@ -191,6 +201,7 @@ export type TurnoGroupByOutputType = {
   horaEntrada: string
   horaSalida: string
   estado: boolean
+  margenAlertaMinutos: number
   createdAt: Date
   _count: TurnoCountAggregateOutputType | null
   _avg: TurnoAvgAggregateOutputType | null
@@ -223,8 +234,10 @@ export type TurnoWhereInput = {
   horaEntrada?: Prisma.StringFilter<"Turno"> | string
   horaSalida?: Prisma.StringFilter<"Turno"> | string
   estado?: Prisma.BoolFilter<"Turno"> | boolean
+  margenAlertaMinutos?: Prisma.IntFilter<"Turno"> | number
   createdAt?: Prisma.DateTimeFilter<"Turno"> | Date | string
   estudiantes?: Prisma.EstudianteListRelationFilter
+  calendarioEscolar?: Prisma.CalendarioEscolarListRelationFilter
 }
 
 export type TurnoOrderByWithRelationInput = {
@@ -233,8 +246,10 @@ export type TurnoOrderByWithRelationInput = {
   horaEntrada?: Prisma.SortOrder
   horaSalida?: Prisma.SortOrder
   estado?: Prisma.SortOrder
+  margenAlertaMinutos?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   estudiantes?: Prisma.EstudianteOrderByRelationAggregateInput
+  calendarioEscolar?: Prisma.CalendarioEscolarOrderByRelationAggregateInput
 }
 
 export type TurnoWhereUniqueInput = Prisma.AtLeast<{
@@ -246,8 +261,10 @@ export type TurnoWhereUniqueInput = Prisma.AtLeast<{
   horaEntrada?: Prisma.StringFilter<"Turno"> | string
   horaSalida?: Prisma.StringFilter<"Turno"> | string
   estado?: Prisma.BoolFilter<"Turno"> | boolean
+  margenAlertaMinutos?: Prisma.IntFilter<"Turno"> | number
   createdAt?: Prisma.DateTimeFilter<"Turno"> | Date | string
   estudiantes?: Prisma.EstudianteListRelationFilter
+  calendarioEscolar?: Prisma.CalendarioEscolarListRelationFilter
 }, "id" | "nombre">
 
 export type TurnoOrderByWithAggregationInput = {
@@ -256,6 +273,7 @@ export type TurnoOrderByWithAggregationInput = {
   horaEntrada?: Prisma.SortOrder
   horaSalida?: Prisma.SortOrder
   estado?: Prisma.SortOrder
+  margenAlertaMinutos?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.TurnoCountOrderByAggregateInput
   _avg?: Prisma.TurnoAvgOrderByAggregateInput
@@ -273,6 +291,7 @@ export type TurnoScalarWhereWithAggregatesInput = {
   horaEntrada?: Prisma.StringWithAggregatesFilter<"Turno"> | string
   horaSalida?: Prisma.StringWithAggregatesFilter<"Turno"> | string
   estado?: Prisma.BoolWithAggregatesFilter<"Turno"> | boolean
+  margenAlertaMinutos?: Prisma.IntWithAggregatesFilter<"Turno"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Turno"> | Date | string
 }
 
@@ -281,8 +300,10 @@ export type TurnoCreateInput = {
   horaEntrada: string
   horaSalida: string
   estado?: boolean
+  margenAlertaMinutos?: number
   createdAt?: Date | string
   estudiantes?: Prisma.EstudianteCreateNestedManyWithoutTurnoInput
+  calendarioEscolar?: Prisma.CalendarioEscolarCreateNestedManyWithoutTurnoInput
 }
 
 export type TurnoUncheckedCreateInput = {
@@ -291,8 +312,10 @@ export type TurnoUncheckedCreateInput = {
   horaEntrada: string
   horaSalida: string
   estado?: boolean
+  margenAlertaMinutos?: number
   createdAt?: Date | string
   estudiantes?: Prisma.EstudianteUncheckedCreateNestedManyWithoutTurnoInput
+  calendarioEscolar?: Prisma.CalendarioEscolarUncheckedCreateNestedManyWithoutTurnoInput
 }
 
 export type TurnoUpdateInput = {
@@ -300,8 +323,10 @@ export type TurnoUpdateInput = {
   horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
   horaSalida?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   estudiantes?: Prisma.EstudianteUpdateManyWithoutTurnoNestedInput
+  calendarioEscolar?: Prisma.CalendarioEscolarUpdateManyWithoutTurnoNestedInput
 }
 
 export type TurnoUncheckedUpdateInput = {
@@ -310,8 +335,10 @@ export type TurnoUncheckedUpdateInput = {
   horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
   horaSalida?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   estudiantes?: Prisma.EstudianteUncheckedUpdateManyWithoutTurnoNestedInput
+  calendarioEscolar?: Prisma.CalendarioEscolarUncheckedUpdateManyWithoutTurnoNestedInput
 }
 
 export type TurnoCreateManyInput = {
@@ -320,6 +347,7 @@ export type TurnoCreateManyInput = {
   horaEntrada: string
   horaSalida: string
   estado?: boolean
+  margenAlertaMinutos?: number
   createdAt?: Date | string
 }
 
@@ -328,6 +356,7 @@ export type TurnoUpdateManyMutationInput = {
   horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
   horaSalida?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -337,6 +366,7 @@ export type TurnoUncheckedUpdateManyInput = {
   horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
   horaSalida?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -351,11 +381,13 @@ export type TurnoCountOrderByAggregateInput = {
   horaEntrada?: Prisma.SortOrder
   horaSalida?: Prisma.SortOrder
   estado?: Prisma.SortOrder
+  margenAlertaMinutos?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type TurnoAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  margenAlertaMinutos?: Prisma.SortOrder
 }
 
 export type TurnoMaxOrderByAggregateInput = {
@@ -364,6 +396,7 @@ export type TurnoMaxOrderByAggregateInput = {
   horaEntrada?: Prisma.SortOrder
   horaSalida?: Prisma.SortOrder
   estado?: Prisma.SortOrder
+  margenAlertaMinutos?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -373,11 +406,13 @@ export type TurnoMinOrderByAggregateInput = {
   horaEntrada?: Prisma.SortOrder
   horaSalida?: Prisma.SortOrder
   estado?: Prisma.SortOrder
+  margenAlertaMinutos?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type TurnoSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  margenAlertaMinutos?: Prisma.SortOrder
 }
 
 export type TurnoCreateNestedOneWithoutEstudiantesInput = {
@@ -396,12 +431,30 @@ export type TurnoUpdateOneWithoutEstudiantesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.TurnoUpdateToOneWithWhereWithoutEstudiantesInput, Prisma.TurnoUpdateWithoutEstudiantesInput>, Prisma.TurnoUncheckedUpdateWithoutEstudiantesInput>
 }
 
+export type TurnoCreateNestedOneWithoutCalendarioEscolarInput = {
+  create?: Prisma.XOR<Prisma.TurnoCreateWithoutCalendarioEscolarInput, Prisma.TurnoUncheckedCreateWithoutCalendarioEscolarInput>
+  connectOrCreate?: Prisma.TurnoCreateOrConnectWithoutCalendarioEscolarInput
+  connect?: Prisma.TurnoWhereUniqueInput
+}
+
+export type TurnoUpdateOneWithoutCalendarioEscolarNestedInput = {
+  create?: Prisma.XOR<Prisma.TurnoCreateWithoutCalendarioEscolarInput, Prisma.TurnoUncheckedCreateWithoutCalendarioEscolarInput>
+  connectOrCreate?: Prisma.TurnoCreateOrConnectWithoutCalendarioEscolarInput
+  upsert?: Prisma.TurnoUpsertWithoutCalendarioEscolarInput
+  disconnect?: Prisma.TurnoWhereInput | boolean
+  delete?: Prisma.TurnoWhereInput | boolean
+  connect?: Prisma.TurnoWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TurnoUpdateToOneWithWhereWithoutCalendarioEscolarInput, Prisma.TurnoUpdateWithoutCalendarioEscolarInput>, Prisma.TurnoUncheckedUpdateWithoutCalendarioEscolarInput>
+}
+
 export type TurnoCreateWithoutEstudiantesInput = {
   nombre: string
   horaEntrada: string
   horaSalida: string
   estado?: boolean
+  margenAlertaMinutos?: number
   createdAt?: Date | string
+  calendarioEscolar?: Prisma.CalendarioEscolarCreateNestedManyWithoutTurnoInput
 }
 
 export type TurnoUncheckedCreateWithoutEstudiantesInput = {
@@ -410,7 +463,9 @@ export type TurnoUncheckedCreateWithoutEstudiantesInput = {
   horaEntrada: string
   horaSalida: string
   estado?: boolean
+  margenAlertaMinutos?: number
   createdAt?: Date | string
+  calendarioEscolar?: Prisma.CalendarioEscolarUncheckedCreateNestedManyWithoutTurnoInput
 }
 
 export type TurnoCreateOrConnectWithoutEstudiantesInput = {
@@ -434,7 +489,9 @@ export type TurnoUpdateWithoutEstudiantesInput = {
   horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
   horaSalida?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  calendarioEscolar?: Prisma.CalendarioEscolarUpdateManyWithoutTurnoNestedInput
 }
 
 export type TurnoUncheckedUpdateWithoutEstudiantesInput = {
@@ -443,7 +500,67 @@ export type TurnoUncheckedUpdateWithoutEstudiantesInput = {
   horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
   horaSalida?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  calendarioEscolar?: Prisma.CalendarioEscolarUncheckedUpdateManyWithoutTurnoNestedInput
+}
+
+export type TurnoCreateWithoutCalendarioEscolarInput = {
+  nombre: string
+  horaEntrada: string
+  horaSalida: string
+  estado?: boolean
+  margenAlertaMinutos?: number
+  createdAt?: Date | string
+  estudiantes?: Prisma.EstudianteCreateNestedManyWithoutTurnoInput
+}
+
+export type TurnoUncheckedCreateWithoutCalendarioEscolarInput = {
+  id?: number
+  nombre: string
+  horaEntrada: string
+  horaSalida: string
+  estado?: boolean
+  margenAlertaMinutos?: number
+  createdAt?: Date | string
+  estudiantes?: Prisma.EstudianteUncheckedCreateNestedManyWithoutTurnoInput
+}
+
+export type TurnoCreateOrConnectWithoutCalendarioEscolarInput = {
+  where: Prisma.TurnoWhereUniqueInput
+  create: Prisma.XOR<Prisma.TurnoCreateWithoutCalendarioEscolarInput, Prisma.TurnoUncheckedCreateWithoutCalendarioEscolarInput>
+}
+
+export type TurnoUpsertWithoutCalendarioEscolarInput = {
+  update: Prisma.XOR<Prisma.TurnoUpdateWithoutCalendarioEscolarInput, Prisma.TurnoUncheckedUpdateWithoutCalendarioEscolarInput>
+  create: Prisma.XOR<Prisma.TurnoCreateWithoutCalendarioEscolarInput, Prisma.TurnoUncheckedCreateWithoutCalendarioEscolarInput>
+  where?: Prisma.TurnoWhereInput
+}
+
+export type TurnoUpdateToOneWithWhereWithoutCalendarioEscolarInput = {
+  where?: Prisma.TurnoWhereInput
+  data: Prisma.XOR<Prisma.TurnoUpdateWithoutCalendarioEscolarInput, Prisma.TurnoUncheckedUpdateWithoutCalendarioEscolarInput>
+}
+
+export type TurnoUpdateWithoutCalendarioEscolarInput = {
+  nombre?: Prisma.StringFieldUpdateOperationsInput | string
+  horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
+  horaSalida?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  estudiantes?: Prisma.EstudianteUpdateManyWithoutTurnoNestedInput
+}
+
+export type TurnoUncheckedUpdateWithoutCalendarioEscolarInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  nombre?: Prisma.StringFieldUpdateOperationsInput | string
+  horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
+  horaSalida?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  estudiantes?: Prisma.EstudianteUncheckedUpdateManyWithoutTurnoNestedInput
 }
 
 
@@ -453,10 +570,12 @@ export type TurnoUncheckedUpdateWithoutEstudiantesInput = {
 
 export type TurnoCountOutputType = {
   estudiantes: number
+  calendarioEscolar: number
 }
 
 export type TurnoCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   estudiantes?: boolean | TurnoCountOutputTypeCountEstudiantesArgs
+  calendarioEscolar?: boolean | TurnoCountOutputTypeCountCalendarioEscolarArgs
 }
 
 /**
@@ -476,6 +595,13 @@ export type TurnoCountOutputTypeCountEstudiantesArgs<ExtArgs extends runtime.Typ
   where?: Prisma.EstudianteWhereInput
 }
 
+/**
+ * TurnoCountOutputType without action
+ */
+export type TurnoCountOutputTypeCountCalendarioEscolarArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CalendarioEscolarWhereInput
+}
+
 
 export type TurnoSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -483,8 +609,10 @@ export type TurnoSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   horaEntrada?: boolean
   horaSalida?: boolean
   estado?: boolean
+  margenAlertaMinutos?: boolean
   createdAt?: boolean
   estudiantes?: boolean | Prisma.Turno$estudiantesArgs<ExtArgs>
+  calendarioEscolar?: boolean | Prisma.Turno$calendarioEscolarArgs<ExtArgs>
   _count?: boolean | Prisma.TurnoCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["turno"]>
 
@@ -494,6 +622,7 @@ export type TurnoSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   horaEntrada?: boolean
   horaSalida?: boolean
   estado?: boolean
+  margenAlertaMinutos?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["turno"]>
 
@@ -503,6 +632,7 @@ export type TurnoSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   horaEntrada?: boolean
   horaSalida?: boolean
   estado?: boolean
+  margenAlertaMinutos?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["turno"]>
 
@@ -512,12 +642,14 @@ export type TurnoSelectScalar = {
   horaEntrada?: boolean
   horaSalida?: boolean
   estado?: boolean
+  margenAlertaMinutos?: boolean
   createdAt?: boolean
 }
 
-export type TurnoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nombre" | "horaEntrada" | "horaSalida" | "estado" | "createdAt", ExtArgs["result"]["turno"]>
+export type TurnoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nombre" | "horaEntrada" | "horaSalida" | "estado" | "margenAlertaMinutos" | "createdAt", ExtArgs["result"]["turno"]>
 export type TurnoInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   estudiantes?: boolean | Prisma.Turno$estudiantesArgs<ExtArgs>
+  calendarioEscolar?: boolean | Prisma.Turno$calendarioEscolarArgs<ExtArgs>
   _count?: boolean | Prisma.TurnoCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type TurnoIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -527,6 +659,7 @@ export type $TurnoPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   name: "Turno"
   objects: {
     estudiantes: Prisma.$EstudiantePayload<ExtArgs>[]
+    calendarioEscolar: Prisma.$CalendarioEscolarPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -534,6 +667,7 @@ export type $TurnoPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     horaEntrada: string
     horaSalida: string
     estado: boolean
+    margenAlertaMinutos: number
     createdAt: Date
   }, ExtArgs["result"]["turno"]>
   composites: {}
@@ -930,6 +1064,7 @@ readonly fields: TurnoFieldRefs;
 export interface Prisma__TurnoClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   estudiantes<T extends Prisma.Turno$estudiantesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Turno$estudiantesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EstudiantePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  calendarioEscolar<T extends Prisma.Turno$calendarioEscolarArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Turno$calendarioEscolarArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CalendarioEscolarPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -964,6 +1099,7 @@ export interface TurnoFieldRefs {
   readonly horaEntrada: Prisma.FieldRef<"Turno", 'String'>
   readonly horaSalida: Prisma.FieldRef<"Turno", 'String'>
   readonly estado: Prisma.FieldRef<"Turno", 'Boolean'>
+  readonly margenAlertaMinutos: Prisma.FieldRef<"Turno", 'Int'>
   readonly createdAt: Prisma.FieldRef<"Turno", 'DateTime'>
 }
     
@@ -1379,6 +1515,30 @@ export type Turno$estudiantesArgs<ExtArgs extends runtime.Types.Extensions.Inter
   take?: number
   skip?: number
   distinct?: Prisma.EstudianteScalarFieldEnum | Prisma.EstudianteScalarFieldEnum[]
+}
+
+/**
+ * Turno.calendarioEscolar
+ */
+export type Turno$calendarioEscolarArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CalendarioEscolar
+   */
+  select?: Prisma.CalendarioEscolarSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CalendarioEscolar
+   */
+  omit?: Prisma.CalendarioEscolarOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CalendarioEscolarInclude<ExtArgs> | null
+  where?: Prisma.CalendarioEscolarWhereInput
+  orderBy?: Prisma.CalendarioEscolarOrderByWithRelationInput | Prisma.CalendarioEscolarOrderByWithRelationInput[]
+  cursor?: Prisma.CalendarioEscolarWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CalendarioEscolarScalarFieldEnum | Prisma.CalendarioEscolarScalarFieldEnum[]
 }
 
 /**

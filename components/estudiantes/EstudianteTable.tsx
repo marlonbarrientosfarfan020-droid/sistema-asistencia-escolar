@@ -27,6 +27,12 @@ type Estudiante = {
   telegramChatId: string;
   turnoId: number | null;
   turno?: Turno | null;
+  riesgoIA?: {
+    nivel: string;
+    porcentaje: number;
+    resumen: string;
+    recomendacion: string;
+  } | null;
 };
 
 export default function EstudianteTable({ refresh }: { refresh: number }) {
@@ -40,6 +46,8 @@ export default function EstudianteTable({ refresh }: { refresh: number }) {
   const [qrImagen, setQrImagen] = useState("");
   const [estudianteQR, setEstudianteQR] = useState<Estudiante | null>(null);
   const [turnoFiltro, setTurnoFiltro] = useState("TODOS");
+  const [modalRiesgo, setModalRiesgo] = useState(false);
+const [riesgoSeleccionado, setRiesgoSeleccionado] = useState<Estudiante | null>(null);
 
   const estudiantesFiltrados = estudiantes.filter((estudiante) => {
     const coincideDni = estudiante.dni.includes(busquedaDni);
@@ -48,6 +56,26 @@ export default function EstudianteTable({ refresh }: { refresh: number }) {
 
     return coincideDni && coincideTurno;
   });
+  async function analizarRiesgoIA(dni: string) {
+  setMensaje("🧠 Analizando riesgo del estudiante...");
+
+  const res = await fetch("/api/ia/riesgo-estudiante", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ dni }),
+  });
+
+  const data = await res.json();
+
+  if (res.ok) {
+    setMensaje("✅ Riesgo IA actualizado correctamente");
+    cargarEstudiantes();
+  } else {
+    setMensaje(`❌ ${data.message || "Error al analizar riesgo IA"}`);
+  }
+}
 
   async function cargarEstudiantes() {
     const res = await fetch("/api/estudiantes", {
@@ -196,6 +224,42 @@ export default function EstudianteTable({ refresh }: { refresh: number }) {
     setEstudianteQR(estudiante);
     setModalQR(true);
   }
+  function mostrarRiesgo(estudiante: Estudiante) {
+  const riesgo = estudiante.riesgoIA;
+
+  if (!riesgo) {
+    return (
+      <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-sm font-bold">
+        Sin análisis
+      </span>
+    );
+  }
+
+  const nivel = riesgo.nivel.toUpperCase();
+
+  if (nivel === "ALTO") {
+    return (
+      <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold">
+        🔴 Alto {riesgo.porcentaje}%
+      </span>
+    );
+  }
+
+  if (nivel === "MEDIO") {
+    return (
+      <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-bold">
+        🟠 Medio {riesgo.porcentaje}%
+      </span>
+    );
+  }
+
+  return (
+    <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold">
+      🟢 Bajo {riesgo.porcentaje}%
+    </span>
+  );
+}
+  
 
   function imprimirQR() {
     if (!estudianteQR || !qrImagen) return;
@@ -351,6 +415,7 @@ export default function EstudianteTable({ refresh }: { refresh: number }) {
                 <th>Grado</th>
                 <th>Sección</th>
                 <th>Turno</th>
+                <th>Riesgo IA</th>
                 <th>Tutor</th>
                 <th>WhatsApp</th>
                 <th>Telegram</th>
@@ -373,6 +438,7 @@ export default function EstudianteTable({ refresh }: { refresh: number }) {
                       {estudiante.turno?.nombre || "Sin turno"}
                     </span>
                   </td>
+                  <td>{mostrarRiesgo(estudiante)}</td>
                   <td>{estudiante.nombreTutor}</td>
                   <td>{estudiante.whatsapp}</td>
                   <td>{estudiante.telegramChatId || "No registrado"}</td>
@@ -384,6 +450,13 @@ export default function EstudianteTable({ refresh }: { refresh: number }) {
                     >
                       QR
                     </button>
+                    <button
+  onClick={() => analizarRiesgoIA(estudiante.dni)}
+  className="bg-purple-600 text-white px-3 py-2 rounded-lg font-bold"
+>
+  IA
+</button>
+
 
                     <button
                       onClick={() => abrirEditar(estudiante)}
@@ -398,13 +471,22 @@ export default function EstudianteTable({ refresh }: { refresh: number }) {
                     >
                       Eliminar
                     </button>
+                    <button
+  onClick={() => {
+    setRiesgoSeleccionado(estudiante);
+    setModalRiesgo(true);
+  }}
+  className="bg-slate-700 text-white px-3 py-2 rounded-lg font-bold"
+>
+  Ver riesgo
+</button>
                   </td>
                 </tr>
               ))}
 
               {estudiantesFiltrados.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="py-6 text-center text-slate-500">
+                  <td colSpan={11} className="py-6 text-center text-slate-500">
                     No se encontraron estudiantes con ese DNI.
                   </td>
                 </tr>
@@ -447,9 +529,85 @@ export default function EstudianteTable({ refresh }: { refresh: number }) {
             >
               Imprimir QR
             </button>
+            
           </div>
         )}
       </Modal>
+      <Modal
+  abierto={modalRiesgo}
+  titulo="🧠 Análisis Inteligente del Estudiante"
+  onCerrar={() => setModalRiesgo(false)}
+>
+  {riesgoSeleccionado && (
+    <div className="space-y-5">
+
+      <div className="bg-slate-100 rounded-xl p-4">
+        <h3 className="font-bold text-xl">
+          {riesgoSeleccionado.nombres} {riesgoSeleccionado.apellidos}
+        </h3>
+
+        <p>DNI: {riesgoSeleccionado.dni}</p>
+
+        <p>
+          {riesgoSeleccionado.grado} - {riesgoSeleccionado.seccion}
+        </p>
+      </div>
+
+      {riesgoSeleccionado.riesgoIA ? (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+
+            <div className="bg-red-50 rounded-xl p-4">
+              <p className="text-slate-500">Nivel</p>
+
+              <h2 className="text-3xl font-bold">
+                {riesgoSeleccionado.riesgoIA.nivel}
+              </h2>
+            </div>
+
+            <div className="bg-blue-50 rounded-xl p-4">
+              <p className="text-slate-500">Probabilidad</p>
+
+              <h2 className="text-3xl font-bold">
+                {riesgoSeleccionado.riesgoIA.porcentaje}%
+              </h2>
+            </div>
+
+          </div>
+
+          <div className="bg-white border rounded-xl p-5">
+            <h3 className="font-bold text-lg mb-2">
+              📋 Resumen IA
+            </h3>
+
+            <p className="whitespace-pre-wrap">
+              {riesgoSeleccionado.riesgoIA.resumen}
+            </p>
+          </div>
+
+          <div className="bg-green-50 border rounded-xl p-5">
+            <h3 className="font-bold text-lg mb-2">
+              ✅ Recomendaciones
+            </h3>
+
+            <p className="whitespace-pre-wrap">
+              {riesgoSeleccionado.riesgoIA.recomendacion}
+            </p>
+          </div>
+        </>
+      ) : (
+        <div className="bg-yellow-50 border rounded-xl p-6 text-center">
+          Este estudiante todavía no tiene un análisis IA.
+
+          <br />
+
+          Presiona el botón <b>IA</b> para generarlo.
+        </div>
+      )}
+
+    </div>
+  )}
+</Modal>
 
       <Modal
         abierto={modalAbierto}
@@ -498,6 +656,7 @@ export default function EstudianteTable({ refresh }: { refresh: number }) {
             >
               Cancelar
             </Button>
+            
 
             <Button type="submit" className="bg-blue-600 text-white">
               Actualizar

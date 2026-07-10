@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+const ZONA_HORARIA = "America/Lima";
+
 function horaPeruActual() {
-  return new Intl.DateTimeFormat("es-PE", {
-    timeZone: "America/Lima",
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: ZONA_HORARIA,
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -12,7 +14,7 @@ function horaPeruActual() {
 
 function fechaPeruActual() {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Lima",
+    timeZone: ZONA_HORARIA,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -21,11 +23,24 @@ function fechaPeruActual() {
 
 function fechaPeruDeDate(fecha: Date) {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Lima",
+    timeZone: ZONA_HORARIA,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(fecha);
+}
+
+function minutosHora(hora: string) {
+  const [horas, minutos] = hora.split(":").map(Number);
+
+  if (
+    !Number.isFinite(horas) ||
+    !Number.isFinite(minutos)
+  ) {
+    return 0;
+  }
+
+  return horas * 60 + minutos;
 }
 
 export async function GET(request: Request) {
@@ -42,7 +57,14 @@ export async function GET(request: Request) {
     const horaActual = horaPeruActual();
     const fechaHoy = fechaPeruActual();
 
-    if (horaActual !== configuracion.horaReporteDiario) {
+    /*
+     * Usamos >= en lugar de igualdad exacta.
+     * Así funciona aunque el cron se ejecute algunos minutos después.
+     */
+    if (
+      minutosHora(horaActual) <
+      minutosHora(configuracion.horaReporteDiario)
+    ) {
       return NextResponse.json({
         ok: false,
         message: `Aún no es la hora. Actual: ${horaActual}, configurada: ${configuracion.horaReporteDiario}`,
@@ -50,7 +72,9 @@ export async function GET(request: Request) {
     }
 
     if (configuracion.ultimoReporteTelegramAt) {
-      const ultimaFecha = fechaPeruDeDate(configuracion.ultimoReporteTelegramAt);
+      const ultimaFecha = fechaPeruDeDate(
+        configuracion.ultimoReporteTelegramAt
+      );
 
       if (ultimaFecha === fechaHoy) {
         return NextResponse.json({
@@ -60,26 +84,84 @@ export async function GET(request: Request) {
       }
     }
 
+    const inicioDia = new Date(`${fechaHoy}T00:00:00-05:00`);
+    const finDia = new Date(`${fechaHoy}T23:59:59.999-05:00`);
+
+    /*
+     * Solo se detiene completamente el reporte si el evento
+     * aplica a todos los turnos.
+     */
+    const eventoNoLectivoGeneral =
+      await prisma.calendarioEscolar.findFirst({
+        where: {
+          estado: true,
+          todosLosTurnos: true,
+          fechaInicio: {
+            lte: finDia,
+          },
+          fechaFin: {
+            gte: inicioDia,
+          },
+        },
+      });
+
+    if (eventoNoLectivoGeneral) {
+      await prisma.configuracion.update({
+        where: {
+          id: configuracion.id,
+        },
+        data: {
+          ultimoReporteTelegramEstado: `📅 No enviado: día no lectivo (${eventoNoLectivoGeneral.descripcion})`,
+        },
+      });
+
+      return NextResponse.json({
+        ok: true,
+        omitido: true,
+        diaNoLectivo: true,
+        message: `Reporte omitido porque hoy es día no lectivo: ${eventoNoLectivoGeneral.descripcion}`,
+        evento: {
+          id: eventoNoLectivoGeneral.id,
+          tipo: eventoNoLectivoGeneral.tipo,
+          descripcion: eventoNoLectivoGeneral.descripcion,
+          fechaInicio: eventoNoLectivoGeneral.fechaInicio,
+          fechaFin: eventoNoLectivoGeneral.fechaFin,
+        },
+      });
+    }
+
     const url = new URL(request.url);
     const baseUrl = `${url.protocol}//${url.host}`;
 
-    const res = await fetch(`${baseUrl}/api/reportes/telegram-diario`, {
-      headers: {
-        "x-user-role": "ADMIN",
-      },
-    });
+    const respuesta = await fetch(
+      `${baseUrl}/api/reportes/telegram-diario`,
+      {
+        headers: {
+          "x-user-role": "ADMIN",
+        },
+        cache: "no-store",
+      }
+    );
 
-    if (!res.ok) {
+    const resultado = await respuesta.json().catch(() => ({}));
+
+    if (!respuesta.ok) {
       await prisma.configuracion.update({
-        where: { id: configuracion.id },
+        where: {
+          id: configuracion.id,
+        },
         data: {
-          ultimoReporteTelegramAt: new Date(),
           ultimoReporteTelegramEstado: "❌ Error automático",
         },
       });
 
       return NextResponse.json(
-        { ok: false, message: "Error al enviar reporte automático" },
+        {
+          ok: false,
+          message:
+            resultado.message ||
+            "Error al enviar reporte automático",
+        },
         { status: 500 }
       );
     }
@@ -87,12 +169,16 @@ export async function GET(request: Request) {
     return NextResponse.json({
       ok: true,
       message: "Reporte automático enviado correctamente",
+      resultado,
     });
   } catch (error) {
     console.error("Error reporte automático:", error);
 
     return NextResponse.json(
-      { ok: false, message: "Error interno del reporte automático" },
+      {
+        ok: false,
+        message: "Error interno del reporte automático",
+      },
       { status: 500 }
     );
   }

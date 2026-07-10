@@ -56,7 +56,12 @@ export const ModelName = {
   Asistencia: 'Asistencia',
   Usuario: 'Usuario',
   Configuracion: 'Configuracion',
-  Auditoria: 'Auditoria'
+  Auditoria: 'Auditoria',
+  AlertaAsistencia: 'AlertaAsistencia',
+  AnalisisIA: 'AnalisisIA',
+  RiesgoEstudianteIA: 'RiesgoEstudianteIA',
+  CalendarioEscolar: 'CalendarioEscolar',
+  HistorialReporteAutomatico: 'HistorialReporteAutomatico'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -100,6 +105,7 @@ export const TurnoScalarFieldEnum = {
   horaEntrada: 'horaEntrada',
   horaSalida: 'horaSalida',
   estado: 'estado',
+  margenAlertaMinutos: 'margenAlertaMinutos',
   createdAt: 'createdAt'
 } as const
 
@@ -113,6 +119,8 @@ export const AsistenciaScalarFieldEnum = {
   horaSalida: 'horaSalida',
   metodo: 'metodo',
   estado: 'estado',
+  fotoEntrada: 'fotoEntrada',
+  fotoSalida: 'fotoSalida',
   estudianteId: 'estudianteId'
 } as const
 
@@ -139,6 +147,7 @@ export const ConfiguracionScalarFieldEnum = {
   telefono: 'telefono',
   correo: 'correo',
   director: 'director',
+  createdAt: 'createdAt',
   reporteTelegramActivo: 'reporteTelegramActivo',
   horaReporteDiario: 'horaReporteDiario',
   telegramDirectorChatId: 'telegramDirectorChatId',
@@ -146,7 +155,16 @@ export const ConfiguracionScalarFieldEnum = {
   enviarReportePdf: 'enviarReportePdf',
   ultimoReporteTelegramAt: 'ultimoReporteTelegramAt',
   ultimoReporteTelegramEstado: 'ultimoReporteTelegramEstado',
-  createdAt: 'createdAt'
+  reporteDirectorActivo: 'reporteDirectorActivo',
+  frecuenciaReporteDirector: 'frecuenciaReporteDirector',
+  diaReporteDirector: 'diaReporteDirector',
+  horaReporteDirector: 'horaReporteDirector',
+  ultimoReporteDirectorAt: 'ultimoReporteDirectorAt',
+  reportePadresActivo: 'reportePadresActivo',
+  diaReportePadres: 'diaReportePadres',
+  horaReportePadres: 'horaReportePadres',
+  incluirRiesgoIAReportePadres: 'incluirRiesgoIAReportePadres',
+  ultimoReportePadresAt: 'ultimoReportePadresAt'
 } as const
 
 export type ConfiguracionScalarFieldEnum = (typeof ConfiguracionScalarFieldEnum)[keyof typeof ConfiguracionScalarFieldEnum]
@@ -163,6 +181,73 @@ export const AuditoriaScalarFieldEnum = {
 } as const
 
 export type AuditoriaScalarFieldEnum = (typeof AuditoriaScalarFieldEnum)[keyof typeof AuditoriaScalarFieldEnum]
+
+
+export const AlertaAsistenciaScalarFieldEnum = {
+  id: 'id',
+  estudianteId: 'estudianteId',
+  fecha: 'fecha',
+  tipo: 'tipo',
+  createdAt: 'createdAt'
+} as const
+
+export type AlertaAsistenciaScalarFieldEnum = (typeof AlertaAsistenciaScalarFieldEnum)[keyof typeof AlertaAsistenciaScalarFieldEnum]
+
+
+export const AnalisisIAScalarFieldEnum = {
+  id: 'id',
+  tipo: 'tipo',
+  dni: 'dni',
+  resultado: 'resultado',
+  createdAt: 'createdAt'
+} as const
+
+export type AnalisisIAScalarFieldEnum = (typeof AnalisisIAScalarFieldEnum)[keyof typeof AnalisisIAScalarFieldEnum]
+
+
+export const RiesgoEstudianteIAScalarFieldEnum = {
+  id: 'id',
+  estudianteId: 'estudianteId',
+  nivel: 'nivel',
+  resumen: 'resumen',
+  recomendacion: 'recomendacion',
+  porcentaje: 'porcentaje',
+  updatedAt: 'updatedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type RiesgoEstudianteIAScalarFieldEnum = (typeof RiesgoEstudianteIAScalarFieldEnum)[keyof typeof RiesgoEstudianteIAScalarFieldEnum]
+
+
+export const CalendarioEscolarScalarFieldEnum = {
+  id: 'id',
+  fechaInicio: 'fechaInicio',
+  fechaFin: 'fechaFin',
+  tipo: 'tipo',
+  descripcion: 'descripcion',
+  todosLosTurnos: 'todosLosTurnos',
+  turnoId: 'turnoId',
+  estado: 'estado',
+  createdAt: 'createdAt'
+} as const
+
+export type CalendarioEscolarScalarFieldEnum = (typeof CalendarioEscolarScalarFieldEnum)[keyof typeof CalendarioEscolarScalarFieldEnum]
+
+
+export const HistorialReporteAutomaticoScalarFieldEnum = {
+  id: 'id',
+  tipo: 'tipo',
+  destinatario: 'destinatario',
+  chatId: 'chatId',
+  estudianteId: 'estudianteId',
+  fechaInicio: 'fechaInicio',
+  fechaFin: 'fechaFin',
+  estado: 'estado',
+  detalle: 'detalle',
+  createdAt: 'createdAt'
+} as const
+
+export type HistorialReporteAutomaticoScalarFieldEnum = (typeof HistorialReporteAutomaticoScalarFieldEnum)[keyof typeof HistorialReporteAutomaticoScalarFieldEnum]
 
 
 export const SortOrder = {

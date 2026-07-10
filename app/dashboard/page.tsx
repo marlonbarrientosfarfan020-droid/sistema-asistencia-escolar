@@ -22,6 +22,8 @@ type TurnoResumen = {
   puntuales: number;
   tardanzas: number;
   sinSalida: number;
+  noLectivo?: boolean;
+motivoNoLectivo?: string;
 };
 
 type Asistencia = {
@@ -56,6 +58,25 @@ type DashboardData = {
   ultimoReporteTelegramEstado?: string;
   resumenTurnos: TurnoResumen[];
   ultimasAsistencias: Asistencia[];
+  riesgoAlto?: number;
+riesgoMedio?: number;
+riesgoBajo?: number;
+resumenIA?: string;
+topRiesgoIA: any[];
+totalEsperadosHoy?: number;
+diaNoLectivo?: boolean;
+diaNoLectivoGeneral?: boolean;
+
+eventosNoLectivosHoy?: {
+  id: number;
+  tipo: string;
+  descripcion: string;
+  fechaInicio: string;
+  fechaFin: string;
+  todosLosTurnos: boolean;
+  turnoId: number | null;
+  turno: string | null;
+}[];
 };
 
 export default function Dashboard() {
@@ -76,42 +97,83 @@ export default function Dashboard() {
     ultimoReporteTelegramEstado: "",
     resumenTurnos: [],
     ultimasAsistencias: [],
+    topRiesgoIA: [],
+    totalEsperadosHoy: 0,
+diaNoLectivo: false,
+diaNoLectivoGeneral: false,
+eventosNoLectivosHoy: [],
   });
 
   async function cargarDashboard() {
+  try {
     const res = await fetch("/api/dashboard", {
       headers: {
         "x-user-role": localStorage.getItem("rol") || "",
       },
+      cache: "no-store",
     });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+
+      setMensaje(
+        `❌ ${data.message || "No se pudo cargar el dashboard"}`
+      );
+
+      return;
+    }
 
     const data = await res.json();
 
-    if (res.ok) {
-      setDatos({
-        totalEstudiantes: data.totalEstudiantes || 0,
-        presentes: data.presentes || 0,
-        ausentes: data.ausentes || 0,
-        entradas: data.entradas || 0,
-        salidas: data.salidas || 0,
-        puntuales: data.puntuales || 0,
-        tardanzas: data.tardanzas || 0,
-        sinSalida: data.sinSalida || 0,
-        horaReporteDiario: data.horaReporteDiario || "21:00",
-        ultimoReporteTelegramAt: data.ultimoReporteTelegramAt || null,
-        ultimoReporteTelegramEstado: data.ultimoReporteTelegramEstado || "",
-        resumenTurnos: Array.isArray(data.resumenTurnos)
-          ? data.resumenTurnos
-          : [],
-        ultimasAsistencias: Array.isArray(data.ultimasAsistencias)
-          ? data.ultimasAsistencias
-          : [],
-      });
-      setMensaje("");
-    } else {
-      setMensaje(`❌ ${data.message || "No autorizado"}`);
-    }
+    setDatos({
+      totalEstudiantes: data.totalEstudiantes || 0,
+      presentes: data.presentes || 0,
+      ausentes: data.ausentes || 0,
+      entradas: data.entradas || 0,
+      salidas: data.salidas || 0,
+      puntuales: data.puntuales || 0,
+      tardanzas: data.tardanzas || 0,
+      sinSalida: data.sinSalida || 0,
+      horaReporteDiario: data.horaReporteDiario || "21:00",
+      ultimoReporteTelegramAt:
+        data.ultimoReporteTelegramAt || null,
+      ultimoReporteTelegramEstado:
+        data.ultimoReporteTelegramEstado || "",
+      resumenTurnos: Array.isArray(data.resumenTurnos)
+        ? data.resumenTurnos
+        : [],
+      ultimasAsistencias: Array.isArray(data.ultimasAsistencias)
+        ? data.ultimasAsistencias
+        : [],
+      riesgoAlto: data.riesgoAlto || 0,
+      riesgoMedio: data.riesgoMedio || 0,
+      riesgoBajo: data.riesgoBajo || 0,
+      resumenIA:
+        data.resumenIA ||
+        "La IA aún no ha generado un resumen ejecutivo.",
+      topRiesgoIA: Array.isArray(data.topRiesgoIA)
+        ? data.topRiesgoIA
+        : [],
+        totalEsperadosHoy: data.totalEsperadosHoy || 0,
+diaNoLectivo: Boolean(data.diaNoLectivo),
+diaNoLectivoGeneral: Boolean(data.diaNoLectivoGeneral),
+
+eventosNoLectivosHoy: Array.isArray(
+  data.eventosNoLectivosHoy
+)
+  ? data.eventosNoLectivosHoy
+  : [],
+    });
+
+    setMensaje("");
+  } catch (error) {
+    console.error("Error cargando dashboard:", error);
+
+    setMensaje(
+      "⚠️ No se pudo conectar temporalmente con el servidor."
+    );
   }
+}
 
   useEffect(() => {
     cargarDashboard();
@@ -174,6 +236,7 @@ export default function Dashboard() {
         <div className="bg-red-50 text-red-700 rounded-2xl p-4 mb-6 font-bold">
           {mensaje}
         </div>
+        
       )}
 
       <div className="bg-gradient-to-r from-slate-900 to-blue-900 rounded-3xl p-8 text-white shadow-xl">
@@ -198,8 +261,10 @@ export default function Dashboard() {
                   Panel profesional de asistencia escolar
                 </p>
               </div>
+              
             </div>
           </div>
+          
 
           <div className="text-right">
             <p className="text-slate-300">Hora actual</p>
@@ -207,6 +272,162 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      {datos.diaNoLectivo && (
+  <div className="mt-8 bg-red-50 border-2 border-red-300 rounded-3xl p-6 shadow">
+    <div className="flex items-start gap-4">
+      <div className="text-5xl">📅</div>
+
+      <div className="flex-1">
+        <h2 className="text-3xl font-extrabold text-red-700">
+          Hoy es día no lectivo
+        </h2>
+
+        <p className="text-red-600 mt-2 font-bold">
+          La marcación y las alertas automáticas de ausencia
+          están suspendidas para los turnos correspondientes.
+        </p>
+
+        <div className="grid md:grid-cols-2 gap-3 mt-5">
+          {datos.eventosNoLectivosHoy?.map((evento) => (
+            <div
+              key={evento.id}
+              className="bg-white border border-red-200 rounded-2xl p-4"
+            >
+              <p className="font-extrabold text-red-700">
+                {evento.tipo.replaceAll("_", " ")}
+              </p>
+
+              <p className="text-slate-800 mt-1">
+                {evento.descripcion}
+              </p>
+
+              <p className="text-sm text-slate-500 mt-2">
+                Aplicación:{" "}
+                {evento.todosLosTurnos
+                  ? "Todos los turnos"
+                  : evento.turno || "Turno específico"}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+      <div className="bg-gradient-to-r from-indigo-700 to-purple-700 rounded-3xl p-8 mt-8 text-white shadow-xl">
+
+  <div className="flex items-center justify-between">
+
+    <div>
+      <h2 className="text-3xl font-extrabold">
+        🧠 Centro de Inteligencia Escolar
+      </h2>
+      
+
+      <p className="text-indigo-100 mt-2">
+        Monitoreo inteligente basado en IA
+      </p>
+    </div>
+
+    <button
+      onClick={() => window.location.href="/dashboard/inteligencia"}
+      className="bg-white text-indigo-700 px-6 py-3 rounded-2xl font-bold hover:bg-indigo-50"
+    >
+      Ver análisis IA
+    </button>
+
+  </div>
+
+  <div className="grid md:grid-cols-3 gap-5 mt-8">
+
+    <div className="bg-red-500/20 rounded-2xl p-5">
+      <p className="text-red-100">🔴 Riesgo Alto</p>
+      <h3 className="text-5xl font-extrabold mt-2">
+        {datos.riesgoAlto}
+      </h3>
+    </div>
+
+    <div className="bg-orange-500/20 rounded-2xl p-5">
+      <p className="text-orange-100">🟠 Riesgo Medio</p>
+      <h3 className="text-5xl font-extrabold mt-2">
+        {datos.riesgoMedio}
+      </h3>
+    </div>
+
+    <div className="bg-green-500/20 rounded-2xl p-5">
+      <p className="text-green-100">🟢 Riesgo Bajo</p>
+      <h3 className="text-5xl font-extrabold mt-2">
+        {datos.riesgoBajo}
+      </h3>
+    </div>
+
+  </div>
+
+  <div className="bg-white/10 rounded-2xl p-6 mt-8">
+
+    <h3 className="text-xl font-bold mb-3">
+      📈 Resumen Inteligente
+    </h3>
+
+    <p className="leading-8">
+      {datos.resumenIA}
+    </p>
+
+  </div>
+
+</div>
+<div className="bg-white rounded-3xl shadow p-6 mt-8">
+  <div className="flex items-center justify-between mb-5">
+    <h3 className="text-2xl font-bold">🔥 Top Riesgo IA</h3>
+
+    <button
+      onClick={() => (window.location.href = "/dashboard/inteligencia/ranking")}
+      className="bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-xl font-bold"
+    >
+      Ver ranking completo
+    </button>
+  </div>
+
+  <div className="grid md:grid-cols-5 gap-4">
+    {datos.topRiesgoIA?.map((item: any, index: number) => (
+      <div key={item.id} className="border rounded-2xl p-4 bg-slate-50">
+        <p className="text-3xl font-extrabold text-slate-300">
+          #{index + 1}
+        </p>
+
+        <h4 className="font-bold mt-2">
+          {item.estudiante.nombres} {item.estudiante.apellidos}
+        </h4>
+
+        <p className="text-sm text-slate-500">
+          {item.estudiante.grado} - {item.estudiante.seccion}
+        </p>
+
+        <p className="mt-3 text-3xl font-extrabold">
+          {item.porcentaje}%
+        </p>
+
+        <span
+          className={`inline-block mt-2 px-3 py-1 rounded-full text-sm font-bold ${
+            item.nivel === "ALTO"
+              ? "bg-red-100 text-red-700"
+              : item.nivel === "MEDIO"
+              ? "bg-orange-100 text-orange-700"
+              : "bg-green-100 text-green-700"
+          }`}
+        >
+          {item.nivel}
+        </span>
+      </div>
+    ))}
+
+    {datos.topRiesgoIA?.length === 0 && (
+      <div className="col-span-5 text-center text-slate-500 py-8">
+        Aún no hay estudiantes con riesgo IA analizado.
+      </div>
+    )}
+  </div>
+</div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-8">
         <CardDashboard titulo="👨‍🎓 Estudiantes" valor={datos.totalEstudiantes} />
@@ -221,6 +442,7 @@ export default function Dashboard() {
         <CardDashboard titulo="🏠 Salidas" valor={datos.salidas} color="purple" />
         <CardDashboard titulo="🔵 Sin salida" valor={datos.sinSalida} color="cyan" />
       </div>
+      
 
       <div className="grid md:grid-cols-2 gap-6 mt-6">
         <div className="bg-white rounded-3xl shadow p-6">
@@ -283,6 +505,7 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
       </div>
+      
 
       <div className="bg-white rounded-3xl shadow p-6 mt-8">
         <h3 className="text-2xl font-bold mb-5">⏰ Resumen por turnos</h3>

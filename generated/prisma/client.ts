@@ -71,3 +71,28 @@ export type Configuracion = Prisma.ConfiguracionModel
  * 
  */
 export type Auditoria = Prisma.AuditoriaModel
+/**
+ * Model AlertaAsistencia
+ * 
+ */
+export type AlertaAsistencia = Prisma.AlertaAsistenciaModel
+/**
+ * Model AnalisisIA
+ * 
+ */
+export type AnalisisIA = Prisma.AnalisisIAModel
+/**
+ * Model RiesgoEstudianteIA
+ * 
+ */
+export type RiesgoEstudianteIA = Prisma.RiesgoEstudianteIAModel
+/**
+ * Model CalendarioEscolar
+ * 
+ */
+export type CalendarioEscolar = Prisma.CalendarioEscolarModel
+/**
+ * Model HistorialReporteAutomatico
+ * 
+ */
+export type HistorialReporteAutomatico = Prisma.HistorialReporteAutomaticoModel
