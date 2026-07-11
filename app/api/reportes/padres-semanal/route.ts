@@ -180,7 +180,7 @@ export async function POST(request: Request) {
     if (!forzarEnvio && !configuracion.reportePadresActivo) {
       return NextResponse.json({
         ok: false,
-        message: "Los reportes semanales para padres están desactivados",
+        message: "Los reportes diarios para padres están desactivados",
       });
     }
 
@@ -326,7 +326,7 @@ export async function POST(request: Request) {
         detalleProceso.push({
           estudiante: nombreCompleto,
           estado: "OMITIDO",
-          detalle: "El reporte de esta semana ya fue enviado",
+          detalle: "El reporte de hoy ya fue enviado",
         });
 
         continue;
@@ -563,14 +563,16 @@ Este reporte tiene carácter preventivo. Ante cualquier duda, comuníquese con l
       }
     }
 
-    await prisma.configuracion.update({
-      where: {
-        id: configuracion.id,
-      },
-      data: {
-        ultimoReportePadresAt: new Date(),
-      },
-    });
+if (enviados > 0) {
+  await prisma.configuracion.update({
+    where: {
+      id: configuracion.id,
+    },
+    data: {
+      ultimoReportePadresAt: new Date(),
+    },
+  });
+}
 
     return NextResponse.json({
       ok: errores === 0,
@@ -588,14 +590,14 @@ Este reporte tiene carácter preventivo. Ante cualquier duda, comuníquese con l
     });
   } catch (error: unknown) {
     console.error(
-      "Error generando reportes semanales para padres:",
-      error
-    );
+  "Error generando reportes diarios para padres:",
+  error
+);
 
     const mensaje =
       error instanceof Error
         ? error.message
-        : "Error interno al generar reportes semanales";
+       : "Error interno al generar reportes diarios";
 
     return NextResponse.json(
       {

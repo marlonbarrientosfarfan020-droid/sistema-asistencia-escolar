@@ -228,30 +228,30 @@ export async function GET(request: Request) {
       };
     }
 
-    /*
- * 3. REPORTE DIARIO PARA PADRES
- */
 if (configuracion.reportePadresActivo) {
   const esHoraPadres =
     horaActual === configuracion.horaReportePadres;
 
-  const yaEnviadoPadresHoy =
-    mismaFechaPeru(configuracion.ultimoReportePadresAt);
+  const yaEnviadoPadresHoy = mismaFechaPeru(
+    configuracion.ultimoReportePadresAt
+  );
 
   if (esHoraPadres && !yaEnviadoPadresHoy) {
-    resultados.reportePadres = await ejecutarRuta(
+    const resultadoPadres = await ejecutarRuta(
       "/api/reportes/padres-semanal",
       "POST",
       {
         forzarEnvio: false,
       }
     );
+
+    resultados.reportePadres = resultadoPadres;
   } else {
     resultados.reportePadres = {
       ejecutado: false,
       motivo: yaEnviadoPadresHoy
         ? "Los reportes para padres ya fueron enviados hoy"
-        : "Todavía no corresponde la hora configurada",
+        : `Todavía no corresponde la hora. Actual: ${horaActual}, configurada: ${configuracion.horaReportePadres}`,
     };
   }
 } else {
@@ -261,12 +261,12 @@ if (configuracion.reportePadresActivo) {
   };
 }
 
-    return NextResponse.json({
-      ok: true,
-      message: "Verificación automática finalizada",
-      duracionMs: Date.now() - inicio,
-      resultados,
-    });
+ return NextResponse.json({
+  ok: true,
+  message: "Verificación automática finalizada",
+  duracionMs: Date.now() - inicio,
+  resultados,
+});
   } catch (error) {
     console.error("Error en automatizaciones:", error);
 

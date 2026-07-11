@@ -98,7 +98,7 @@ model Configuracion {
   diaReportePadres              Int     @default(5)
   horaReportePadres             String  @default("18:00")
   incluirRiesgoIAReportePadres  Boolean @default(true)
-  ultimoReportePadresAt        = null
+  ultimoReportePadresAt DateTime?
 }
 model Auditoria {
   id        Int      @id @default(autoincrement())
