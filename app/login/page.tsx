@@ -4,6 +4,16 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
+type LoginResponse = {
+  ok?: boolean;
+  message?: string;
+  usuario?: {
+    id: number;
+    nombre: string;
+    rol: string;
+  };
+};
+
 export default function LoginPage() {
   const router = useRouter();
 
@@ -23,7 +33,7 @@ export default function LoginPage() {
     }
   }, [router]);
 
-  async function ingresar(e: React.FormEvent) {
+  async function ingresar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
 
@@ -34,31 +44,50 @@ export default function LoginPage() {
 
     setCargando(true);
 
-    const res = await fetch("/api/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        usuario: usuario.trim(),
-        password,
-      }),
-    });
+    try {
+      const respuesta = await fetch("/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          usuario: usuario.trim(),
+          password,
+        }),
+      });
 
-    const data = await res.json();
+      const data = (await respuesta.json()) as LoginResponse;
 
-    setCargando(false);
+      if (!respuesta.ok) {
+        setError(data.message || "Error al iniciar sesión");
+        return;
+      }
 
-    if (!res.ok) {
-      setError(data.message || "Error al iniciar sesión");
-      return;
+      if (!data.usuario) {
+        setError("El servidor no devolvió los datos del usuario");
+        return;
+      }
+
+      const rol = String(data.usuario.rol || "").toUpperCase();
+
+      localStorage.setItem("logueado", "true");
+      localStorage.setItem("usuario", data.usuario.nombre);
+      localStorage.setItem("rol", rol);
+
+      if (rol === "PERSONAL") {
+        router.replace("/marcar");
+      } else {
+        router.replace("/dashboard");
+      }
+
+      router.refresh();
+    } catch (error) {
+      console.error("Error al iniciar sesión:", error);
+      setError("No se pudo conectar con el servidor");
+    } finally {
+      setCargando(false);
     }
-
-    localStorage.setItem("logueado", "true");
-    localStorage.setItem("usuario", data.usuario);
-    localStorage.setItem("rol", data.rol);
-
-    router.replace(data.rol === "PERSONAL" ? "/marcar" : "/dashboard");
   }
 
   return (
@@ -77,10 +106,11 @@ export default function LoginPage() {
         <div className="text-center mb-6">
           <Image
             src="/img/logo-santa-rita.png"
-            alt="Logo"
+            alt="Logo de la I.E. Santa Rita de Casia"
             width={105}
             height={105}
             className="mx-auto mb-4 bg-white rounded-2xl p-2 shadow"
+            priority
           />
 
           <h1 className="text-3xl font-extrabold text-slate-900 leading-tight">
@@ -98,32 +128,55 @@ export default function LoginPage() {
           </div>
         )}
 
-        <label className="font-bold text-slate-700 text-sm">Usuario</label>
+        <label
+          htmlFor="usuario"
+          className="font-bold text-slate-700 text-sm"
+        >
+          Usuario
+        </label>
+
         <div className="relative mb-4 mt-1">
           <span className="absolute left-3 top-3">👤</span>
+
           <input
+            id="usuario"
             value={usuario}
             onChange={(e) => setUsuario(e.target.value)}
             placeholder="Ingrese su usuario"
-            className="border rounded-xl p-3 pl-10 w-full text-base outline-none focus:ring-2 focus:ring-blue-500"
+            autoComplete="username"
+            disabled={cargando}
+            className="border rounded-xl p-3 pl-10 w-full text-base outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
           />
         </div>
 
-        <label className="font-bold text-slate-700 text-sm">Contraseña</label>
+        <label
+          htmlFor="password"
+          className="font-bold text-slate-700 text-sm"
+        >
+          Contraseña
+        </label>
+
         <div className="relative mb-3 mt-1">
           <span className="absolute left-3 top-3">🔒</span>
+
           <input
+            id="password"
             type={mostrarPassword ? "text" : "password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Ingrese su contraseña"
-            className="border rounded-xl p-3 pl-10 pr-12 w-full text-base outline-none focus:ring-2 focus:ring-blue-500"
+            autoComplete="current-password"
+            disabled={cargando}
+            className="border rounded-xl p-3 pl-10 pr-12 w-full text-base outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
           />
 
           <button
             type="button"
-            onClick={() => setMostrarPassword(!mostrarPassword)}
+            onClick={() => setMostrarPassword((valor) => !valor)}
             className="absolute right-3 top-3 text-slate-500"
+            aria-label={
+              mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+            }
           >
             {mostrarPassword ? "🙈" : "👁️"}
           </button>
@@ -140,6 +193,7 @@ export default function LoginPage() {
         </div>
 
         <button
+          type="submit"
           disabled={cargando}
           className="bg-blue-600 hover:bg-blue-700 text-white w-full py-3 rounded-xl font-bold disabled:opacity-50"
         >
@@ -181,6 +235,7 @@ export default function LoginPage() {
             </div>
 
             <button
+              type="button"
               onClick={() => setModalOlvido(false)}
               className="mt-6 bg-slate-900 text-white w-full py-3 rounded-xl font-bold"
             >
