@@ -610,11 +610,11 @@ credentials: "include",
         <section className="bg-white rounded-3xl shadow overflow-hidden">
           <div className="bg-emerald-700 text-white p-6">
             <h2 className="text-3xl font-extrabold">
-              👨‍👩‍👧 Reporte semanal para padres
+              👨‍👩‍👧 Reporte diario para padres
             </h2>
 
             <p className="text-emerald-100 mt-2">
-              Cada tutor recibirá únicamente el resumen semanal de su hijo.
+              Cada tutor recibirá diariamente el resumen de asistencia de su hijo.
             </p>
           </div>
 
@@ -632,32 +632,11 @@ credentials: "include",
                 className="w-5 h-5"
               />
 
-              Activar reportes semanales para padres
+              Activar reportes diarios para padres
             </label>
 
-            <div className="grid md:grid-cols-3 gap-5">
-              <div>
-                <label className="block font-bold mb-2">
-                  Día de envío
-                </label>
-
-                <select
-                  value={form.diaReportePadres}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      diaReportePadres: Number(e.target.value),
-                    })
-                  }
-                  className="border rounded-xl p-3 w-full"
-                >
-                  {DIAS_SEMANA.map((dia) => (
-                    <option key={dia.value} value={dia.value}>
-                      {dia.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+           <div className="grid md:grid-cols-2 gap-5">
+             
 
               <div>
                 <label className="block font-bold mb-2">
@@ -716,7 +695,7 @@ credentials: "include",
 
             <div className="bg-slate-50 border rounded-2xl p-5">
               <p className="font-bold">
-                Último envío semanal:
+                Último envío diario:
                 <span className="ml-2 text-emerald-700">
                   {formatearFecha(form.ultimoReportePadresAt)}
                 </span>
@@ -735,7 +714,7 @@ credentials: "include",
               >
                 {enviandoPadres
                   ? "⏳ Enviando reportes..."
-                  : "📤 Enviar reportes a padres ahora"}
+                  : "📤 Enviar reportes diarios ahora"}
               </button>
             </div>
           </div>

@@ -229,46 +229,37 @@ export async function GET(request: Request) {
     }
 
     /*
-     * 3. REPORTE SEMANAL PARA PADRES
-     */
-    if (configuracion.reportePadresActivo) {
-      const esHoraPadres =
-        horaActual === configuracion.horaReportePadres;
+ * 3. REPORTE DIARIO PARA PADRES
+ */
+if (configuracion.reportePadresActivo) {
+  const esHoraPadres =
+    horaActual === configuracion.horaReportePadres;
 
-      const esDiaPadres =
-        diaActual === configuracion.diaReportePadres;
+  const yaEnviadoPadresHoy =
+    mismaFechaPeru(configuracion.ultimoReportePadresAt);
 
-      const yaEnviadoPadres = mismaSemana(
-        configuracion.ultimoReportePadresAt,
-        ahora
-      );
-
-      if (
-        esHoraPadres &&
-        esDiaPadres &&
-        !yaEnviadoPadres
-      ) {
-        resultados.reportePadres = await ejecutarRuta(
-          "/api/reportes/padres-semanal",
-          "POST",
-          {
-            forzarEnvio: false,
-          }
-        );
-      } else {
-        resultados.reportePadres = {
-          ejecutado: false,
-          motivo: yaEnviadoPadres
-            ? "Los reportes de esta semana ya fueron enviados"
-            : "Todavía no corresponde el día o la hora",
-        };
+  if (esHoraPadres && !yaEnviadoPadresHoy) {
+    resultados.reportePadres = await ejecutarRuta(
+      "/api/reportes/padres-semanal",
+      "POST",
+      {
+        forzarEnvio: false,
       }
-    } else {
-      resultados.reportePadres = {
-        ejecutado: false,
-        motivo: "Reportes para padres desactivados",
-      };
-    }
+    );
+  } else {
+    resultados.reportePadres = {
+      ejecutado: false,
+      motivo: yaEnviadoPadresHoy
+        ? "Los reportes para padres ya fueron enviados hoy"
+        : "Todavía no corresponde la hora configurada",
+    };
+  }
+} else {
+  resultados.reportePadres = {
+    ejecutado: false,
+    motivo: "Reportes para padres desactivados",
+  };
+}
 
     return NextResponse.json({
       ok: true,

@@ -7,7 +7,7 @@ import { esCronAutorizado } from "@/lib/cronAuth";
 export const runtime = "nodejs";
 
 const ZONA_HORARIA = "America/Lima";
-const TIPO_REPORTE = "PADRE_SEMANAL";
+const TIPO_REPORTE = "PADRE_DIARIO";
 
 type EventoCalendario = {
   fechaInicio: Date;
@@ -70,20 +70,16 @@ function numeroDiaSemanaPeru(fecha: Date) {
   return equivalencias[nombreDia] || 1;
 }
 
-function obtenerPeriodoSemanaActual() {
+function obtenerPeriodoDiaActual() {
   const hoy = fechaPeruString(new Date());
-  const diaSemana = numeroDiaSemanaPeru(new Date());
-
-  const fechaInicio = sumarDias(hoy, -(diaSemana - 1));
-  const fechaFin = hoy;
 
   return {
-    fechaInicio,
-    fechaFin,
-    inicioAsistencias: crearFechaPeru(fechaInicio),
-    finAsistencias: crearFechaPeru(fechaFin, true),
-    inicioCalendario: crearFechaBD(fechaInicio),
-    finCalendario: crearFechaBD(fechaFin),
+    fechaInicio: hoy,
+    fechaFin: hoy,
+    inicioAsistencias: crearFechaPeru(hoy),
+    finAsistencias: crearFechaPeru(hoy, true),
+    inicioCalendario: crearFechaBD(hoy),
+    finCalendario: crearFechaBD(hoy),
   };
 }
 
@@ -188,7 +184,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const periodo = obtenerPeriodoSemanaActual();
+    const periodo = obtenerPeriodoDiaActual();
 
     const eventosCalendario =
       await prisma.calendarioEscolar.findMany({
@@ -462,7 +458,7 @@ El estudiante todavía no cuenta con un análisis de riesgo IA actualizado.`;
               .join("; ")
           : "Ninguno";
 
-      const mensaje = `📊 REPORTE SEMANAL DE ASISTENCIA
+      const mensaje = `📊 REPORTE DIARIO DE ASISTENCIA
 
 🏫 ${configuracion.nombreColegio}
 
@@ -470,7 +466,7 @@ Estimado(a) ${
         estudiante.nombreTutor || "padre/madre de familia"
       }:
 
-Se presenta el resumen semanal del estudiante:
+Se presenta el resumen diario del estudiante:
 
 👨‍🎓 ${nombreCompleto}
 🪪 DNI: ${estudiante.dni}
@@ -492,7 +488,7 @@ Días lectivos: ${diasLectivosEsperados}
 🔵 Sin salida: ${sinSalida}
 📈 Porcentaje de asistencia: ${porcentajeAsistencia}%
 
-Estado semanal:
+Estado del día:
 ${estadoGeneral}
 
 📅 Fechas de ausencia:
@@ -528,7 +524,7 @@ Este reporte tiene carácter preventivo. Ante cualquier duda, comuníquese con l
             fechaInicio: periodo.inicioAsistencias,
             fechaFin: periodo.finAsistencias,
             estado: "ENVIADO",
-            detalle: `Reporte semanal enviado para ${nombreCompleto}. Asistencia: ${porcentajeAsistencia}%.`,
+           detalle: `Reporte diario enviado para ${nombreCompleto}. Asistencia: ${porcentajeAsistencia}%.`,
           },
         });
 
@@ -578,7 +574,7 @@ Este reporte tiene carácter preventivo. Ante cualquier duda, comuníquese con l
 
     return NextResponse.json({
       ok: errores === 0,
-      message: "Proceso de reportes semanales finalizado",
+     message: "Proceso de reportes diarios para padres finalizado",
       periodo: {
         desde: periodo.fechaInicio,
         hasta: periodo.fechaFin,
