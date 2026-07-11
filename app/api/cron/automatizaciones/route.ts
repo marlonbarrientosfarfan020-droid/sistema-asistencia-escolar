@@ -241,7 +241,7 @@ if (configuracion.reportePadresActivo) {
       "/api/reportes/padres-semanal",
       "POST",
       {
-        forzarEnvio: false,
+        forzarEnvio: true,
       }
     );
 
