@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useConfiguracionColegio } from "@/hooks/useConfiguracionColegio";
 
 export default function DashboardLayout({
   children,
@@ -14,6 +15,7 @@ export default function DashboardLayout({
   const [rol, setRol] = useState("");
   const [usuario, setUsuario] = useState("");
   const pathname = usePathname();
+  const { configuracion } = useConfiguracionColegio();
 
   const linkClass = (href: string) =>
     `block px-4 py-3 rounded-xl ${
@@ -82,40 +84,60 @@ export default function DashboardLayout({
     };
   }, [router]);
 
-  function cerrarSesion() {
+ async function cerrarSesion() {
+  try {
+    await fetch("/api/logout", {
+      method: "POST",
+    });
+  } finally {
     localStorage.removeItem("logueado");
     localStorage.removeItem("rol");
     localStorage.removeItem("usuario");
+
     window.history.replaceState(null, "", "/login");
     router.replace("/login");
   }
+}
 
   return (
     <main className="min-h-screen bg-slate-100 flex">
       <aside className="w-72 bg-slate-950 text-white p-6">
         <div className="text-center">
-          <Image
-            src="/img/logo-santa-rita.png"
-            alt="Logo Santa Rita"
-            width={90}
-            height={90}
-            className="mx-auto bg-white rounded-2xl p-2"
-          />
+         {configuracion.logoUrl ? (
+  <img
+    src={configuracion.logoUrl}
+    key={configuracion.logoUrl}
+    alt={`Logo de ${configuracion.nombreColegio}`}
+    className="mx-auto h-[90px] w-[90px] rounded-2xl bg-white object-contain p-2 shadow"
+  />
+) : (
+  <Image
+    src="/img/logo-santa-rita.png"
+    alt="Logo institucional"
+    width={90}
+    height={90}
+    className="mx-auto rounded-2xl bg-white p-2 shadow"
+    priority
+  />
+)}
 
-          <h1 className="text-xl font-bold mt-4">
-            I.E. Santa Rita de Casia
-          </h1>
+          <h1 className="mt-4 text-xl font-bold">
+  {configuracion.nombreColegio}
+</h1>
+          
 
           <p className="text-slate-400 mt-1 text-sm">
             Sistema de Asistencia
           </p>
         </div>
+        
 
         <div className="mt-6 bg-slate-900 rounded-2xl p-4 border border-slate-700">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-xl font-bold">
               👤
             </div>
+            
 
             <div>
               <p className="font-bold text-lg">{usuario || "Administrador"}</p>
@@ -125,6 +147,7 @@ export default function DashboardLayout({
         </div>
 
         <nav className="mt-10 space-y-3">
+          
           <a href="/dashboard" className={linkClass("/dashboard")}>
             🏠 Dashboard
           </a>
@@ -142,6 +165,12 @@ export default function DashboardLayout({
           >
             📅 Asistencias
           </a>
+          <a
+  href="/dashboard/tardanzas"
+  className={linkClass("/dashboard/tardanzas")}
+>
+  🟠 Tardanzas
+</a>
           
 
           <a
@@ -157,6 +186,7 @@ export default function DashboardLayout({
           >
             👨‍🎓 Reporte estudiante
           </a>
+
          <a
   href="/dashboard/inteligencia"
   className={linkClass("/dashboard/inteligencia")}
@@ -245,9 +275,9 @@ export default function DashboardLayout({
             Sistema de Control de Asistencia
           </p>
 
-          <p className="text-xs text-slate-500 mt-1">
-            I.E. Santa Rita de Casia
-          </p>
+         <p className="mt-1 text-xs text-slate-500">
+  {configuracion.nombreColegio}
+</p>
 
           <p className="text-xs text-slate-500 mt-3">Versión 1.0</p>
 

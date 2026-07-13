@@ -8,6 +8,7 @@ type Configuracion = {
   telefono: string;
   correo: string;
   director: string;
+  logoUrl: string;
 
   // Configuración anterior
   reporteTelegramActivo: boolean;
@@ -49,6 +50,7 @@ const FORM_INICIAL: Configuracion = {
   telefono: "",
   correo: "",
   director: "",
+  logoUrl: "",
 
   reporteTelegramActivo: false,
   horaReporteDiario: "21:00",
@@ -78,7 +80,8 @@ export default function ConfiguracionPage() {
   const [guardando, setGuardando] = useState(false);
   const [enviandoDirector, setEnviandoDirector] = useState(false);
   const [enviandoPadres, setEnviandoPadres] = useState(false);
-
+const [archivoLogo, setArchivoLogo] = useState<File | null>(null);
+const [subiendoLogo, setSubiendoLogo] = useState(false);
   
 
   async function cargarConfiguracion() {
@@ -98,11 +101,13 @@ export default function ConfiguracionPage() {
       }
 
       setForm({
-        nombreColegio: data.nombreColegio || "Santa Rita de Casia",
-        direccion: data.direccion || "",
-        telefono: data.telefono || "",
-        correo: data.correo || "",
-        director: data.director || "",
+  nombreColegio: data.nombreColegio || "Santa Rita de Casia",
+  direccion: data.direccion || "",
+  telefono: data.telefono || "",
+  correo: data.correo || "",
+  director: data.director || "",
+  logoUrl: data.logoUrl || "",
+
 
         reporteTelegramActivo:
           data.reporteTelegramActivo ?? false,
@@ -156,6 +161,8 @@ export default function ConfiguracionPage() {
 
         ultimoReportePadresAt:
           data.ultimoReportePadresAt || null,
+
+          
       });
 
       setMensaje("");
@@ -169,6 +176,7 @@ export default function ConfiguracionPage() {
 
   useEffect(() => {
     cargarConfiguracion();
+  
   }, []);
 
   async function guardar(e: React.FormEvent) {
@@ -176,6 +184,7 @@ export default function ConfiguracionPage() {
 
     setGuardando(true);
     setMensaje("⏳ Guardando configuración...");
+    
 
     try {
       const res = await fetch("/api/configuracion", {
@@ -195,10 +204,19 @@ credentials: "include",
 
       const data = await res.json();
 
-      if (res.ok) {
-        setMensaje("✅ Configuración guardada correctamente");
-        await cargarConfiguracion();
-      } else {
+    if (res.ok) {
+  setMensaje("✅ Configuración guardada correctamente");
+
+  window.dispatchEvent(
+    new CustomEvent("configuracion-colegio-actualizada")
+  );
+
+  await cargarConfiguracion();
+} else {
+  setMensaje(
+    `❌ ${data.message || "Error al guardar configuración"}`
+  );
+} {
         setMensaje(
           `❌ ${data.message || "Error al guardar configuración"}`
         );
@@ -210,6 +228,80 @@ credentials: "include",
       setGuardando(false);
     }
   }
+ async function subirLogo() {
+  if (!archivoLogo) {
+    setMensaje("❌ Seleccione una imagen");
+    return;
+  }
+
+  setSubiendoLogo(true);
+  setMensaje("⏳ Subiendo logo...");
+
+  try {
+    const formData = new FormData();
+    formData.append("logo", archivoLogo);
+
+    const respuesta = await fetch(
+      "/api/configuracion/logo",
+      {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      }
+    );
+
+    const textoRespuesta = await respuesta.text();
+
+    let data: {
+      ok?: boolean;
+      message?: string;
+      logoUrl?: string;
+    } = {};
+
+    if (textoRespuesta) {
+      try {
+        data = JSON.parse(textoRespuesta);
+      } catch {
+        data = {
+          ok: false,
+          message:
+            "El servidor devolvió una respuesta inválida",
+        };
+      }
+    }
+
+    if (!respuesta.ok) {
+      setMensaje(
+        `❌ ${data.message || "No se pudo actualizar el logo"}`
+      );
+      return;
+    }
+
+    if (!data.logoUrl) {
+      setMensaje(
+        "❌ El servidor no devolvió la dirección del logo"
+      );
+      return;
+    }
+
+    setForm((actual) => ({
+      ...actual,
+      logoUrl: data.logoUrl || "",
+    }));
+
+    setArchivoLogo(null);
+    setMensaje("✅ Logo actualizado correctamente");
+
+    window.dispatchEvent(
+      new CustomEvent("configuracion-colegio-actualizada")
+    );
+  } catch (error) {
+    console.error("Error subiendo logo:", error);
+    setMensaje("❌ Error al conectar con el servidor");
+  } finally {
+    setSubiendoLogo(false);
+  }
+}
 
   async function enviarDirectorAhora() {
     setEnviandoDirector(true);
@@ -359,6 +451,86 @@ credentials: "include",
                 placeholder="Nombre del colegio"
               />
             </div>
+             <div className="md:col-span-2 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+    <div className="flex flex-col gap-5 md:flex-row md:items-center">
+      <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-3xl border border-slate-200 bg-white shadow">
+        {form.logoUrl ? (
+          <img
+            src={form.logoUrl}
+            alt="Logo institucional"
+            className="h-full w-full object-contain p-2"
+          />
+        ) : (
+          <span className="text-4xl">🏫</span>
+        )}
+      </div>
+
+      <div className="flex-1">
+        <h3 className="text-xl font-black text-slate-900">
+          Logo institucional
+        </h3>
+
+        <p className="mt-1 text-sm text-slate-500">
+          PNG, JPG o WEBP. Tamaño máximo: 2 MB.
+        </p>
+
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={(e) =>
+              setArchivoLogo(e.target.files?.[0] || null)
+            }
+            className="w-full rounded-xl border border-slate-300 bg-white p-3"
+          />
+
+          <button
+            type="button"
+            onClick={subirLogo}
+            disabled={!archivoLogo || subiendoLogo}
+            className="rounded-xl bg-blue-600 px-5 py-3 font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {subiendoLogo ? "Subiendo..." : "Cambiar logo"}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {/* NOMBRE DEL COLEGIO */}
+  <div className="md:col-span-2">
+    <label className="block font-bold mb-2">
+      Nombre del colegio
+    </label>
+
+    <input
+      value={form.nombreColegio}
+      onChange={(e) =>
+        setForm({
+          ...form,
+          nombreColegio: e.target.value,
+        })
+      }
+      className="border rounded-xl p-3 w-full"
+      placeholder="Nombre del colegio"
+    />
+  </div>
+
+  <div>
+    <label className="block font-bold mb-2">Director</label>
+
+    <input
+      value={form.director}
+      onChange={(e) =>
+        setForm({
+          ...form,
+          director: e.target.value,
+        })
+      }
+      className="border rounded-xl p-3 w-full"
+      placeholder="Nombre del director"
+    />
+  </div>
 
             <div>
               <label className="block font-bold mb-2">Director</label>

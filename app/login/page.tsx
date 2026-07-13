@@ -1,4 +1,5 @@
 "use client";
+import { useConfiguracionColegio } from "@/hooks/useConfiguracionColegio";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -16,6 +17,7 @@ type LoginResponse = {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { configuracion } = useConfiguracionColegio();
 
   const [usuario, setUsuario] = useState("");
   const [password, setPassword] = useState("");
@@ -104,22 +106,30 @@ export default function LoginPage() {
         className="relative bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-7 sm:p-8 w-full max-w-md mx-auto border border-white/40"
       >
         <div className="text-center mb-6">
-          <Image
-            src="/img/logo-santa-rita.png"
-            alt="Logo de la I.E. Santa Rita de Casia"
-            width={105}
-            height={105}
-            className="mx-auto mb-4 bg-white rounded-2xl p-2 shadow"
-            priority
-          />
+          {configuracion.logoUrl ? (
+  <img
+    src={configuracion.logoUrl}
+    alt={`Logo de ${configuracion.nombreColegio}`}
+    className="mx-auto mb-4 h-[105px] w-[105px] rounded-2xl bg-white object-contain p-2 shadow"
+  />
+) : (
+  <Image
+    src="/img/logo-santa-rita.png"
+    alt="Logo institucional"
+    width={105}
+    height={105}
+    className="mx-auto mb-4 rounded-2xl bg-white p-2 shadow"
+    priority
+  />
+)}
 
           <h1 className="text-3xl font-extrabold text-slate-900 leading-tight">
             Sistema Inteligente de Asistencia Escolar
           </h1>
 
-          <p className="text-slate-500 mt-2 font-semibold">
-            I.E. Santa Rita de Casia
-          </p>
+         <p className="text-slate-500 mt-2 font-semibold">
+  {configuracion.nombreColegio}
+</p>
         </div>
 
         {error && (

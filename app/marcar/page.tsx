@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { FaIdCard } from "react-icons/fa";
+import { useConfiguracionColegio } from "@/hooks/useConfiguracionColegio";
 
 export default function MarcarPage() {
   const router = useRouter();
-
+const { configuracion } = useConfiguracionColegio();
   const [dni, setDni] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [resultado, setResultado] = useState<any>(null);
@@ -307,14 +308,25 @@ export default function MarcarPage() {
 
       <div className="relative z-10 bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-8 w-full max-w-5xl">
         <div className="text-center">
-          <Image
-            src="/img/logo-santa-rita.png"
-            alt="Logo Santa Rita de Casia"
-            width={95}
-            height={95}
-            className="mx-auto mb-3"
-          />
-
+          {configuracion.logoUrl ? (
+  <img
+    src={configuracion.logoUrl}
+    alt={`Logo de ${configuracion.nombreColegio}`}
+    className="mx-auto mb-3 h-[95px] w-[95px] rounded-2xl bg-white object-contain p-2 shadow"
+  />
+) : (
+  <Image
+    src="/img/logo-santa-rita.png"
+    alt="Logo institucional"
+    width={95}
+    height={95}
+    className="mx-auto mb-3 rounded-2xl bg-white p-2 shadow"
+    priority
+  />
+)}
+<h2 className="text-xl font-bold text-slate-700">
+  {configuracion.nombreColegio}
+</h2>
           <h1 className="text-5xl font-extrabold text-slate-900">
             {textoPrincipal}
           </h1>
