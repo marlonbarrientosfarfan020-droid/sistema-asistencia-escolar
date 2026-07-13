@@ -94,7 +94,7 @@ export default function LoginPage() {
 
   return (
     <main
-      className="min-h-screen flex items-center justify-center bg-cover bg-center px-4 py-6"
+  className="relative min-h-dvh overflow-y-auto bg-cover bg-center px-4 py-6 sm:flex sm:items-center sm:justify-center"
       style={{
         backgroundImage: "url('/img/colegio-santa-rita.jpg')",
       }}
@@ -103,7 +103,7 @@ export default function LoginPage() {
 
       <form
         onSubmit={ingresar}
-        className="relative bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-7 sm:p-8 w-full max-w-md mx-auto border border-white/40"
+      className="relative z-10 mx-auto w-full max-w-md rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-2xl backdrop-blur-xl sm:p-8"
       >
         <div className="text-center mb-6">
           {configuracion.logoUrl ? (
@@ -123,7 +123,7 @@ export default function LoginPage() {
   />
 )}
 
-          <h1 className="text-3xl font-extrabold text-slate-900 leading-tight">
+          <h1 className="text-2xl font-extrabold leading-tight text-slate-900 sm:text-3xl">
             Sistema Inteligente de Asistencia Escolar
           </h1>
 
@@ -145,19 +145,21 @@ export default function LoginPage() {
           Usuario
         </label>
 
-        <div className="relative mb-4 mt-1">
-          <span className="absolute left-3 top-3">👤</span>
+<div className="relative mb-4 mt-2">
+  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl">
+    👤
+  </span>
 
-          <input
-            id="usuario"
-            value={usuario}
-            onChange={(e) => setUsuario(e.target.value)}
-            placeholder="Ingrese su usuario"
-            autoComplete="username"
-            disabled={cargando}
-            className="border rounded-xl p-3 pl-10 w-full text-base outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-          />
-        </div>
+  <input
+    id="usuario"
+    value={usuario}
+    onChange={(e) => setUsuario(e.target.value)}
+    placeholder="Ingrese su usuario"
+    autoComplete="username"
+    disabled={cargando}
+    className="h-14 w-full rounded-xl border-2 border-slate-300 bg-white px-4 pl-12 text-base font-semibold text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100 disabled:text-slate-500"
+  />
+</div>
 
         <label
           htmlFor="password"
@@ -166,31 +168,33 @@ export default function LoginPage() {
           Contraseña
         </label>
 
-        <div className="relative mb-3 mt-1">
-          <span className="absolute left-3 top-3">🔒</span>
+<div className="relative mb-3 mt-2">
+  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl">
+    🔒
+  </span>
 
-          <input
-            id="password"
-            type={mostrarPassword ? "text" : "password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Ingrese su contraseña"
-            autoComplete="current-password"
-            disabled={cargando}
-            className="border rounded-xl p-3 pl-10 pr-12 w-full text-base outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-          />
+  <input
+    id="password"
+    type={mostrarPassword ? "text" : "password"}
+    value={password}
+    onChange={(e) => setPassword(e.target.value)}
+    placeholder="Ingrese su contraseña"
+    autoComplete="current-password"
+    disabled={cargando}
+    className="h-14 w-full rounded-xl border-2 border-slate-300 bg-white px-4 pl-12 pr-14 text-base font-semibold text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100 disabled:text-slate-500"
+  />
 
-          <button
-            type="button"
-            onClick={() => setMostrarPassword((valor) => !valor)}
-            className="absolute right-3 top-3 text-slate-500"
-            aria-label={
-              mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña"
-            }
-          >
-            {mostrarPassword ? "🙈" : "👁️"}
-          </button>
-        </div>
+  <button
+    type="button"
+    onClick={() => setMostrarPassword((valor) => !valor)}
+    className="absolute right-4 top-1/2 -translate-y-1/2 text-xl text-slate-600"
+    aria-label={
+      mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+    }
+  >
+    {mostrarPassword ? "🙈" : "👁️"}
+  </button>
+</div>
 
         <div className="text-right mb-6">
           <button
