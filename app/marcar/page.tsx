@@ -140,8 +140,8 @@ export default function MarcarPage() {
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: {
-              ideal: "user",
-            },
+  ideal: "environment",
+},
             width: {
               ideal: 720,
             },
@@ -190,7 +190,7 @@ export default function MarcarPage() {
         };
       });
 
-      for (let numero = 3; numero >= 1; numero--) {
+      for (let numero = 2; numero >= 1; numero--) {
         setContadorFoto(numero);
 
         await new Promise((resolve) =>
