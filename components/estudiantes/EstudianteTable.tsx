@@ -262,26 +262,63 @@ const [riesgoSeleccionado, setRiesgoSeleccionado] = useState<Estudiante | null>(
   );
 }
   
+async function convertirImagenADataUrl(url: string): Promise<string> {
+  try {
+    const respuesta = await fetch(url, {
+      cache: "no-store",
+    });
 
- function imprimirQR() {
+    if (!respuesta.ok) {
+      throw new Error("No se pudo descargar el logo");
+    }
+
+    const blob = await respuesta.blob();
+
+    return await new Promise<string>((resolve, reject) => {
+      const lector = new FileReader();
+
+      lector.onloadend = () => {
+        if (typeof lector.result === "string") {
+          resolve(lector.result);
+        } else {
+          reject(new Error("No se pudo convertir el logo"));
+        }
+      };
+
+      lector.onerror = () => {
+        reject(new Error("No se pudo leer el logo"));
+      };
+
+      lector.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error("Error preparando logo para impresión:", error);
+
+    return `${window.location.origin}/img/logo-santa-rita.png`;
+  }
+}
+ async function imprimirQR() {
   if (!estudianteQR || !qrImagen) return;
+
+  const logoOriginal =
+    configuracion.logoUrl?.trim() ||
+    `${window.location.origin}/img/logo-santa-rita.png`;
+
+  const logoParaImprimir =
+    await convertirImagenADataUrl(logoOriginal);
+
+  const nombreColegio =
+    configuracion.nombreColegio?.trim() ||
+    "I.E. Santa Rita de Casia";
 
   const ventana = window.open("", "_blank");
 
   if (!ventana) {
     setMensaje(
-      "❌ El navegador bloqueó la ventana de impresión. Permita las ventanas emergentes."
+      "❌ Permita las ventanas emergentes para imprimir el carnet"
     );
     return;
   }
-
-  const logoUrl =
-    configuracion.logoUrl?.trim() ||
-    `${window.location.origin}/img/logo-santa-rita.png`;
-
-  const nombreColegio =
-    configuracion.nombreColegio?.trim() ||
-    "I.E. Santa Rita de Casia";
 
     ventana.document.write(`
       <html>
@@ -357,10 +394,21 @@ const [riesgoSeleccionado, setRiesgoSeleccionado] = useState<Estudiante | null>(
         <body>
           <div class="carnet">
             <div class="header">
-              <img class="logo" src="/img/logo-santa-rita.png" />
-              <div class="colegio">I.E. Santa Rita de Casia</div>
-              <div class="subtitulo">Carnet de Asistencia Escolar</div>
-            </div>
+  <img
+    id="logo-colegio"
+    class="logo"
+    src="${logoParaImprimir}"
+    alt="Logo institucional"
+  />
+
+  <div class="colegio">
+    ${nombreColegio}
+  </div>
+
+  <div class="subtitulo">
+    Carnet de Asistencia Escolar
+  </div>
+</div>
 
             <div class="contenido">
               <div class="nombre">
@@ -381,10 +429,43 @@ const [riesgoSeleccionado, setRiesgoSeleccionado] = useState<Estudiante | null>(
           </div>
 
           <script>
-            window.onload = function() {
-              window.print();
-            }
-          </script>
+  function esperarImagen(imagen) {
+    return new Promise(function(resolve) {
+      if (!imagen) {
+        resolve();
+        return;
+      }
+
+      if (imagen.complete && imagen.naturalWidth > 0) {
+        resolve();
+        return;
+      }
+
+      imagen.onload = function() {
+        resolve();
+      };
+
+      imagen.onerror = function() {
+        resolve();
+      };
+    });
+  }
+
+  window.onload = async function() {
+    const logo = document.getElementById("logo-colegio");
+    const qr = document.querySelector(".qr");
+
+    await Promise.all([
+      esperarImagen(logo),
+      esperarImagen(qr)
+    ]);
+
+    setTimeout(function() {
+      window.focus();
+      window.print();
+    }, 300);
+  };
+</script>
         </body>
       </html>
     `);
