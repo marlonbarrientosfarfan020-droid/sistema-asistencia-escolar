@@ -6,6 +6,7 @@ import Card from "../ui/Card";
 import Modal from "../ui/Modal";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
+import { useConfiguracionColegio } from "@/hooks/useConfiguracionColegio";
 
 type Turno = {
   id: number;
@@ -36,6 +37,7 @@ type Estudiante = {
 };
 
 export default function EstudianteTable({ refresh }: { refresh: number }) {
+  const { configuracion } = useConfiguracionColegio();
   const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [busquedaDni, setBusquedaDni] = useState("");
@@ -261,11 +263,25 @@ const [riesgoSeleccionado, setRiesgoSeleccionado] = useState<Estudiante | null>(
 }
   
 
-  function imprimirQR() {
-    if (!estudianteQR || !qrImagen) return;
+ function imprimirQR() {
+  if (!estudianteQR || !qrImagen) return;
 
-    const ventana = window.open("", "_blank");
-    if (!ventana) return;
+  const ventana = window.open("", "_blank");
+
+  if (!ventana) {
+    setMensaje(
+      "❌ El navegador bloqueó la ventana de impresión. Permita las ventanas emergentes."
+    );
+    return;
+  }
+
+  const logoUrl =
+    configuracion.logoUrl?.trim() ||
+    `${window.location.origin}/img/logo-santa-rita.png`;
+
+  const nombreColegio =
+    configuracion.nombreColegio?.trim() ||
+    "I.E. Santa Rita de Casia";
 
     ventana.document.write(`
       <html>
