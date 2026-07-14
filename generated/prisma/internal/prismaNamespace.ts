@@ -1308,6 +1308,7 @@ export const AsistenciaScalarFieldEnum = {
   estado: 'estado',
   fotoEntrada: 'fotoEntrada',
   fotoSalida: 'fotoSalida',
+  fotoUrl: 'fotoUrl',
   estudianteId: 'estudianteId'
 } as const
 

@@ -1,33 +1,60 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { enviarWhatsApp } from "@/services/whatsapp";
-import { enviarTelegram, enviarFotoTelegram } from "@/lib/telegram";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
+import {
+  enviarTelegram,
+  enviarFotoTelegram,
+} from "@/lib/telegram";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const fecha = searchParams.get("fecha");
+  try {
+    const { searchParams } = new URL(request.url);
+    const fecha = searchParams.get("fecha");
 
-  let inicioDia: Date | undefined;
-  let finDia: Date | undefined;
+    let inicioDia: Date | undefined;
+    let finDia: Date | undefined;
 
-  if (fecha) {
-    inicioDia = new Date(`${fecha}T00:00:00`);
-    finDia = new Date(`${fecha}T23:59:59`);
+    if (fecha) {
+      inicioDia = new Date(`${fecha}T00:00:00-05:00`);
+      finDia = new Date(`${fecha}T23:59:59.999-05:00`);
+    }
+
+    const asistencias = await prisma.asistencia.findMany({
+      where:
+        fecha && inicioDia && finDia
+          ? {
+              fecha: {
+                gte: inicioDia,
+                lte: finDia,
+              },
+            }
+          : {},
+      orderBy: {
+        fecha: "desc",
+      },
+      include: {
+        estudiante: {
+          include: {
+            turno: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(asistencias);
+  } catch (error) {
+    console.error("Error consultando asistencias:", error);
+
+    return NextResponse.json(
+      {
+        message: "No se pudieron consultar las asistencias",
+      },
+      { status: 500 }
+    );
   }
-
-  const asistencias = await prisma.asistencia.findMany({
-    where: fecha ? { fecha: { gte: inicioDia, lte: finDia } } : {},
-    orderBy: { fecha: "desc" },
-    include: {
-      estudiante: { include: { turno: true } },
-    },
-  });
-
-  return NextResponse.json(asistencias);
 }
 
 function formatoHora(fecha: Date) {
@@ -46,11 +73,20 @@ function fechaPeru() {
     day: "2-digit",
   }).format(new Date());
 }
-async function obtenerEventoNoLectivo(turnoId: number | null) {
+
+function obtenerLimitesDiaPeru() {
   const hoy = fechaPeru();
 
-  const inicioDia = new Date(`${hoy}T00:00:00-05:00`);
-  const finDia = new Date(`${hoy}T23:59:59.999-05:00`);
+  return {
+    inicioDia: new Date(`${hoy}T00:00:00-05:00`),
+    finDia: new Date(`${hoy}T23:59:59.999-05:00`),
+  };
+}
+
+async function obtenerEventoNoLectivo(
+  turnoId: number | null
+) {
+  const { inicioDia, finDia } = obtenerLimitesDiaPeru();
 
   return prisma.calendarioEscolar.findFirst({
     where: {
@@ -78,49 +114,70 @@ async function obtenerEventoNoLectivo(turnoId: number | null) {
 }
 
 function horaTurnoPermitida(horaSalida: string) {
-  const [hora, minuto] = horaSalida.split(":").map(Number);
-  const fechaPermitida = new Date();
-  fechaPermitida.setHours(hora, minuto, 0, 0);
-  return fechaPermitida;
-}
+  const [hora, minuto] = horaSalida
+    .split(":")
+    .map(Number);
 
-function convertirBase64ABuffer(fotoBase64: string) {
-  const base64Limpio = fotoBase64.replace(/^data:image\/\w+;base64,/, "");
-  return Buffer.from(base64Limpio, "base64");
-}
+  const ahora = new Date();
 
-async function guardarFotoAsistencia({
-  fotoBase64,
-  dni,
-  tipo,
-}: {
-  fotoBase64: string;
-  dni: string;
-  tipo: "ENTRADA" | "SALIDA";
-}) {
-  const fecha = fechaPeru();
-
-  const carpeta = path.join(
-    process.cwd(),
-    "public",
-    "uploads",
-    "asistencias",
-    fecha
+  const fechaPeruActual = ahora.toLocaleDateString(
+    "en-CA",
+    {
+      timeZone: "America/Lima",
+    }
   );
 
-  await mkdir(carpeta, { recursive: true });
+  return new Date(
+    `${fechaPeruActual}T${String(hora).padStart(
+      2,
+      "0"
+    )}:${String(minuto).padStart(2, "0")}:00-05:00`
+  );
+}
 
-  const nombreArchivo = `${dni}_${tipo.toLowerCase()}_${Date.now()}.jpg`;
-  const rutaCompleta = path.join(carpeta, nombreArchivo);
+function horaEntradaPermitida(horaEntrada: string) {
+  const [hora, minuto] = horaEntrada
+    .split(":")
+    .map(Number);
 
-  const buffer = convertirBase64ABuffer(fotoBase64);
+  const fechaActual = fechaPeru();
 
-  await writeFile(rutaCompleta, buffer);
+  return new Date(
+    `${fechaActual}T${String(hora).padStart(
+      2,
+      "0"
+    )}:${String(minuto).padStart(2, "0")}:00-05:00`
+  );
+}
 
-  return {
-    buffer,
-    rutaPublica: `/uploads/asistencias/${fecha}/${nombreArchivo}`,
-  };
+async function descargarFotoComoBuffer(
+  fotoUrl: string
+): Promise<Buffer | null> {
+  try {
+    const respuesta = await fetch(fotoUrl, {
+      cache: "no-store",
+    });
+
+    if (!respuesta.ok) {
+      console.error(
+        "No se pudo descargar la foto:",
+        respuesta.status
+      );
+
+      return null;
+    }
+
+    const arrayBuffer = await respuesta.arrayBuffer();
+
+    return Buffer.from(arrayBuffer);
+  } catch (error) {
+    console.error(
+      "Error descargando fotografía desde Blob:",
+      error
+    );
+
+    return null;
+  }
 }
 
 async function notificarTelegram({
@@ -130,7 +187,7 @@ async function notificarTelegram({
   hora,
   metodo,
   estado,
-  fotoBuffer,
+  fotoUrl,
 }: {
   chatId: string;
   estudiante: any;
@@ -138,15 +195,20 @@ async function notificarTelegram({
   hora: string;
   metodo: string;
   estado: string;
-  fotoBuffer?: Buffer | null;
+  fotoUrl?: string | null;
 }) {
   if (!chatId) return;
 
-  const iconoEstado = estado === "TARDE" ? "🟠" : "🟢";
+  const iconoEstado =
+    estado === "TARDE" ? "🟠" : "🟢";
 
   const mensaje = `🏫 I.E. Santa Rita de Casia
 
-${tipo === "ENTRADA" ? "✅ ENTRADA REGISTRADA" : "👋 SALIDA REGISTRADA"}
+${
+  tipo === "ENTRADA"
+    ? "✅ ENTRADA REGISTRADA"
+    : "👋 SALIDA REGISTRADA"
+}
 
 👨‍🎓 Estudiante:
 ${estudiante.nombres} ${estudiante.apellidos}
@@ -155,7 +217,9 @@ ${estudiante.nombres} ${estudiante.apellidos}
 ${estudiante.grado} - ${estudiante.seccion}
 
 ⏰ Turno:
-${estudiante.turno?.nombre || "Sin turno"} (${estudiante.turno?.horaEntrada || "--:--"} - ${estudiante.turno?.horaSalida || "--:--"})
+${estudiante.turno?.nombre || "Sin turno"} (${
+    estudiante.turno?.horaEntrada || "--:--"
+  } - ${estudiante.turno?.horaSalida || "--:--"})
 
 ${iconoEstado} Estado:
 ${estado}
@@ -168,42 +232,103 @@ ${metodo}
 
 📷 Foto capturada al momento de marcar asistencia.`;
 
-  if (fotoBuffer) {
-    await enviarFotoTelegram(chatId, fotoBuffer, mensaje);
-  } else {
-    await enviarTelegram(chatId, mensaje);
+  if (fotoUrl) {
+    const fotoBuffer =
+      await descargarFotoComoBuffer(fotoUrl);
+
+    if (fotoBuffer) {
+      await enviarFotoTelegram(
+        chatId,
+        fotoBuffer,
+        mensaje
+      );
+
+      return;
+    }
   }
+
+  await enviarTelegram(chatId, mensaje);
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const dni = String(body.dni || "").trim();
-    const codigo = String(body.codigo || "").trim();
-    const metodo = String(body.metodo || "DNI").trim();
-    const fotoBase64 = String(body.fotoBase64 || "").trim();
+    const dni =
+      typeof body.dni === "string"
+        ? body.dni.trim()
+        : "";
 
+    const codigo =
+      typeof body.codigo === "string"
+        ? body.codigo.trim()
+        : "";
 
-    const estudiante = await prisma.estudiante.findFirst({
-      where: {
-        OR: [{ dni }, { codigo }],
-      },
-      include: {
-        turno: true,
-      },
-    });
+    const metodo =
+      typeof body.metodo === "string"
+        ? body.metodo.trim()
+        : "DNI";
+
+    const fotoUrl =
+      typeof body.fotoUrl === "string"
+        ? body.fotoUrl.trim()
+        : "";
+
+    if (!dni && !codigo) {
+      return NextResponse.json(
+        {
+          message:
+            "Debe ingresar el DNI o código del estudiante",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!fotoUrl) {
+      return NextResponse.json(
+        {
+          message: "La fotografía es obligatoria",
+        },
+        { status: 400 }
+      );
+    }
+
+    const condicionesBusqueda: Array<
+      { dni: string } | { codigo: string }
+    > = [];
+
+    if (dni) {
+      condicionesBusqueda.push({ dni });
+    }
+
+    if (codigo) {
+      condicionesBusqueda.push({ codigo });
+    }
+
+    const estudiante =
+      await prisma.estudiante.findFirst({
+        where: {
+          OR: condicionesBusqueda,
+        },
+        include: {
+          turno: true,
+        },
+      });
 
     if (!estudiante) {
       return NextResponse.json(
-        { message: "Estudiante no encontrado" },
+        {
+          message: "Estudiante no encontrado",
+        },
         { status: 404 }
       );
     }
 
     if (!estudiante.estado) {
       return NextResponse.json(
-        { message: "Estudiante inactivo" },
+        {
+          message: "Estudiante inactivo",
+        },
         { status: 400 }
       );
     }
@@ -217,85 +342,86 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    const eventoNoLectivo = await obtenerEventoNoLectivo(estudiante.turnoId);
 
-if (eventoNoLectivo) {
-  const alcance = eventoNoLectivo.todosLosTurnos
-    ? "todos los turnos"
-    : `el turno ${
-        eventoNoLectivo.turno?.nombre || estudiante.turno.nombre
-      }`;
+    const eventoNoLectivo =
+      await obtenerEventoNoLectivo(
+        estudiante.turnoId
+      );
 
-  return NextResponse.json(
-    {
-      message: `Hoy no se registra asistencia porque es un día no lectivo: ${eventoNoLectivo.descripcion}. Aplica para ${alcance}.`,
-      diaNoLectivo: true,
-      evento: {
-        id: eventoNoLectivo.id,
-        tipo: eventoNoLectivo.tipo,
-        descripcion: eventoNoLectivo.descripcion,
-        fechaInicio: eventoNoLectivo.fechaInicio,
-        fechaFin: eventoNoLectivo.fechaFin,
-        todosLosTurnos: eventoNoLectivo.todosLosTurnos,
-        turno: eventoNoLectivo.turno?.nombre || null,
-      },
-    },
-    { status: 409 }
-  );
-}
+    if (eventoNoLectivo) {
+      const alcance =
+        eventoNoLectivo.todosLosTurnos
+          ? "todos los turnos"
+          : `el turno ${
+              eventoNoLectivo.turno?.nombre ||
+              estudiante.turno.nombre
+            }`;
 
-if (!fotoBase64) {
-  return NextResponse.json(
-    { message: "La foto del estudiante es obligatoria" },
-    { status: 400 }
-  );
-}
-
-    const inicioDia = new Date();
-    inicioDia.setHours(0, 0, 0, 0);
-
-    const finDia = new Date();
-    finDia.setHours(23, 59, 59, 999);
-
-    let asistencia = await prisma.asistencia.findFirst({
-      where: {
-        estudianteId: estudiante.id,
-        fecha: {
-          gte: inicioDia,
-          lte: finDia,
+      return NextResponse.json(
+        {
+          message: `Hoy no se registra asistencia porque es un día no lectivo: ${eventoNoLectivo.descripcion}. Aplica para ${alcance}.`,
+          diaNoLectivo: true,
+          evento: {
+            id: eventoNoLectivo.id,
+            tipo: eventoNoLectivo.tipo,
+            descripcion:
+              eventoNoLectivo.descripcion,
+            fechaInicio:
+              eventoNoLectivo.fechaInicio,
+            fechaFin: eventoNoLectivo.fechaFin,
+            todosLosTurnos:
+              eventoNoLectivo.todosLosTurnos,
+            turno:
+              eventoNoLectivo.turno?.nombre ||
+              null,
+          },
         },
-      },
-    });
+        { status: 409 }
+      );
+    }
+
+    const { inicioDia, finDia } =
+      obtenerLimitesDiaPeru();
+
+    let asistencia =
+      await prisma.asistencia.findFirst({
+        where: {
+          estudianteId: estudiante.id,
+          fecha: {
+            gte: inicioDia,
+            lte: finDia,
+          },
+        },
+      });
 
     const ahora = new Date();
     const horaActual = formatoHora(ahora);
 
-    const [horaEntrada, minutoEntrada] = estudiante.turno.horaEntrada
-      .split(":")
-      .map(Number);
+    const horaPermitida =
+      horaEntradaPermitida(
+        estudiante.turno.horaEntrada
+      );
 
-    const horaPermitida = new Date();
-    horaPermitida.setHours(horaEntrada, minutoEntrada, 0, 0);
+    const estadoAsistencia =
+      ahora <= horaPermitida
+        ? "PUNTUAL"
+        : "TARDE";
 
-    const estadoAsistencia = ahora <= horaPermitida ? "PUNTUAL" : "TARDE";
-
+    /*
+     * REGISTRO DE ENTRADA
+     */
     if (!asistencia) {
-      const foto = await guardarFotoAsistencia({
-        fotoBase64,
-        dni: estudiante.dni,
-        tipo: "ENTRADA",
-      });
-
-      asistencia = await prisma.asistencia.create({
-        data: {
-          estudianteId: estudiante.id,
-          fecha: ahora,
-          horaEntrada: ahora,
-          metodo,
-          estado: estadoAsistencia,
-          fotoEntrada: foto.rutaPublica,
-        },
-      });
+      asistencia =
+        await prisma.asistencia.create({
+          data: {
+            estudianteId: estudiante.id,
+            fecha: ahora,
+            horaEntrada: ahora,
+            metodo,
+            estado: estadoAsistencia,
+            fotoUrl,
+          },
+        });
 
       try {
         await enviarWhatsApp({
@@ -311,7 +437,10 @@ if (!fotoBase64) {
           metodo,
         });
       } catch (error) {
-        console.error("Error enviando WhatsApp:", error);
+        console.error(
+          "Error enviando WhatsApp:",
+          error
+        );
       }
 
       try {
@@ -322,24 +451,32 @@ if (!fotoBase64) {
           hora: horaActual,
           metodo,
           estado: estadoAsistencia,
-          fotoBuffer: foto.buffer,
+          fotoUrl,
         });
       } catch (error) {
-        console.error("Error enviando Telegram:", error);
+        console.error(
+          "Error enviando Telegram:",
+          error
+        );
       }
 
       return NextResponse.json({
         tipo: "ENTRADA",
         estudiante,
         asistencia,
-        message: "Entrada registrada correctamente",
+        message:
+          "Entrada registrada correctamente",
       });
     }
 
+    /*
+     * REGISTRO DE SALIDA
+     */
     if (!asistencia.horaSalida) {
-      const horaSalidaPermitida = horaTurnoPermitida(
-        estudiante.turno.horaSalida
-      );
+      const horaSalidaPermitida =
+        horaTurnoPermitida(
+          estudiante.turno.horaSalida
+        );
 
       if (ahora < horaSalidaPermitida) {
         return NextResponse.json(
@@ -350,19 +487,20 @@ if (!fotoBase64) {
         );
       }
 
-      const foto = await guardarFotoAsistencia({
-        fotoBase64,
-        dni: estudiante.dni,
-        tipo: "SALIDA",
-      });
-
-      asistencia = await prisma.asistencia.update({
-        where: { id: asistencia.id },
-        data: {
-          horaSalida: ahora,
-          fotoSalida: foto.rutaPublica,
-        },
-      });
+      /*
+       * Se conserva fotoUrl como fotografía de entrada.
+       * La nueva foto de salida se utiliza para Telegram,
+       * pero no reemplaza la foto guardada en la base de datos.
+       */
+      asistencia =
+        await prisma.asistencia.update({
+          where: {
+            id: asistencia.id,
+          },
+          data: {
+            horaSalida: ahora,
+          },
+        });
 
       try {
         await enviarWhatsApp({
@@ -378,7 +516,10 @@ if (!fotoBase64) {
           metodo,
         });
       } catch (error) {
-        console.error("Error enviando WhatsApp:", error);
+        console.error(
+          "Error enviando WhatsApp:",
+          error
+        );
       }
 
       try {
@@ -389,29 +530,42 @@ if (!fotoBase64) {
           hora: horaActual,
           metodo,
           estado: asistencia.estado,
-          fotoBuffer: foto.buffer,
+          fotoUrl,
         });
       } catch (error) {
-        console.error("Error enviando Telegram:", error);
+        console.error(
+          "Error enviando Telegram:",
+          error
+        );
       }
 
       return NextResponse.json({
         tipo: "SALIDA",
         estudiante,
         asistencia,
-        message: "Salida registrada correctamente",
+        message:
+          "Salida registrada correctamente",
       });
     }
 
     return NextResponse.json(
-      { message: "El estudiante ya registró entrada y salida hoy" },
+      {
+        message:
+          "El estudiante ya registró entrada y salida hoy",
+      },
       { status: 400 }
     );
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Error registrando asistencia:",
+      error
+    );
 
     return NextResponse.json(
-      { message: "Error al registrar asistencia" },
+      {
+        message:
+          "Error al registrar asistencia",
+      },
       { status: 500 }
     );
   }

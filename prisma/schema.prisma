@@ -53,7 +53,7 @@ model Asistencia {
 
   fotoEntrada  String?
   fotoSalida   String?
-
+  fotoUrl     String?
   estudianteId Int
   estudiante   Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
 }

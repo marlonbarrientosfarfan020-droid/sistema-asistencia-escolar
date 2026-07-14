@@ -9,7 +9,8 @@ import { useConfiguracionColegio } from "@/hooks/useConfiguracionColegio";
 
 export default function MarcarPage() {
   const router = useRouter();
-const { configuracion } = useConfiguracionColegio();
+  const { configuracion } = useConfiguracionColegio();
+
   const [dni, setDni] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [resultado, setResultado] = useState<any>(null);
@@ -46,109 +47,270 @@ const { configuracion } = useConfiguracionColegio();
     return () => {
       window.removeEventListener("popstate", bloquearAtras);
       detenerCamaraFoto();
-      detenerCamaraQR();
+      void detenerCamaraQR();
     };
   }, [router]);
 
   async function cerrarSesion() {
-  try {
-    await fetch("/api/logout", {
-      method: "POST",
-    });
-  } finally {
-    localStorage.removeItem("logueado");
-    localStorage.removeItem("rol");
-    localStorage.removeItem("usuario");
+    try {
+      await fetch("/api/logout", {
+        method: "POST",
+      });
+    } finally {
+      detenerCamaraFoto();
+      await detenerCamaraQR();
 
-    window.history.replaceState(null, "", "/login");
-    router.replace("/login");
+      localStorage.removeItem("logueado");
+      localStorage.removeItem("rol");
+      localStorage.removeItem("usuario");
+
+      window.history.replaceState(null, "", "/login");
+      router.replace("/login");
+    }
   }
-}
 
   function beep(tipo: "ok" | "error") {
-    const audio = new Audio(tipo === "ok" ? "/beep-ok.mp3" : "/beep-error.mp3");
+    const audio = new Audio(
+      tipo === "ok" ? "/beep-ok.mp3" : "/beep-error.mp3"
+    );
+
     audio.play().catch(() => {});
   }
 
   async function detenerCamaraQR() {
-    if (scannerRef.current) {
+    const scanner = scannerRef.current;
+
+    if (scanner) {
       try {
-        await scannerRef.current.stop();
-        scannerRef.current.clear();
-      } catch {}
-      scannerRef.current = null;
+        const estado = scanner.getState();
+
+        if (estado === 2 || estado === 3) {
+          await scanner.stop();
+        }
+
+        scanner.clear();
+      } catch (error) {
+        console.warn(
+          "No se pudo detener completamente el QR:",
+          error
+        );
+      } finally {
+        scannerRef.current = null;
+      }
     }
 
     setCamaraActiva(false);
     procesandoQR.current = false;
+
+    // Espera para que Android libere la cámara trasera.
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
   function detenerCamaraFoto() {
-    if (streamFotoRef.current) {
-      streamFotoRef.current.getTracks().forEach((track) => track.stop());
+    const stream = streamFotoRef.current;
+
+    if (stream) {
+      stream.getTracks().forEach((track) => {
+        track.stop();
+      });
+
       streamFotoRef.current = null;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.srcObject = null;
     }
   }
 
-  async function tomarFotoSelfie(): Promise<string | null> {
+  async function tomarFotoSelfie(): Promise<Blob | null> {
     try {
+      detenerCamaraFoto();
       setTomandoFoto(true);
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
-        audio: false,
-      });
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error(
+          "El navegador no permite acceder a la cámara"
+        );
+      }
+
+      let stream: MediaStream;
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: {
+              ideal: "user",
+            },
+            width: {
+              ideal: 720,
+            },
+            height: {
+              ideal: 720,
+            },
+          },
+          audio: false,
+        });
+      } catch {
+        // Respaldo para laptops o celulares que no respetan facingMode.
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+      }
 
       streamFotoRef.current = stream;
 
-      if (!videoRef.current) return null;
+      const video = videoRef.current;
 
-      videoRef.current.srcObject = stream;
+      if (!video) {
+        throw new Error("No existe el elemento de video");
+      }
 
-      await new Promise<void>((resolve) => {
-        if (!videoRef.current) return resolve();
+      video.srcObject = stream;
+      video.muted = true;
+      video.playsInline = true;
 
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play();
-          resolve();
+      await new Promise<void>((resolve, reject) => {
+        const temporizador = window.setTimeout(() => {
+          reject(
+            new Error("La cámara tardó demasiado en iniciar")
+          );
+        }, 8000);
+
+        video.onloadedmetadata = async () => {
+          try {
+            await video.play();
+            window.clearTimeout(temporizador);
+            resolve();
+          } catch (error) {
+            window.clearTimeout(temporizador);
+            reject(error);
+          }
         };
       });
 
-      for (let i = 3; i >= 1; i--) {
-        setContadorFoto(i);
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+      for (let numero = 3; numero >= 1; numero--) {
+        setContadorFoto(numero);
+
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000)
+        );
       }
 
       setContadorFoto(null);
 
-      const video = videoRef.current;
-      if (!video) return null;
+      const anchoOriginal = video.videoWidth || 720;
+      const altoOriginal = video.videoHeight || 720;
+
+      const maximo = 720;
+
+      const escala = Math.min(
+        maximo / anchoOriginal,
+        maximo / altoOriginal,
+        1
+      );
+
+      const ancho = Math.round(anchoOriginal * escala);
+      const alto = Math.round(altoOriginal * escala);
 
       const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
 
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return null;
+      canvas.width = ancho;
+      canvas.height = alto;
 
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const contexto = canvas.getContext("2d");
 
-      const fotoBase64 = canvas.toDataURL("image/jpeg", 0.8);
+      if (!contexto) {
+        throw new Error("No se pudo crear la fotografía");
+      }
 
-      detenerCamaraFoto();
-      setTomandoFoto(false);
+      contexto.drawImage(video, 0, 0, ancho, alto);
 
-      return fotoBase64;
+      const blob = await new Promise<Blob | null>(
+        (resolve) => {
+          canvas.toBlob(
+            (resultadoBlob) => resolve(resultadoBlob),
+            "image/jpeg",
+            0.72
+          );
+        }
+      );
+
+      if (!blob) {
+        throw new Error(
+          "No se pudo comprimir la fotografía"
+        );
+      }
+
+      return blob;
     } catch (error) {
-      console.error(error);
+      console.error("Error capturando selfie:", error);
+
+      setMensaje(
+        error instanceof Error
+          ? `❌ ${error.message}`
+          : "❌ No se pudo tomar la fotografía"
+      );
+
+      setEstadoVisual("error");
+      return null;
+    } finally {
       detenerCamaraFoto();
       setTomandoFoto(false);
       setContadorFoto(null);
-      setMensaje("❌ No se pudo tomar la foto. Verifique permisos de cámara.");
-      setEstadoVisual("error");
-      beep("error");
-      return null;
     }
+  }
+
+  async function subirFoto(foto: Blob): Promise<string> {
+    const formData = new FormData();
+
+    formData.append(
+      "foto",
+      new File(
+        [foto],
+        `asistencia-${Date.now()}.jpg`,
+        {
+          type: "image/jpeg",
+        }
+      )
+    );
+
+    const respuesta = await fetch(
+      "/api/asistencias/foto",
+      {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      }
+    );
+
+    const texto = await respuesta.text();
+
+    let data: {
+      ok?: boolean;
+      fotoUrl?: string;
+      message?: string;
+    } = {};
+
+    if (texto) {
+      try {
+        data = JSON.parse(texto);
+      } catch {
+        throw new Error(
+          "El servidor devolvió una respuesta inválida"
+        );
+      }
+    }
+
+    if (!respuesta.ok || !data.fotoUrl) {
+      throw new Error(
+        data.message ||
+          "No se pudo guardar la fotografía"
+      );
+    }
+
+    return data.fotoUrl;
   }
 
   async function registrarAsistencia(datos: {
@@ -159,50 +321,112 @@ const { configuracion } = useConfiguracionColegio();
     setMensaje("");
     setResultado(null);
 
-    const fotoBase64 = await tomarFotoSelfie();
+    try {
+      // Detiene completamente el QR antes de abrir la cámara frontal.
+      if (camaraActiva || scannerRef.current) {
+        await detenerCamaraQR();
+      }
 
-    if (!fotoBase64) {
-      setMensaje("❌ La foto es obligatoria para marcar asistencia.");
-      setEstadoVisual("error");
-      beep("error");
-      return;
-    }
+      setMensaje(
+        "📸 Prepare el rostro para la fotografía"
+      );
 
-    const res = await fetch("/api/asistencias", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        ...datos,
-        fotoBase64,
-      }),
-    });
+      const foto = await tomarFotoSelfie();
 
-    const data = await res.json();
+      if (!foto) {
+        throw new Error(
+          "La fotografía es obligatoria para registrar la asistencia"
+        );
+      }
 
-    if (res.ok) {
+      setMensaje("⏳ Guardando fotografía...");
+
+      const fotoUrl = await subirFoto(foto);
+
+      setMensaje("⏳ Registrando asistencia...");
+
+      const respuesta = await fetch(
+        "/api/asistencias",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            ...datos,
+            fotoUrl,
+          }),
+        }
+      );
+
+      const texto = await respuesta.text();
+
+      let data: any = {};
+
+      if (texto) {
+        try {
+          data = JSON.parse(texto);
+        } catch {
+          throw new Error(
+            "La API de asistencia devolvió datos inválidos"
+          );
+        }
+      }
+
+      if (!respuesta.ok) {
+        throw new Error(
+          data.message ||
+            `No se pudo registrar la asistencia (${respuesta.status})`
+        );
+      }
+
       setResultado(data);
-      setMensaje(`✅ ${data.message}`);
+      setMensaje(
+        `✅ ${data.message || "Asistencia registrada"}`
+      );
       setDni("");
       beep("ok");
 
-      if (data.tipo === "ENTRADA") setEstadoVisual("entrada");
-      if (data.tipo === "SALIDA") setEstadoVisual("salida");
+      if (data.tipo === "ENTRADA") {
+        setEstadoVisual("entrada");
+      } else if (data.tipo === "SALIDA") {
+        setEstadoVisual("salida");
+      }
 
-      setTimeout(() => setEstadoVisual("normal"), 2500);
-    } else {
-      setMensaje(`❌ ${data.message}`);
+      setTimeout(() => {
+        setEstadoVisual("normal");
+      }, 3000);
+    } catch (error) {
+      console.error(
+        "Error registrando asistencia:",
+        error
+      );
+
+      setMensaje(
+        `❌ ${
+          error instanceof Error
+            ? error.message
+            : "Error al registrar asistencia"
+        }`
+      );
+
       setEstadoVisual("error");
       beep("error");
 
-      setTimeout(() => setEstadoVisual("normal"), 2500);
+      setTimeout(() => {
+        setEstadoVisual("normal");
+      }, 3500);
+    } finally {
+      detenerCamaraFoto();
+      setTomandoFoto(false);
     }
   }
 
   async function marcarPorDni() {
     if (!dni.trim()) {
       setMensaje("❌ Ingrese un DNI");
+      setEstadoVisual("error");
       return;
     }
 
@@ -213,6 +437,7 @@ const { configuracion } = useConfiguracionColegio();
   }
 
   async function activarCamara() {
+    detenerCamaraFoto();
     setCamaraActiva(true);
     procesandoQR.current = false;
 
@@ -222,10 +447,15 @@ const { configuracion } = useConfiguracionColegio();
 
       try {
         await lector.start(
-          { facingMode: "environment" },
+          {
+            facingMode: "environment",
+          },
           {
             fps: 10,
-            qrbox: { width: 250, height: 250 },
+            qrbox: {
+              width: 250,
+              height: 250,
+            },
           },
           async (codigoLeido) => {
             if (procesandoQR.current) return;
@@ -238,16 +468,20 @@ const { configuracion } = useConfiguracionColegio();
               codigo: codigoLeido,
               metodo: "QR",
             });
-
-            setTimeout(() => {
-              procesandoQR.current = false;
-            }, 3000);
           },
           () => {}
         );
       } catch (error) {
         console.error(error);
-        setMensaje("❌ No se pudo activar la cámara. Verifique permisos.");
+
+        scannerRef.current = null;
+        procesandoQR.current = false;
+
+        setMensaje(
+          "❌ No se pudo activar la cámara. Verifique permisos."
+        );
+
+        setEstadoVisual("error");
         setCamaraActiva(false);
       }
     }, 300);
@@ -275,7 +509,8 @@ const { configuracion } = useConfiguracionColegio();
     <main
       className="min-h-screen bg-cover bg-center relative flex items-center justify-center p-6"
       style={{
-        backgroundImage: "url('/img/colegio-santa-rita.jpg')",
+        backgroundImage:
+          "url('/img/colegio-santa-rita.jpg')",
       }}
     >
       <div className="absolute inset-0 bg-slate-950/45" />
@@ -304,35 +539,43 @@ const { configuracion } = useConfiguracionColegio();
         ⬅️ Volver al panel
       </button>
 
-      <video ref={videoRef} className="hidden" playsInline muted />
+      <video
+        ref={videoRef}
+        className="hidden"
+        playsInline
+        muted
+      />
 
       <div className="relative z-10 bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-8 w-full max-w-5xl">
         <div className="text-center">
           {configuracion.logoUrl ? (
-  <img
-    src={configuracion.logoUrl}
-    alt={`Logo de ${configuracion.nombreColegio}`}
-    className="mx-auto mb-3 h-[95px] w-[95px] rounded-2xl bg-white object-contain p-2 shadow"
-  />
-) : (
-  <Image
-    src="/img/logo-santa-rita.png"
-    alt="Logo institucional"
-    width={95}
-    height={95}
-    className="mx-auto mb-3 rounded-2xl bg-white p-2 shadow"
-    priority
-  />
-)}
-<h2 className="text-xl font-bold text-slate-700">
-  {configuracion.nombreColegio}
-</h2>
+            <img
+              src={configuracion.logoUrl}
+              alt={`Logo de ${configuracion.nombreColegio}`}
+              className="mx-auto mb-3 h-[95px] w-[95px] rounded-2xl bg-white object-contain p-2 shadow"
+            />
+          ) : (
+            <Image
+              src="/img/logo-santa-rita.png"
+              alt="Logo institucional"
+              width={95}
+              height={95}
+              className="mx-auto mb-3 rounded-2xl bg-white p-2 shadow"
+              priority
+            />
+          )}
+
+          <h2 className="text-xl font-bold text-slate-700">
+            {configuracion.nombreColegio}
+          </h2>
+
           <h1 className="text-5xl font-extrabold text-slate-900">
             {textoPrincipal}
           </h1>
 
           <p className="text-slate-600 mt-2 text-lg">
-            Escanea el QR o ingresa el DNI del estudiante
+            Escanea el QR o ingresa el DNI del
+            estudiante
           </p>
         </div>
 
@@ -353,11 +596,13 @@ const { configuracion } = useConfiguracionColegio();
         {resultado && (
           <div className="mt-6 bg-slate-100 rounded-2xl p-6 text-center">
             <h2 className="text-4xl font-extrabold">
-              {resultado.estudiante.nombres} {resultado.estudiante.apellidos}
+              {resultado.estudiante.nombres}{" "}
+              {resultado.estudiante.apellidos}
             </h2>
 
             <p className="text-xl text-slate-600 mt-2">
-              Grado {resultado.estudiante.grado} - Sección{" "}
+              Grado {resultado.estudiante.grado} -
+              Sección{" "}
               {resultado.estudiante.seccion}
             </p>
 
@@ -370,12 +615,16 @@ const { configuracion } = useConfiguracionColegio();
         <div className="grid md:grid-cols-2 gap-6 mt-8">
           <div className="border-2 border-blue-100 bg-white rounded-3xl p-6 text-center shadow">
             <div className="text-6xl mb-4">📷</div>
-            <h2 className="text-2xl font-bold">Escanear QR</h2>
+
+            <h2 className="text-2xl font-bold">
+              Escanear QR
+            </h2>
 
             {!camaraActiva && (
               <button
                 onClick={activarCamara}
-                className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold"
+                disabled={tomandoFoto}
+                className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold disabled:opacity-50"
               >
                 Activar cámara
               </button>
@@ -389,7 +638,7 @@ const { configuracion } = useConfiguracionColegio();
                 />
 
                 <button
-                  onClick={detenerCamaraQR}
+                  onClick={() => void detenerCamaraQR()}
                   className="mt-4 bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-xl font-bold"
                 >
                   Detener cámara
@@ -410,10 +659,15 @@ const { configuracion } = useConfiguracionColegio();
             <input
               value={dni}
               onChange={(e) =>
-                setDni(e.target.value.replace(/\D/g, "").slice(0, 8))
+                setDni(
+                  e.target.value
+                    .replace(/\D/g, "")
+                    .slice(0, 8)
+                )
               }
               placeholder="Ingrese DNI"
-              className="mt-6 border rounded-xl p-3 w-full text-center text-xl"
+              disabled={tomandoFoto}
+              className="mt-6 border rounded-xl p-3 w-full text-center text-xl disabled:opacity-50"
             />
 
             <button
@@ -421,7 +675,9 @@ const { configuracion } = useConfiguracionColegio();
               disabled={tomandoFoto}
               className="mt-4 bg-slate-900 hover:bg-slate-800 text-white px-5 py-3 rounded-xl font-bold w-full disabled:opacity-50"
             >
-              {tomandoFoto ? "Tomando foto..." : "Marcar asistencia"}
+              {tomandoFoto
+                ? "Tomando foto..."
+                : "Marcar asistencia"}
             </button>
           </div>
         </div>
