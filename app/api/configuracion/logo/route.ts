@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { exigirAdmin } from "@/lib/auth";
+import { put } from "@vercel/blob";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,31 +62,17 @@ export async function POST(request: Request) {
     };
 
     const extension = extensiones[archivo.type] || "png";
-    const nombreArchivo = `logo-colegio-${Date.now()}.${extension}`;
 
-    const carpetaDestino = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      "configuracion"
-    );
+    const nombreArchivo =
+      `configuracion/logo-colegio-${Date.now()}-` +
+      `${crypto.randomUUID()}.${extension}`;
 
-    await mkdir(carpetaDestino, {
-      recursive: true,
+    const blob = await put(nombreArchivo, archivo, {
+      access: "public",
+      addRandomSuffix: false,
     });
 
-    const rutaCompleta = path.join(
-      carpetaDestino,
-      nombreArchivo
-    );
-
-    const buffer = Buffer.from(
-      await archivo.arrayBuffer()
-    );
-
-    await writeFile(rutaCompleta, buffer);
-
-    const logoUrl = `/uploads/configuracion/${nombreArchivo}`;
+    const logoUrl = blob.url;
 
     const configuracionActual =
       await prisma.configuracion.findFirst();

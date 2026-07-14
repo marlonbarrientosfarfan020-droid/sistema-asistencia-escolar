@@ -204,7 +204,7 @@ credentials: "include",
 
       const data = await res.json();
 
-    if (res.ok) {
+   if (res.ok) {
   setMensaje("✅ Configuración guardada correctamente");
 
   window.dispatchEvent(
@@ -216,11 +216,7 @@ credentials: "include",
   setMensaje(
     `❌ ${data.message || "Error al guardar configuración"}`
   );
-} {
-        setMensaje(
-          `❌ ${data.message || "Error al guardar configuración"}`
-        );
-      }
+}
     } catch (error) {
       console.error("Error guardando configuración:", error);
       setMensaje("❌ No se pudo conectar con el servidor");
@@ -434,23 +430,7 @@ credentials: "include",
           </div>
 
           <div className="grid md:grid-cols-2 gap-5">
-            <div className="md:col-span-2">
-              <label className="block font-bold mb-2">
-                Nombre del colegio
-              </label>
-
-              <input
-                value={form.nombreColegio}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    nombreColegio: e.target.value,
-                  })
-                }
-                className="border rounded-xl p-3 w-full"
-                placeholder="Nombre del colegio"
-              />
-            </div>
+            
              <div className="md:col-span-2 rounded-3xl border border-slate-200 bg-slate-50 p-5">
     <div className="flex flex-col gap-5 md:flex-row md:items-center">
       <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-3xl border border-slate-200 bg-white shadow">
@@ -516,21 +496,6 @@ credentials: "include",
     />
   </div>
 
-  <div>
-    <label className="block font-bold mb-2">Director</label>
-
-    <input
-      value={form.director}
-      onChange={(e) =>
-        setForm({
-          ...form,
-          director: e.target.value,
-        })
-      }
-      className="border rounded-xl p-3 w-full"
-      placeholder="Nombre del director"
-    />
-  </div>
 
             <div>
               <label className="block font-bold mb-2">Director</label>
