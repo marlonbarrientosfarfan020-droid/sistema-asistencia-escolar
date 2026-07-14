@@ -387,18 +387,18 @@ export default function Dashboard() {
         )}
 
         {/* CENTRO IA */}
-        <section className="relative overflow-hidden rounded-[32px] bg-gradient-to-r from-indigo-800 via-violet-700 to-fuchsia-700 p-6 text-white shadow-[0_20px_50px_rgba(109,40,217,0.22)] md:p-8">
+       <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-indigo-800 via-violet-700 to-fuchsia-700 p-4 text-white shadow-[0_16px_40px_rgba(109,40,217,0.20)] sm:p-5 md:p-7">
           <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-fuchsia-400/20 blur-3xl" />
           <div className="absolute -bottom-20 left-1/4 h-64 w-64 rounded-full bg-blue-400/20 blur-3xl" />
 
           <div className="relative">
             <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="text-3xl font-black">
+               <h2 className="text-xl font-black sm:text-2xl md:text-3xl">
                   🧠 Centro de Inteligencia Escolar
                 </h2>
 
-                <p className="mt-2 text-indigo-100">
+               <p className="mt-1 hidden text-sm text-indigo-100 sm:block">
                   Monitoreo preventivo y análisis inteligente de asistencia
                 </p>
               </div>
@@ -408,13 +408,13 @@ export default function Dashboard() {
                   (window.location.href =
                     "/dashboard/inteligencia")
                 }
-                className="rounded-2xl bg-white px-6 py-3 font-black text-indigo-700 shadow-xl transition hover:-translate-y-0.5 hover:bg-indigo-50"
+             className="rounded-xl bg-white px-3 py-2 text-xs font-black text-indigo-700 shadow-lg sm:px-5 sm:py-3 sm:text-base"
               >
                 Ver análisis IA
               </button>
             </div>
-
-            <div className="mt-7 grid gap-4 md:grid-cols-3">
+</div>
+           <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-4">
               <RiskCard
                 titulo="Riesgo alto"
                 valor={datos.riesgoAlto || 0}
@@ -437,22 +437,17 @@ export default function Dashboard() {
               />
             </div>
 
-            <div className="mt-7 rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur-xl">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-white/15 p-2 text-xl">
-                  📈
-                </div>
+          <details className="mt-4 rounded-2xl border border-white/10 bg-white/10 backdrop-blur-xl">
+  <summary className="cursor-pointer list-none px-4 py-3 font-black">
+    📈 Ver resumen inteligente
+  </summary>
 
-                <h3 className="text-xl font-black">
-                  Resumen inteligente
-                </h3>
-              </div>
-
-              <p className="mt-4 whitespace-pre-line leading-8 text-indigo-50">
-                {datos.resumenIA}
-              </p>
-            </div>
-          </div>
+  <div className="border-t border-white/10 px-4 py-4">
+    <p className="whitespace-pre-line text-sm leading-6 text-indigo-50">
+      {datos.resumenIA}
+    </p>
+  </div>
+</details>
         </section>
 
         {/* RANKING IA */}
@@ -996,13 +991,13 @@ function RiskCard({
 }) {
   return (
     <div
-      className={`rounded-3xl border p-5 backdrop-blur-xl ${clase}`}
+       className={`rounded-2xl border p-3 text-center backdrop-blur-xl sm:p-5 ${clase}`}
     >
-      <p className="font-bold text-white/90">
+      <p className="text-xs font-bold text-white/90 sm:text-sm">
         {icono} {titulo}
       </p>
 
-      <h3 className="mt-3 text-5xl font-black">{valor}</h3>
+      <h3 className="mt-1 text-2xl font-black sm:mt-3 sm:text-5xl">{valor}</h3>
     </div>
   );
 }
