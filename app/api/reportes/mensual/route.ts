@@ -1,16 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { exigirAdminDemoOPersonal } from "@/lib/auth";
 
 const ZONA_HORARIA = "America/Lima";
-
-function esAdminODemo(request: Request) {
-  const rol = request.headers.get("x-user-role") || "";
-  return rol === "ADMIN" || rol === "DEMO";
-}
-
-function noAutorizado() {
-  return NextResponse.json({ message: "No autorizado" }, { status: 401 });
-}
 
 function fechaPeruString(fecha: Date) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -94,7 +86,11 @@ function esDiaNoLectivo(
 }
 
 export async function GET(request: Request) {
-  if (!esAdminODemo(request)) return noAutorizado();
+  const acceso = await exigirAdminDemoOPersonal();
+
+  if (!acceso.autorizado) {
+    return acceso.respuesta;
+  }
 
   try {
     const { searchParams } = new URL(request.url);

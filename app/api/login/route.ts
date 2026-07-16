@@ -1,42 +1,64 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { guardarSesion } from "@/lib/auth";
+import {
+  guardarSesion,
+  type RolUsuario,
+} from "@/lib/auth";
 import bcrypt from "bcryptjs";
 
 export const runtime = "nodejs";
 
-const ROLES_PERMITIDOS = ["ADMIN", "DEMO"] as const;
+const ROLES_PERMITIDOS: RolUsuario[] = [
+  "ADMIN",
+  "DIRECTIVO",
+  "DEMO",
+  "PERSONAL",
+];
 
-type RolPermitido = (typeof ROLES_PERMITIDOS)[number];
+function esRolPermitido(
+  valor: string
+): valor is RolUsuario {
+  return ROLES_PERMITIDOS.includes(
+    valor as RolUsuario
+  );
+}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const usuario = String(body.usuario || "").trim();
-    const password = String(body.password || "");
+    const usuario = String(
+      body.usuario || ""
+    ).trim();
+
+    const password = String(
+      body.password || ""
+    );
 
     if (!usuario || !password) {
       return NextResponse.json(
         {
           ok: false,
-          message: "Usuario y contraseña son obligatorios",
+          message:
+            "Usuario y contraseña son obligatorios",
         },
         { status: 400 }
       );
     }
 
-    const usuarioEncontrado = await prisma.usuario.findUnique({
-      where: {
-        usuario,
-      },
-    });
+    const usuarioEncontrado =
+      await prisma.usuario.findUnique({
+        where: {
+          usuario,
+        },
+      });
 
     if (!usuarioEncontrado) {
       return NextResponse.json(
         {
           ok: false,
-          message: "Usuario o contraseña incorrectos",
+          message:
+            "Usuario o contraseña incorrectos",
         },
         { status: 401 }
       );
@@ -46,34 +68,40 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          message: "Este usuario está inactivo",
+          message:
+            "Este usuario está inactivo",
         },
         { status: 403 }
       );
     }
 
-    const passwordCorrecto = await bcrypt.compare(
-      password,
-      usuarioEncontrado.password
-    );
+    const passwordCorrecto =
+      await bcrypt.compare(
+        password,
+        usuarioEncontrado.password
+      );
 
     if (!passwordCorrecto) {
       return NextResponse.json(
         {
           ok: false,
-          message: "Usuario o contraseña incorrectos",
+          message:
+            "Usuario o contraseña incorrectos",
         },
         { status: 401 }
       );
     }
 
-    const rol = String(usuarioEncontrado.rol).toUpperCase();
+    const rol = String(
+      usuarioEncontrado.rol || ""
+    ).toUpperCase();
 
-    if (!ROLES_PERMITIDOS.includes(rol as RolPermitido)) {
+    if (!esRolPermitido(rol)) {
       return NextResponse.json(
         {
           ok: false,
-          message: "El usuario no tiene un rol permitido",
+          message:
+            "El usuario no tiene un rol permitido",
         },
         { status: 403 }
       );
@@ -82,7 +110,7 @@ export async function POST(request: Request) {
     await guardarSesion({
       usuarioId: usuarioEncontrado.id,
       usuario: usuarioEncontrado.usuario,
-      rol: rol as RolPermitido,
+      rol,
     });
 
     return NextResponse.json({
@@ -95,12 +123,16 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    console.error("Error iniciando sesión:", error);
+    console.error(
+      "Error iniciando sesión:",
+      error
+    );
 
     return NextResponse.json(
       {
         ok: false,
-        message: "Error al iniciar sesión",
+        message:
+          "Error al iniciar sesión",
       },
       { status: 500 }
     );

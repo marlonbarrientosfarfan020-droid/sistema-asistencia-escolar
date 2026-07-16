@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     const archivo = formData.get("logo");
 
     if (!(archivo instanceof File)) {
+      
       return NextResponse.json(
         {
           ok: false,
@@ -35,25 +36,35 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!TIPOS_PERMITIDOS.includes(archivo.type)) {
-      return NextResponse.json(
-        {
-          ok: false,
-          message: "Solo se permiten imágenes PNG, JPG o WEBP",
-        },
-        { status: 400 }
-      );
-    }
+   if (!TIPOS_PERMITIDOS.includes(archivo.type)) {
+  return NextResponse.json(
+    {
+      ok: false,
+      message: "Solo se permiten imágenes PNG, JPG o WEBP",
+    },
+    { status: 400 }
+  );
+}
 
-    if (archivo.size > TAMANO_MAXIMO) {
-      return NextResponse.json(
-        {
-          ok: false,
-          message: "La imagen no puede superar los 2 MB",
-        },
-        { status: 400 }
-      );
-    }
+if (archivo.size <= 0) {
+  return NextResponse.json(
+    {
+      ok: false,
+      message: "La imagen seleccionada está vacía",
+    },
+    { status: 400 }
+  );
+}
+
+if (archivo.size > TAMANO_MAXIMO) {
+  return NextResponse.json(
+    {
+      ok: false,
+      message: "La imagen no puede superar los 2 MB",
+    },
+    { status: 400 }
+  );
+}
 
     const extensiones: Record<string, string> = {
       "image/png": "png",

@@ -3,7 +3,11 @@ import { cookies } from "next/headers";
 
 const COOKIE_NAME = "sesion_santa_rita";
 
-export type RolUsuario = "ADMIN" | "DEMO";
+export type RolUsuario =
+  | "ADMIN"
+  | "DIRECTIVO"
+  | "DEMO"
+  | "PERSONAL";
 
 export type SesionUsuario = {
   usuarioId: number;
@@ -21,6 +25,15 @@ function obtenerClaveSecreta() {
   }
 
   return new TextEncoder().encode(secreto);
+}
+
+function esRolValido(valor: unknown): valor is RolUsuario {
+  return (
+    valor === "ADMIN" ||
+    valor === "DIRECTIVO" ||
+    valor === "DEMO" ||
+    valor === "PERSONAL"
+  );
 }
 
 export async function crearTokenSesion(
@@ -68,14 +81,23 @@ export async function obtenerSesion(): Promise<SesionUsuario | null> {
       obtenerClaveSecreta()
     );
 
-    const usuarioId = Number(resultado.payload.usuarioId);
-    const usuario = String(resultado.payload.usuario || "");
-    const rol = String(resultado.payload.rol || "");
+    const usuarioId = Number(
+      resultado.payload.usuarioId
+    );
+
+    const usuario = String(
+      resultado.payload.usuario || ""
+    ).trim();
+
+    const rol = String(
+      resultado.payload.rol || ""
+    ).toUpperCase();
 
     if (
-      !usuarioId ||
+      !Number.isInteger(usuarioId) ||
+      usuarioId <= 0 ||
       !usuario ||
-      (rol !== "ADMIN" && rol !== "DEMO")
+      !esRolValido(rol)
     ) {
       return null;
     }
@@ -85,7 +107,12 @@ export async function obtenerSesion(): Promise<SesionUsuario | null> {
       usuario,
       rol,
     };
-  } catch {
+  } catch (error) {
+    console.error(
+      "Error verificando sesión:",
+      error
+    );
+
     return null;
   }
 }
@@ -102,20 +129,38 @@ export async function eliminarSesion(): Promise<void> {
   });
 }
 
+function respuestaNoAutenticado() {
+  return Response.json(
+    {
+      ok: false,
+      message: "No autenticado",
+    },
+    {
+      status: 401,
+    }
+  );
+}
+
+function respuestaNoAutorizado() {
+  return Response.json(
+    {
+      ok: false,
+      message:
+        "No tiene permisos para realizar esta acción",
+    },
+    {
+      status: 403,
+    }
+  );
+}
+
 export async function exigirSesion() {
   const sesion = await obtenerSesion();
 
   if (!sesion) {
     return {
       autorizado: false as const,
-      respuesta: Response.json(
-        {
-          message: "No autenticado",
-        },
-        {
-          status: 401,
-        }
-      ),
+      respuesta: respuestaNoAutenticado(),
     };
   }
 
@@ -125,30 +170,88 @@ export async function exigirSesion() {
   };
 }
 
-export async function exigirAdmin() {
+export async function exigirRoles(
+  rolesPermitidos: RolUsuario[]
+) {
   const acceso = await exigirSesion();
 
   if (!acceso.autorizado) {
     return acceso;
   }
 
-  if (acceso.sesion.rol !== "ADMIN") {
+  if (
+    !rolesPermitidos.includes(
+      acceso.sesion.rol
+    )
+  ) {
     return {
       autorizado: false as const,
-      respuesta: Response.json(
-        {
-          message: "No autorizado",
-        },
-        {
-          status: 403,
-        }
-      ),
+      respuesta: respuestaNoAutorizado(),
     };
   }
 
   return acceso;
 }
 
+export async function exigirAdmin() {
+  return exigirRoles(["ADMIN"]);
+}
+
 export async function exigirAdminODemo() {
-  return exigirSesion();
+  return exigirRoles([
+    "ADMIN",
+    "DEMO",
+  ]);
+}
+
+export async function exigirPersonal() {
+  return exigirRoles([
+    "PERSONAL",
+  ]);
+}
+
+export async function exigirAdminOPersonal() {
+  return exigirRoles([
+    "ADMIN",
+    "PERSONAL",
+  ]);
+}
+
+export async function exigirCualquierRol() {
+  return exigirRoles([
+    "ADMIN",
+    "DIRECTIVO",
+    "DEMO",
+    "PERSONAL",
+  ]);
+}
+export async function exigirAdminDemoOPersonal() {
+  return exigirRoles([
+    "ADMIN",
+    "DEMO",
+    "PERSONAL",
+  ]);
+}
+export async function exigirAdminODirectivo() {
+  return exigirRoles([
+    "ADMIN",
+    "DIRECTIVO",
+  ]);
+}
+
+export async function exigirAdminDirectivoODemo() {
+  return exigirRoles([
+    "ADMIN",
+    "DIRECTIVO",
+    "DEMO",
+  ]);
+}
+
+export async function exigirAdminDirectivoDemoOPersonal() {
+  return exigirRoles([
+    "ADMIN",
+    "DIRECTIVO",
+    "DEMO",
+    "PERSONAL",
+  ]);
 }

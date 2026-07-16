@@ -29,13 +29,17 @@ export type AggregateConfiguracion = {
 export type ConfiguracionAvgAggregateOutputType = {
   id: number | null
   diaReporteDirector: number | null
+  diaMesReporteDirector: number | null
   diaReportePadres: number | null
+  diaMesReportePadres: number | null
 }
 
 export type ConfiguracionSumAggregateOutputType = {
   id: number | null
   diaReporteDirector: number | null
+  diaMesReporteDirector: number | null
   diaReportePadres: number | null
+  diaMesReportePadres: number | null
 }
 
 export type ConfiguracionMinAggregateOutputType = {
@@ -57,10 +61,13 @@ export type ConfiguracionMinAggregateOutputType = {
   reporteDirectorActivo: boolean | null
   frecuenciaReporteDirector: string | null
   diaReporteDirector: number | null
+  diaMesReporteDirector: number | null
   horaReporteDirector: string | null
   ultimoReporteDirectorAt: Date | null
   reportePadresActivo: boolean | null
+  frecuenciaReportePadres: string | null
   diaReportePadres: number | null
+  diaMesReportePadres: number | null
   horaReportePadres: string | null
   incluirRiesgoIAReportePadres: boolean | null
   ultimoReportePadresAt: Date | null
@@ -85,10 +92,13 @@ export type ConfiguracionMaxAggregateOutputType = {
   reporteDirectorActivo: boolean | null
   frecuenciaReporteDirector: string | null
   diaReporteDirector: number | null
+  diaMesReporteDirector: number | null
   horaReporteDirector: string | null
   ultimoReporteDirectorAt: Date | null
   reportePadresActivo: boolean | null
+  frecuenciaReportePadres: string | null
   diaReportePadres: number | null
+  diaMesReportePadres: number | null
   horaReportePadres: string | null
   incluirRiesgoIAReportePadres: boolean | null
   ultimoReportePadresAt: Date | null
@@ -113,10 +123,13 @@ export type ConfiguracionCountAggregateOutputType = {
   reporteDirectorActivo: number
   frecuenciaReporteDirector: number
   diaReporteDirector: number
+  diaMesReporteDirector: number
   horaReporteDirector: number
   ultimoReporteDirectorAt: number
   reportePadresActivo: number
+  frecuenciaReportePadres: number
   diaReportePadres: number
+  diaMesReportePadres: number
   horaReportePadres: number
   incluirRiesgoIAReportePadres: number
   ultimoReportePadresAt: number
@@ -127,13 +140,17 @@ export type ConfiguracionCountAggregateOutputType = {
 export type ConfiguracionAvgAggregateInputType = {
   id?: true
   diaReporteDirector?: true
+  diaMesReporteDirector?: true
   diaReportePadres?: true
+  diaMesReportePadres?: true
 }
 
 export type ConfiguracionSumAggregateInputType = {
   id?: true
   diaReporteDirector?: true
+  diaMesReporteDirector?: true
   diaReportePadres?: true
+  diaMesReportePadres?: true
 }
 
 export type ConfiguracionMinAggregateInputType = {
@@ -155,10 +172,13 @@ export type ConfiguracionMinAggregateInputType = {
   reporteDirectorActivo?: true
   frecuenciaReporteDirector?: true
   diaReporteDirector?: true
+  diaMesReporteDirector?: true
   horaReporteDirector?: true
   ultimoReporteDirectorAt?: true
   reportePadresActivo?: true
+  frecuenciaReportePadres?: true
   diaReportePadres?: true
+  diaMesReportePadres?: true
   horaReportePadres?: true
   incluirRiesgoIAReportePadres?: true
   ultimoReportePadresAt?: true
@@ -183,10 +203,13 @@ export type ConfiguracionMaxAggregateInputType = {
   reporteDirectorActivo?: true
   frecuenciaReporteDirector?: true
   diaReporteDirector?: true
+  diaMesReporteDirector?: true
   horaReporteDirector?: true
   ultimoReporteDirectorAt?: true
   reportePadresActivo?: true
+  frecuenciaReportePadres?: true
   diaReportePadres?: true
+  diaMesReportePadres?: true
   horaReportePadres?: true
   incluirRiesgoIAReportePadres?: true
   ultimoReportePadresAt?: true
@@ -211,10 +234,13 @@ export type ConfiguracionCountAggregateInputType = {
   reporteDirectorActivo?: true
   frecuenciaReporteDirector?: true
   diaReporteDirector?: true
+  diaMesReporteDirector?: true
   horaReporteDirector?: true
   ultimoReporteDirectorAt?: true
   reportePadresActivo?: true
+  frecuenciaReportePadres?: true
   diaReportePadres?: true
+  diaMesReportePadres?: true
   horaReportePadres?: true
   incluirRiesgoIAReportePadres?: true
   ultimoReportePadresAt?: true
@@ -326,10 +352,13 @@ export type ConfiguracionGroupByOutputType = {
   reporteDirectorActivo: boolean
   frecuenciaReporteDirector: string
   diaReporteDirector: number
+  diaMesReporteDirector: number
   horaReporteDirector: string
   ultimoReporteDirectorAt: Date | null
   reportePadresActivo: boolean
+  frecuenciaReportePadres: string
   diaReportePadres: number
+  diaMesReportePadres: number
   horaReportePadres: string
   incluirRiesgoIAReportePadres: boolean
   ultimoReportePadresAt: Date | null
@@ -377,10 +406,13 @@ export type ConfiguracionWhereInput = {
   reporteDirectorActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
   frecuenciaReporteDirector?: Prisma.StringFilter<"Configuracion"> | string
   diaReporteDirector?: Prisma.IntFilter<"Configuracion"> | number
+  diaMesReporteDirector?: Prisma.IntFilter<"Configuracion"> | number
   horaReporteDirector?: Prisma.StringFilter<"Configuracion"> | string
   ultimoReporteDirectorAt?: Prisma.DateTimeNullableFilter<"Configuracion"> | Date | string | null
   reportePadresActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
+  frecuenciaReportePadres?: Prisma.StringFilter<"Configuracion"> | string
   diaReportePadres?: Prisma.IntFilter<"Configuracion"> | number
+  diaMesReportePadres?: Prisma.IntFilter<"Configuracion"> | number
   horaReportePadres?: Prisma.StringFilter<"Configuracion"> | string
   incluirRiesgoIAReportePadres?: Prisma.BoolFilter<"Configuracion"> | boolean
   ultimoReportePadresAt?: Prisma.DateTimeNullableFilter<"Configuracion"> | Date | string | null
@@ -405,10 +437,13 @@ export type ConfiguracionOrderByWithRelationInput = {
   reporteDirectorActivo?: Prisma.SortOrder
   frecuenciaReporteDirector?: Prisma.SortOrder
   diaReporteDirector?: Prisma.SortOrder
+  diaMesReporteDirector?: Prisma.SortOrder
   horaReporteDirector?: Prisma.SortOrder
   ultimoReporteDirectorAt?: Prisma.SortOrderInput | Prisma.SortOrder
   reportePadresActivo?: Prisma.SortOrder
+  frecuenciaReportePadres?: Prisma.SortOrder
   diaReportePadres?: Prisma.SortOrder
+  diaMesReportePadres?: Prisma.SortOrder
   horaReportePadres?: Prisma.SortOrder
   incluirRiesgoIAReportePadres?: Prisma.SortOrder
   ultimoReportePadresAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -436,10 +471,13 @@ export type ConfiguracionWhereUniqueInput = Prisma.AtLeast<{
   reporteDirectorActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
   frecuenciaReporteDirector?: Prisma.StringFilter<"Configuracion"> | string
   diaReporteDirector?: Prisma.IntFilter<"Configuracion"> | number
+  diaMesReporteDirector?: Prisma.IntFilter<"Configuracion"> | number
   horaReporteDirector?: Prisma.StringFilter<"Configuracion"> | string
   ultimoReporteDirectorAt?: Prisma.DateTimeNullableFilter<"Configuracion"> | Date | string | null
   reportePadresActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
+  frecuenciaReportePadres?: Prisma.StringFilter<"Configuracion"> | string
   diaReportePadres?: Prisma.IntFilter<"Configuracion"> | number
+  diaMesReportePadres?: Prisma.IntFilter<"Configuracion"> | number
   horaReportePadres?: Prisma.StringFilter<"Configuracion"> | string
   incluirRiesgoIAReportePadres?: Prisma.BoolFilter<"Configuracion"> | boolean
   ultimoReportePadresAt?: Prisma.DateTimeNullableFilter<"Configuracion"> | Date | string | null
@@ -464,10 +502,13 @@ export type ConfiguracionOrderByWithAggregationInput = {
   reporteDirectorActivo?: Prisma.SortOrder
   frecuenciaReporteDirector?: Prisma.SortOrder
   diaReporteDirector?: Prisma.SortOrder
+  diaMesReporteDirector?: Prisma.SortOrder
   horaReporteDirector?: Prisma.SortOrder
   ultimoReporteDirectorAt?: Prisma.SortOrderInput | Prisma.SortOrder
   reportePadresActivo?: Prisma.SortOrder
+  frecuenciaReportePadres?: Prisma.SortOrder
   diaReportePadres?: Prisma.SortOrder
+  diaMesReportePadres?: Prisma.SortOrder
   horaReportePadres?: Prisma.SortOrder
   incluirRiesgoIAReportePadres?: Prisma.SortOrder
   ultimoReportePadresAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -500,10 +541,13 @@ export type ConfiguracionScalarWhereWithAggregatesInput = {
   reporteDirectorActivo?: Prisma.BoolWithAggregatesFilter<"Configuracion"> | boolean
   frecuenciaReporteDirector?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
   diaReporteDirector?: Prisma.IntWithAggregatesFilter<"Configuracion"> | number
+  diaMesReporteDirector?: Prisma.IntWithAggregatesFilter<"Configuracion"> | number
   horaReporteDirector?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
   ultimoReporteDirectorAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Configuracion"> | Date | string | null
   reportePadresActivo?: Prisma.BoolWithAggregatesFilter<"Configuracion"> | boolean
+  frecuenciaReportePadres?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
   diaReportePadres?: Prisma.IntWithAggregatesFilter<"Configuracion"> | number
+  diaMesReportePadres?: Prisma.IntWithAggregatesFilter<"Configuracion"> | number
   horaReportePadres?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
   incluirRiesgoIAReportePadres?: Prisma.BoolWithAggregatesFilter<"Configuracion"> | boolean
   ultimoReportePadresAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Configuracion"> | Date | string | null
@@ -527,10 +571,13 @@ export type ConfiguracionCreateInput = {
   reporteDirectorActivo?: boolean
   frecuenciaReporteDirector?: string
   diaReporteDirector?: number
+  diaMesReporteDirector?: number
   horaReporteDirector?: string
   ultimoReporteDirectorAt?: Date | string | null
   reportePadresActivo?: boolean
+  frecuenciaReportePadres?: string
   diaReportePadres?: number
+  diaMesReportePadres?: number
   horaReportePadres?: string
   incluirRiesgoIAReportePadres?: boolean
   ultimoReportePadresAt?: Date | string | null
@@ -555,10 +602,13 @@ export type ConfiguracionUncheckedCreateInput = {
   reporteDirectorActivo?: boolean
   frecuenciaReporteDirector?: string
   diaReporteDirector?: number
+  diaMesReporteDirector?: number
   horaReporteDirector?: string
   ultimoReporteDirectorAt?: Date | string | null
   reportePadresActivo?: boolean
+  frecuenciaReportePadres?: string
   diaReportePadres?: number
+  diaMesReportePadres?: number
   horaReportePadres?: string
   incluirRiesgoIAReportePadres?: boolean
   ultimoReportePadresAt?: Date | string | null
@@ -582,10 +632,13 @@ export type ConfiguracionUpdateInput = {
   reporteDirectorActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
   frecuenciaReporteDirector?: Prisma.StringFieldUpdateOperationsInput | string
   diaReporteDirector?: Prisma.IntFieldUpdateOperationsInput | number
+  diaMesReporteDirector?: Prisma.IntFieldUpdateOperationsInput | number
   horaReporteDirector?: Prisma.StringFieldUpdateOperationsInput | string
   ultimoReporteDirectorAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reportePadresActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frecuenciaReportePadres?: Prisma.StringFieldUpdateOperationsInput | string
   diaReportePadres?: Prisma.IntFieldUpdateOperationsInput | number
+  diaMesReportePadres?: Prisma.IntFieldUpdateOperationsInput | number
   horaReportePadres?: Prisma.StringFieldUpdateOperationsInput | string
   incluirRiesgoIAReportePadres?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ultimoReportePadresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -610,10 +663,13 @@ export type ConfiguracionUncheckedUpdateInput = {
   reporteDirectorActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
   frecuenciaReporteDirector?: Prisma.StringFieldUpdateOperationsInput | string
   diaReporteDirector?: Prisma.IntFieldUpdateOperationsInput | number
+  diaMesReporteDirector?: Prisma.IntFieldUpdateOperationsInput | number
   horaReporteDirector?: Prisma.StringFieldUpdateOperationsInput | string
   ultimoReporteDirectorAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reportePadresActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frecuenciaReportePadres?: Prisma.StringFieldUpdateOperationsInput | string
   diaReportePadres?: Prisma.IntFieldUpdateOperationsInput | number
+  diaMesReportePadres?: Prisma.IntFieldUpdateOperationsInput | number
   horaReportePadres?: Prisma.StringFieldUpdateOperationsInput | string
   incluirRiesgoIAReportePadres?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ultimoReportePadresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -638,10 +694,13 @@ export type ConfiguracionCreateManyInput = {
   reporteDirectorActivo?: boolean
   frecuenciaReporteDirector?: string
   diaReporteDirector?: number
+  diaMesReporteDirector?: number
   horaReporteDirector?: string
   ultimoReporteDirectorAt?: Date | string | null
   reportePadresActivo?: boolean
+  frecuenciaReportePadres?: string
   diaReportePadres?: number
+  diaMesReportePadres?: number
   horaReportePadres?: string
   incluirRiesgoIAReportePadres?: boolean
   ultimoReportePadresAt?: Date | string | null
@@ -665,10 +724,13 @@ export type ConfiguracionUpdateManyMutationInput = {
   reporteDirectorActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
   frecuenciaReporteDirector?: Prisma.StringFieldUpdateOperationsInput | string
   diaReporteDirector?: Prisma.IntFieldUpdateOperationsInput | number
+  diaMesReporteDirector?: Prisma.IntFieldUpdateOperationsInput | number
   horaReporteDirector?: Prisma.StringFieldUpdateOperationsInput | string
   ultimoReporteDirectorAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reportePadresActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frecuenciaReportePadres?: Prisma.StringFieldUpdateOperationsInput | string
   diaReportePadres?: Prisma.IntFieldUpdateOperationsInput | number
+  diaMesReportePadres?: Prisma.IntFieldUpdateOperationsInput | number
   horaReportePadres?: Prisma.StringFieldUpdateOperationsInput | string
   incluirRiesgoIAReportePadres?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ultimoReportePadresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -693,10 +755,13 @@ export type ConfiguracionUncheckedUpdateManyInput = {
   reporteDirectorActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
   frecuenciaReporteDirector?: Prisma.StringFieldUpdateOperationsInput | string
   diaReporteDirector?: Prisma.IntFieldUpdateOperationsInput | number
+  diaMesReporteDirector?: Prisma.IntFieldUpdateOperationsInput | number
   horaReporteDirector?: Prisma.StringFieldUpdateOperationsInput | string
   ultimoReporteDirectorAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reportePadresActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frecuenciaReportePadres?: Prisma.StringFieldUpdateOperationsInput | string
   diaReportePadres?: Prisma.IntFieldUpdateOperationsInput | number
+  diaMesReportePadres?: Prisma.IntFieldUpdateOperationsInput | number
   horaReportePadres?: Prisma.StringFieldUpdateOperationsInput | string
   incluirRiesgoIAReportePadres?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ultimoReportePadresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -721,10 +786,13 @@ export type ConfiguracionCountOrderByAggregateInput = {
   reporteDirectorActivo?: Prisma.SortOrder
   frecuenciaReporteDirector?: Prisma.SortOrder
   diaReporteDirector?: Prisma.SortOrder
+  diaMesReporteDirector?: Prisma.SortOrder
   horaReporteDirector?: Prisma.SortOrder
   ultimoReporteDirectorAt?: Prisma.SortOrder
   reportePadresActivo?: Prisma.SortOrder
+  frecuenciaReportePadres?: Prisma.SortOrder
   diaReportePadres?: Prisma.SortOrder
+  diaMesReportePadres?: Prisma.SortOrder
   horaReportePadres?: Prisma.SortOrder
   incluirRiesgoIAReportePadres?: Prisma.SortOrder
   ultimoReportePadresAt?: Prisma.SortOrder
@@ -733,7 +801,9 @@ export type ConfiguracionCountOrderByAggregateInput = {
 export type ConfiguracionAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   diaReporteDirector?: Prisma.SortOrder
+  diaMesReporteDirector?: Prisma.SortOrder
   diaReportePadres?: Prisma.SortOrder
+  diaMesReportePadres?: Prisma.SortOrder
 }
 
 export type ConfiguracionMaxOrderByAggregateInput = {
@@ -755,10 +825,13 @@ export type ConfiguracionMaxOrderByAggregateInput = {
   reporteDirectorActivo?: Prisma.SortOrder
   frecuenciaReporteDirector?: Prisma.SortOrder
   diaReporteDirector?: Prisma.SortOrder
+  diaMesReporteDirector?: Prisma.SortOrder
   horaReporteDirector?: Prisma.SortOrder
   ultimoReporteDirectorAt?: Prisma.SortOrder
   reportePadresActivo?: Prisma.SortOrder
+  frecuenciaReportePadres?: Prisma.SortOrder
   diaReportePadres?: Prisma.SortOrder
+  diaMesReportePadres?: Prisma.SortOrder
   horaReportePadres?: Prisma.SortOrder
   incluirRiesgoIAReportePadres?: Prisma.SortOrder
   ultimoReportePadresAt?: Prisma.SortOrder
@@ -783,10 +856,13 @@ export type ConfiguracionMinOrderByAggregateInput = {
   reporteDirectorActivo?: Prisma.SortOrder
   frecuenciaReporteDirector?: Prisma.SortOrder
   diaReporteDirector?: Prisma.SortOrder
+  diaMesReporteDirector?: Prisma.SortOrder
   horaReporteDirector?: Prisma.SortOrder
   ultimoReporteDirectorAt?: Prisma.SortOrder
   reportePadresActivo?: Prisma.SortOrder
+  frecuenciaReportePadres?: Prisma.SortOrder
   diaReportePadres?: Prisma.SortOrder
+  diaMesReportePadres?: Prisma.SortOrder
   horaReportePadres?: Prisma.SortOrder
   incluirRiesgoIAReportePadres?: Prisma.SortOrder
   ultimoReportePadresAt?: Prisma.SortOrder
@@ -795,7 +871,9 @@ export type ConfiguracionMinOrderByAggregateInput = {
 export type ConfiguracionSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   diaReporteDirector?: Prisma.SortOrder
+  diaMesReporteDirector?: Prisma.SortOrder
   diaReportePadres?: Prisma.SortOrder
+  diaMesReportePadres?: Prisma.SortOrder
 }
 
 
@@ -819,10 +897,13 @@ export type ConfiguracionSelect<ExtArgs extends runtime.Types.Extensions.Interna
   reporteDirectorActivo?: boolean
   frecuenciaReporteDirector?: boolean
   diaReporteDirector?: boolean
+  diaMesReporteDirector?: boolean
   horaReporteDirector?: boolean
   ultimoReporteDirectorAt?: boolean
   reportePadresActivo?: boolean
+  frecuenciaReportePadres?: boolean
   diaReportePadres?: boolean
+  diaMesReportePadres?: boolean
   horaReportePadres?: boolean
   incluirRiesgoIAReportePadres?: boolean
   ultimoReportePadresAt?: boolean
@@ -847,10 +928,13 @@ export type ConfiguracionSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   reporteDirectorActivo?: boolean
   frecuenciaReporteDirector?: boolean
   diaReporteDirector?: boolean
+  diaMesReporteDirector?: boolean
   horaReporteDirector?: boolean
   ultimoReporteDirectorAt?: boolean
   reportePadresActivo?: boolean
+  frecuenciaReportePadres?: boolean
   diaReportePadres?: boolean
+  diaMesReportePadres?: boolean
   horaReportePadres?: boolean
   incluirRiesgoIAReportePadres?: boolean
   ultimoReportePadresAt?: boolean
@@ -875,10 +959,13 @@ export type ConfiguracionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   reporteDirectorActivo?: boolean
   frecuenciaReporteDirector?: boolean
   diaReporteDirector?: boolean
+  diaMesReporteDirector?: boolean
   horaReporteDirector?: boolean
   ultimoReporteDirectorAt?: boolean
   reportePadresActivo?: boolean
+  frecuenciaReportePadres?: boolean
   diaReportePadres?: boolean
+  diaMesReportePadres?: boolean
   horaReportePadres?: boolean
   incluirRiesgoIAReportePadres?: boolean
   ultimoReportePadresAt?: boolean
@@ -903,16 +990,19 @@ export type ConfiguracionSelectScalar = {
   reporteDirectorActivo?: boolean
   frecuenciaReporteDirector?: boolean
   diaReporteDirector?: boolean
+  diaMesReporteDirector?: boolean
   horaReporteDirector?: boolean
   ultimoReporteDirectorAt?: boolean
   reportePadresActivo?: boolean
+  frecuenciaReportePadres?: boolean
   diaReportePadres?: boolean
+  diaMesReportePadres?: boolean
   horaReportePadres?: boolean
   incluirRiesgoIAReportePadres?: boolean
   ultimoReportePadresAt?: boolean
 }
 
-export type ConfiguracionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nombreColegio" | "logoUrl" | "direccion" | "telefono" | "correo" | "director" | "createdAt" | "reporteTelegramActivo" | "horaReporteDiario" | "telegramDirectorChatId" | "enviarReporteExcel" | "enviarReportePdf" | "ultimoReporteTelegramAt" | "ultimoReporteTelegramEstado" | "reporteDirectorActivo" | "frecuenciaReporteDirector" | "diaReporteDirector" | "horaReporteDirector" | "ultimoReporteDirectorAt" | "reportePadresActivo" | "diaReportePadres" | "horaReportePadres" | "incluirRiesgoIAReportePadres" | "ultimoReportePadresAt", ExtArgs["result"]["configuracion"]>
+export type ConfiguracionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nombreColegio" | "logoUrl" | "direccion" | "telefono" | "correo" | "director" | "createdAt" | "reporteTelegramActivo" | "horaReporteDiario" | "telegramDirectorChatId" | "enviarReporteExcel" | "enviarReportePdf" | "ultimoReporteTelegramAt" | "ultimoReporteTelegramEstado" | "reporteDirectorActivo" | "frecuenciaReporteDirector" | "diaReporteDirector" | "diaMesReporteDirector" | "horaReporteDirector" | "ultimoReporteDirectorAt" | "reportePadresActivo" | "frecuenciaReportePadres" | "diaReportePadres" | "diaMesReportePadres" | "horaReportePadres" | "incluirRiesgoIAReportePadres" | "ultimoReportePadresAt", ExtArgs["result"]["configuracion"]>
 
 export type $ConfiguracionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Configuracion"
@@ -936,10 +1026,13 @@ export type $ConfiguracionPayload<ExtArgs extends runtime.Types.Extensions.Inter
     reporteDirectorActivo: boolean
     frecuenciaReporteDirector: string
     diaReporteDirector: number
+    diaMesReporteDirector: number
     horaReporteDirector: string
     ultimoReporteDirectorAt: Date | null
     reportePadresActivo: boolean
+    frecuenciaReportePadres: string
     diaReportePadres: number
+    diaMesReportePadres: number
     horaReportePadres: string
     incluirRiesgoIAReportePadres: boolean
     ultimoReportePadresAt: Date | null
@@ -1384,10 +1477,13 @@ export interface ConfiguracionFieldRefs {
   readonly reporteDirectorActivo: Prisma.FieldRef<"Configuracion", 'Boolean'>
   readonly frecuenciaReporteDirector: Prisma.FieldRef<"Configuracion", 'String'>
   readonly diaReporteDirector: Prisma.FieldRef<"Configuracion", 'Int'>
+  readonly diaMesReporteDirector: Prisma.FieldRef<"Configuracion", 'Int'>
   readonly horaReporteDirector: Prisma.FieldRef<"Configuracion", 'String'>
   readonly ultimoReporteDirectorAt: Prisma.FieldRef<"Configuracion", 'DateTime'>
   readonly reportePadresActivo: Prisma.FieldRef<"Configuracion", 'Boolean'>
+  readonly frecuenciaReportePadres: Prisma.FieldRef<"Configuracion", 'String'>
   readonly diaReportePadres: Prisma.FieldRef<"Configuracion", 'Int'>
+  readonly diaMesReportePadres: Prisma.FieldRef<"Configuracion", 'Int'>
   readonly horaReportePadres: Prisma.FieldRef<"Configuracion", 'String'>
   readonly incluirRiesgoIAReportePadres: Prisma.FieldRef<"Configuracion", 'Boolean'>
   readonly ultimoReportePadresAt: Prisma.FieldRef<"Configuracion", 'DateTime'>

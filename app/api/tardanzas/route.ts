@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { exigirAdminODemo } from "@/lib/auth";
+import { exigirAdminDemoOPersonal } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,7 +50,7 @@ function minutosEntreHoras(
 }
 
 export async function GET(request: Request) {
-  const acceso = await exigirAdminODemo();
+  const acceso = await exigirAdminDemoOPersonal();
 
   if (!acceso.autorizado) {
     return acceso.respuesta;

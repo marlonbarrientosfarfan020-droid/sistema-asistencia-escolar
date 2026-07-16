@@ -5,11 +5,21 @@ import {
   enviarTelegram,
   enviarFotoTelegram,
 } from "@/lib/telegram";
+import {
+  exigirAdminDemoOPersonal,
+  exigirAdminOPersonal,
+} from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const acceso = await exigirAdminDemoOPersonal();
+
+  if (!acceso.autorizado) {
+    return acceso.respuesta;
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const fecha = searchParams.get("fecha");
@@ -251,6 +261,12 @@ ${metodo}
 }
 
 export async function POST(request: Request) {
+  const acceso = await exigirAdminOPersonal();
+
+  if (!acceso.autorizado) {
+    return acceso.respuesta;
+  }
+
   try {
     const body = await request.json();
 

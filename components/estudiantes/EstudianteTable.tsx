@@ -50,6 +50,7 @@ export default function EstudianteTable({ refresh }: { refresh: number }) {
   const [turnoFiltro, setTurnoFiltro] = useState("TODOS");
   const [modalRiesgo, setModalRiesgo] = useState(false);
 const [riesgoSeleccionado, setRiesgoSeleccionado] = useState<Estudiante | null>(null);
+  const [estudiantesSeleccionados, setEstudiantesSeleccionados] = useState<number[]>([]);
 
   const estudiantesFiltrados = estudiantes.filter((estudiante) => {
     const coincideDni = estudiante.dni.includes(busquedaDni);
@@ -58,6 +59,35 @@ const [riesgoSeleccionado, setRiesgoSeleccionado] = useState<Estudiante | null>(
 
     return coincideDni && coincideTurno;
   });
+
+  const todosFiltradosSeleccionados =
+    estudiantesFiltrados.length > 0 &&
+    estudiantesFiltrados.every((estudiante) =>
+      estudiantesSeleccionados.includes(estudiante.id)
+    );
+
+  function alternarSeleccionEstudiante(id: number) {
+    setEstudiantesSeleccionados((actuales) =>
+      actuales.includes(id)
+        ? actuales.filter((estudianteId) => estudianteId !== id)
+        : [...actuales, id]
+    );
+  }
+
+  function alternarSeleccionTodos() {
+    const idsFiltrados = estudiantesFiltrados.map(
+      (estudiante) => estudiante.id
+    );
+
+    setEstudiantesSeleccionados((actuales) => {
+      if (todosFiltradosSeleccionados) {
+        return actuales.filter((id) => !idsFiltrados.includes(id));
+      }
+
+      return Array.from(new Set([...actuales, ...idsFiltrados]));
+    });
+  }
+
   async function analizarRiesgoIA(dni: string) {
   setMensaje("🧠 Analizando riesgo del estudiante...");
 
@@ -82,8 +112,6 @@ const [riesgoSeleccionado, setRiesgoSeleccionado] = useState<Estudiante | null>(
   async function cargarEstudiantes() {
     const res = await fetch("/api/estudiantes", {
       headers: {
-        "x-user-role": localStorage.getItem("rol") || "",
-        "x-user-name": localStorage.getItem("usuario") || "",
       },
     });
 
@@ -320,192 +348,648 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
     return;
   }
 
-    ventana.document.write(`
-      <html>
-        <head>
-          <title>Carnet QR Estudiante</title>
-          <style>
-            * { box-sizing: border-box; }
+  ventana.document.write(`
+    <!DOCTYPE html>
+    <html lang="es">
+      <head>
+        <meta charset="UTF-8" />
+        <title>Carnet QR Estudiante</title>
+
+        <style>
+          @page {
+            size: A4 portrait;
+            margin: 10mm;
+          }
+
+          * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          html,
+          body {
+            margin: 0;
+            min-height: 100%;
+            font-family: Arial, sans-serif;
+            background: #e2e8f0;
+          }
+
+          body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12mm;
+          }
+
+          .carnet {
+            width: 54mm;
+            height: 86mm;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 0.35mm solid #1e3a8a;
+            border-radius: 4mm;
+            background: #ffffff;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.22);
+          }
+
+          .header {
+            height: 22mm;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            background: linear-gradient(
+              180deg,
+              #1e3a8a 0%,
+              #2563eb 100%
+            );
+          }
+
+          .logo {
+            width: 10mm;
+            height: 10mm;
+            object-fit: contain;
+            padding: 0.8mm;
+            margin-bottom: 0.7mm;
+            border-radius: 2mm;
+            background: #ffffff;
+          }
+
+          .colegio {
+            max-width: 49mm;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            font-size: 2.8mm;
+            line-height: 3.1mm;
+            font-weight: 800;
+            text-transform: uppercase;
+          }
+
+          .subtitulo {
+            margin-top: 0.2mm;
+            font-size: 1.55mm;
+            line-height: 1.8mm;
+          }
+
+          .contenido {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            padding: 1.4mm 2mm 32mm;
+            text-align: center;
+            background: #ffffff;
+          }
+
+          .nombre {
+            height: 6.3mm;
+            margin-bottom: 0.35mm;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            font-size: 2.55mm;
+            line-height: 2.9mm;
+            font-weight: 800;
+            color: #0f172a;
+            word-break: break-word;
+          }
+
+          .dato {
+            margin: 0;
+            font-size: 1.85mm;
+            line-height: 2.15mm;
+            font-weight: 600;
+            color: #334155;
+          }
+
+          .qr {
+            position: absolute;
+            left: 50%;
+            bottom: 1mm;
+            width: 30mm;
+            height: 30mm;
+            object-fit: contain;
+            transform: translateX(-50%);
+            background: #ffffff;
+          }
+
+          .footer {
+            height: 5mm;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.4mm;
+            border-top: 0.2mm solid #e2e8f0;
+            background: #f8fafc;
+            color: #475569;
+            font-size: 1.25mm;
+            text-align: center;
+          }
+
+          @media print {
+            html,
             body {
-              margin: 0;
-              font-family: Arial, sans-serif;
-              background: #f1f5f9;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              min-height: 100vh;
+              background: #ffffff;
             }
+
+            body {
+              display: block;
+              padding: 0;
+            }
+
             .carnet {
-              width: 360px;
-              background: white;
-              border-radius: 24px;
-              overflow: hidden;
-              box-shadow: 0 15px 35px rgba(0,0,0,0.25);
-              border: 2px solid #0f172a;
+              margin: 0 auto;
+              box-shadow: none;
             }
-            .header {
-              background: linear-gradient(135deg, #0f172a, #1d4ed8);
-              color: white;
-              text-align: center;
-              padding: 18px;
-            }
-            .logo {
-              width: 85px;
-              height: 85px;
-              object-fit: contain;
-              background: white;
-              border-radius: 14px;
-              padding: 6px;
-              margin-bottom: 8px;
-            }
-            .colegio { font-size: 18px; font-weight: bold; }
-            .subtitulo { font-size: 12px; margin-top: 4px; opacity: 0.9; }
-            .contenido { padding: 22px; text-align: center; }
-            .nombre {
-              font-size: 22px;
-              font-weight: bold;
-              color: #0f172a;
-              margin-bottom: 8px;
-            }
-            .dato {
-              font-size: 14px;
-              margin: 6px 0;
-              color: #334155;
-            }
-            .qr {
-              width: 210px;
-              height: 210px;
-              margin-top: 15px;
-            }
-            .footer {
-              background: #f8fafc;
-              border-top: 1px solid #e2e8f0;
-              text-align: center;
-              padding: 12px;
-              font-size: 12px;
-              color: #475569;
-            }
-            @media print {
-              body { background: white; }
-              .carnet { box-shadow: none; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="carnet">
-            <div class="header">
-  <img
-    id="logo-colegio"
-    class="logo"
-    src="${logoParaImprimir}"
-    alt="Logo institucional"
-  />
+          }
+        </style>
+      </head>
 
-  <div class="colegio">
-    ${nombreColegio}
-  </div>
+      <body>
+        <article class="carnet">
+          <div class="header">
+            <img
+              id="logo-colegio"
+              class="logo"
+              src="${logoParaImprimir}"
+              alt="Logo institucional"
+            />
 
-  <div class="subtitulo">
-    Carnet de Asistencia Escolar
-  </div>
-</div>
-
-            <div class="contenido">
-              <div class="nombre">
-                ${estudianteQR.nombres} ${estudianteQR.apellidos}
-              </div>
-
-              <div class="dato"><strong>DNI:</strong> ${estudianteQR.dni}</div>
-              <div class="dato"><strong>Grado:</strong> ${estudianteQR.grado} - ${estudianteQR.seccion}</div>
-              <div class="dato"><strong>Turno:</strong> ${estudianteQR.turno?.nombre || "Sin turno"}</div>
-              <div class="dato"><strong>Código:</strong> ${estudianteQR.codigo}</div>
-
-              <img class="qr" src="${qrImagen}" />
-            </div>
-
-            <div class="footer">
-              Presentar este QR para registrar asistencia
-            </div>
+            <div class="colegio">${nombreColegio}</div>
+            <div class="subtitulo">Carnet de Asistencia Escolar</div>
           </div>
 
-          <script>
-  function esperarImagen(imagen) {
-    return new Promise(function(resolve) {
-      if (!imagen) {
-        resolve();
+          <div class="contenido">
+            <div class="nombre">
+              ${estudianteQR.nombres} ${estudianteQR.apellidos}
+            </div>
+
+            <div class="dato"><strong>DNI:</strong> ${estudianteQR.dni}</div>
+            <div class="dato"><strong>Grado:</strong> ${estudianteQR.grado} - ${estudianteQR.seccion}</div>
+            <div class="dato"><strong>Turno:</strong> ${estudianteQR.turno?.nombre || "Sin turno"}</div>
+            <div class="dato"><strong>Código:</strong> ${estudianteQR.codigo}</div>
+
+            <img
+              id="qr-estudiante"
+              class="qr"
+              src="${qrImagen}"
+              alt="Código QR"
+            />
+          </div>
+
+          <div class="footer">
+            Presentar este QR para registrar asistencia
+          </div>
+        </article>
+
+        <script>
+          function esperarImagen(imagen) {
+            return new Promise(function(resolve) {
+              if (!imagen) {
+                resolve();
+                return;
+              }
+
+              if (imagen.complete && imagen.naturalWidth > 0) {
+                resolve();
+                return;
+              }
+
+              imagen.onload = resolve;
+              imagen.onerror = resolve;
+            });
+          }
+
+          window.onload = async function() {
+            const imagenes = Array.from(
+              document.querySelectorAll("img")
+            );
+
+            await Promise.all(imagenes.map(esperarImagen));
+
+            setTimeout(function() {
+              window.focus();
+              window.print();
+            }, 350);
+          };
+        </script>
+      </body>
+    </html>
+  `);
+
+  ventana.document.close();
+}
+
+  async function imprimirCarnetsSeleccionados() {
+    const seleccionados = estudiantes.filter((estudiante) =>
+      estudiantesSeleccionados.includes(estudiante.id)
+    );
+
+    if (seleccionados.length === 0) {
+      setMensaje("❌ Seleccione al menos un estudiante");
+      return;
+    }
+
+    setMensaje("⏳ Preparando carnets para impresión...");
+
+    try {
+      const logoOriginal =
+        configuracion.logoUrl?.trim() ||
+        `${window.location.origin}/img/logo-santa-rita.png`;
+
+      const logoParaImprimir =
+        await convertirImagenADataUrl(logoOriginal);
+
+      const nombreColegio =
+        configuracion.nombreColegio?.trim() ||
+        "I.E. Santa Rita de Casia";
+
+      const carnets = await Promise.all(
+        seleccionados.map(async (estudiante) => ({
+          estudiante,
+          qr: await QRCode.toDataURL(estudiante.codigo, {
+            width: 420,
+            margin: 1,
+            errorCorrectionLevel: "M",
+          }),
+        }))
+      );
+
+      const ventana = window.open("", "_blank");
+
+      if (!ventana) {
+        setMensaje(
+          "❌ Permita las ventanas emergentes para imprimir los carnets"
+        );
         return;
       }
 
-      if (imagen.complete && imagen.naturalWidth > 0) {
-        resolve();
-        return;
-      }
+      const tarjetasHtml = carnets
+        .map(
+          ({ estudiante, qr }) => `
+            <div class="espacio-corte">
+              <article class="carnet-lote">
+                <div class="header-lote">
+                  <img
+                    class="logo-lote"
+                    src="${logoParaImprimir}"
+                    alt="Logo institucional"
+                  />
 
-      imagen.onload = function() {
-        resolve();
-      };
+                  <div class="colegio-lote">${nombreColegio}</div>
+                  <div class="subtitulo-lote">
+                    Carnet de Asistencia Escolar
+                  </div>
+                </div>
 
-      imagen.onerror = function() {
-        resolve();
-      };
-    });
-  }
+                <div class="contenido-lote">
+                  <div class="nombre-lote">
+                    ${estudiante.nombres} ${estudiante.apellidos}
+                  </div>
 
-  window.onload = async function() {
-    const logo = document.getElementById("logo-colegio");
-    const qr = document.querySelector(".qr");
+                  <div class="dato-lote">
+                    <strong>DNI:</strong> ${estudiante.dni}
+                  </div>
 
-    await Promise.all([
-      esperarImagen(logo),
-      esperarImagen(qr)
-    ]);
+                  <div class="dato-lote">
+                    <strong>Grado:</strong>
+                    ${estudiante.grado} - ${estudiante.seccion}
+                  </div>
 
-    setTimeout(function() {
-      window.focus();
-      window.print();
-    }, 300);
-  };
-</script>
-        </body>
-      </html>
-    `);
+                  <div class="dato-lote">
+                    <strong>Turno:</strong>
+                    ${estudiante.turno?.nombre || "Sin turno"}
+                  </div>
 
-    ventana.document.close();
+                  <div class="dato-lote">
+                    <strong>Código:</strong> ${estudiante.codigo}
+                  </div>
+
+                  <img
+                    class="qr-lote"
+                    src="${qr}"
+                    alt="Código QR"
+                  />
+                </div>
+
+                <div class="footer-lote">
+                  Presentar este QR para registrar asistencia
+                </div>
+              </article>
+            </div>
+          `
+        )
+        .join("");
+
+      ventana.document.write(`
+        <!DOCTYPE html>
+        <html lang="es">
+          <head>
+            <meta charset="UTF-8" />
+            <title>Carnets de estudiantes</title>
+
+            <style>
+              @page {
+                size: A4 landscape;
+                margin: 8mm;
+              }
+
+              * {
+                box-sizing: border-box;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+
+              html,
+              body {
+                margin: 0;
+                padding: 0;
+                font-family: Arial, sans-serif;
+                background: #ffffff;
+              }
+
+              .hoja {
+                width: 281mm;
+                margin: 0 auto;
+                display: grid;
+                grid-template-columns: repeat(5, 54mm);
+                grid-auto-rows: 86mm;
+                column-gap: 2mm;
+                row-gap: 4mm;
+                justify-content: center;
+                align-content: start;
+              }
+
+              .espacio-corte {
+                width: 54mm;
+                height: 86mm;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                break-inside: avoid;
+                page-break-inside: avoid;
+                outline: 0.2mm dashed #94a3b8;
+              }
+
+              .carnet-lote {
+                width: 54mm;
+                height: 86mm;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                border: 0.35mm solid #1e3a8a;
+                border-radius: 4mm;
+                background: #ffffff;
+              }
+
+              .header-lote {
+                height: 22mm;
+                flex-shrink: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                color: #ffffff;
+                background: linear-gradient(
+                  180deg,
+                  #1e3a8a 0%,
+                  #2563eb 100%
+                );
+              }
+
+              .logo-lote {
+                width: 10mm;
+                height: 10mm;
+                object-fit: contain;
+                padding: 0.8mm;
+                margin-bottom: 0.7mm;
+                border-radius: 2mm;
+                background: #ffffff;
+              }
+
+              .colegio-lote {
+                max-width: 49mm;
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                font-size: 2.8mm;
+                line-height: 3.1mm;
+                font-weight: 800;
+                text-transform: uppercase;
+              }
+
+              .subtitulo-lote {
+                margin-top: 0.2mm;
+                font-size: 1.55mm;
+                line-height: 1.8mm;
+              }
+
+              .contenido-lote {
+                position: relative;
+                flex: 1;
+                min-height: 0;
+                padding: 1.4mm 2mm 32mm;
+                text-align: center;
+                background: #ffffff;
+              }
+
+              .nombre-lote {
+                height: 6.3mm;
+                margin-bottom: 0.35mm;
+                overflow: hidden;
+                display: -webkit-box;
+                -webkit-box-orient: vertical;
+                -webkit-line-clamp: 2;
+                font-size: 2.55mm;
+                line-height: 2.9mm;
+                font-weight: 800;
+                color: #0f172a;
+                word-break: break-word;
+              }
+
+              .dato-lote {
+                margin: 0;
+                font-size: 1.85mm;
+                line-height: 2.15mm;
+                font-weight: 600;
+                color: #334155;
+              }
+
+              .qr-lote {
+                position: absolute;
+                left: 50%;
+                bottom: 1mm;
+                width: 30mm;
+                height: 30mm;
+                object-fit: contain;
+                transform: translateX(-50%);
+                background: #ffffff;
+              }
+
+              .footer-lote {
+                height: 5mm;
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0.4mm;
+                border-top: 0.2mm solid #e2e8f0;
+                background: #f8fafc;
+                color: #475569;
+                font-size: 1.25mm;
+                text-align: center;
+              }
+
+              @media screen {
+                body {
+                  padding: 8mm;
+                  background: #e2e8f0;
+                }
+
+                .hoja {
+                  min-height: 194mm;
+                  background: #ffffff;
+                  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.18);
+                }
+              }
+
+              @media print {
+                .espacio-corte:nth-child(10n) {
+                  break-after: page;
+                  page-break-after: always;
+                }
+
+                .espacio-corte:last-child {
+                  break-after: auto;
+                  page-break-after: auto;
+                }
+              }
+            </style>
+          </head>
+
+          <body>
+            <main class="hoja">${tarjetasHtml}</main>
+
+            <script>
+              function esperarImagen(imagen) {
+                return new Promise(function(resolve) {
+                  if (!imagen) {
+                    resolve();
+                    return;
+                  }
+
+                  if (imagen.complete && imagen.naturalWidth > 0) {
+                    resolve();
+                    return;
+                  }
+
+                  imagen.onload = resolve;
+                  imagen.onerror = resolve;
+                });
+              }
+
+              window.onload = async function() {
+                const imagenes = Array.from(
+                  document.querySelectorAll("img")
+                );
+
+                await Promise.all(imagenes.map(esperarImagen));
+
+                setTimeout(function() {
+                  window.focus();
+                  window.print();
+                }, 400);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+
+      ventana.document.close();
+
+      setMensaje(
+        `✅ ${seleccionados.length} carnets preparados para imprimir`
+      );
+    } catch (error) {
+      console.error("Error preparando carnets por lote:", error);
+      setMensaje("❌ No se pudieron preparar los carnets");
+    }
   }
 
   return (
     <>
       <Card>
-        <div className="flex items-center gap-3">
-          <input
-            value={busquedaDni}
-            onChange={(e) =>
-              setBusquedaDni(e.target.value.replace(/\D/g, "").slice(0, 8))
-            }
-            placeholder="🔍 Buscar por DNI"
-            className="border rounded-xl p-3 w-72"
-          />
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <input
+              value={busquedaDni}
+              onChange={(e) =>
+                setBusquedaDni(
+                  e.target.value.replace(/\D/g, "").slice(0, 8)
+                )
+              }
+              placeholder="🔍 Buscar por DNI"
+              className="w-full rounded-xl border p-3 sm:w-72"
+            />
 
-          <select
-            value={turnoFiltro}
-            onChange={(e) => setTurnoFiltro(e.target.value)}
-            className="border rounded-xl p-3"
-          >
-            <option value="TODOS">Todos los turnos</option>
-            {turnos.map((turno) => (
-              <option key={turno.id} value={turno.nombre}>
-                {turno.nombre}
-              </option>
-            ))}
-          </select>
+            <select
+              value={turnoFiltro}
+              onChange={(e) => setTurnoFiltro(e.target.value)}
+              className="rounded-xl border p-3"
+            >
+              <option value="TODOS">Todos los turnos</option>
+              {turnos.map((turno) => (
+                <option key={turno.id} value={turno.nombre}>
+                  {turno.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={alternarSeleccionTodos}
+              disabled={estudiantesFiltrados.length === 0}
+              className="rounded-xl border border-slate-300 bg-white px-4 py-3 font-bold text-slate-700 disabled:opacity-50"
+            >
+              {todosFiltradosSeleccionados
+                ? "☐ Quitar selección"
+                : "☑ Seleccionar visibles"}
+            </button>
+
+            <button
+              type="button"
+              onClick={imprimirCarnetsSeleccionados}
+              disabled={estudiantesSeleccionados.length === 0}
+              className="rounded-xl bg-slate-900 px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              🖨 Imprimir carnets ({estudiantesSeleccionados.length})
+            </button>
+          </div>
         </div>
 
         {mensaje && <p className="mb-4 mt-4 font-bold">{mensaje}</p>}
 
         <div className="overflow-x-auto mt-4">
-          <table className="w-full text-left min-w-[1000px]">
+          <table className="w-full text-left min-w-[1080px]">
             <thead>
               <tr className="border-b">
+                <th className="w-12 py-3 text-center">
+                  <input
+                    type="checkbox"
+                    checked={todosFiltradosSeleccionados}
+                    onChange={alternarSeleccionTodos}
+                    aria-label="Seleccionar estudiantes visibles"
+                    className="h-4 w-4"
+                  />
+                </th>
                 <th className="py-3">Código</th>
                 <th>DNI</th>
                 <th>Estudiante</th>
@@ -523,6 +1007,15 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
             <tbody>
               {estudiantesFiltrados.map((estudiante) => (
                 <tr key={estudiante.id} className="border-b">
+                  <td className="py-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={estudiantesSeleccionados.includes(estudiante.id)}
+                      onChange={() => alternarSeleccionEstudiante(estudiante.id)}
+                      aria-label={`Seleccionar a ${estudiante.nombres} ${estudiante.apellidos}`}
+                      className="h-4 w-4"
+                    />
+                  </td>
                   <td className="py-3">{estudiante.codigo}</td>
                   <td>{estudiante.dni}</td>
                   <td>
@@ -583,7 +1076,7 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
 
               {estudiantesFiltrados.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="py-6 text-center text-slate-500">
+                  <td colSpan={12} className="py-6 text-center text-slate-500">
                     No se encontraron estudiantes con ese DNI.
                   </td>
                 </tr>

@@ -48,17 +48,35 @@ function diaSemanaPeru() {
   return equivalencias[dia] || 1;
 }
 
-function mismaFechaPeru(fecha: Date | null | undefined) {
-  if (!fecha) return false;
+function diaMesPeru() {
+  return Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: ZONA_HORARIA,
+      day: "2-digit",
+    }).format(new Date())
+  );
+}
 
-  const fechaGuardada = new Intl.DateTimeFormat("en-CA", {
+function obtenerPeriodoSemana(fecha: Date) {
+  const texto = new Intl.DateTimeFormat("en-CA", {
     timeZone: ZONA_HORARIA,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(fecha);
 
-  return fechaGuardada === fechaPeru();
+  const base = new Date(`${texto}T12:00:00-05:00`);
+  const dia = base.getDay();
+  const diferencia = dia === 0 ? -6 : 1 - dia;
+
+  base.setDate(base.getDate() + diferencia);
+
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: ZONA_HORARIA,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(base);
 }
 
 function mismaSemana(
@@ -67,29 +85,63 @@ function mismaSemana(
 ) {
   if (!fechaA) return false;
 
-  const obtenerLunes = (fecha: Date) => {
-    const fechaTexto = new Intl.DateTimeFormat("en-CA", {
-      timeZone: ZONA_HORARIA,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(fecha);
+  return (
+    obtenerPeriodoSemana(fechaA) ===
+    obtenerPeriodoSemana(fechaB)
+  );
+}
 
-    const base = new Date(`${fechaTexto}T12:00:00-05:00`);
-    const dia = base.getDay();
-    const diferencia = dia === 0 ? -6 : 1 - dia;
+function obtenerMesPeru(fecha: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: ZONA_HORARIA,
+    year: "numeric",
+    month: "2-digit",
+  }).format(fecha);
+}
 
-    base.setDate(base.getDate() + diferencia);
+function mismoMes(
+  fechaA: Date | null | undefined,
+  fechaB: Date
+) {
+  if (!fechaA) return false;
 
-    return new Intl.DateTimeFormat("en-CA", {
-      timeZone: ZONA_HORARIA,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(base);
-  };
+  return obtenerMesPeru(fechaA) === obtenerMesPeru(fechaB);
+}
 
-  return obtenerLunes(fechaA) === obtenerLunes(fechaB);
+function correspondePeriodo({
+  frecuencia,
+  diaSemanaConfigurado,
+  diaMesConfigurado,
+  diaSemanaActual,
+  diaMesActual,
+}: {
+  frecuencia: string;
+  diaSemanaConfigurado: number;
+  diaMesConfigurado: number;
+  diaSemanaActual: number;
+  diaMesActual: number;
+}) {
+  if (frecuencia === "MENSUAL") {
+    return diaMesActual === diaMesConfigurado;
+  }
+
+  return diaSemanaActual === diaSemanaConfigurado;
+}
+
+function yaFueEnviado({
+  frecuencia,
+  ultimoEnvio,
+  ahora,
+}: {
+  frecuencia: string;
+  ultimoEnvio: Date | null | undefined;
+  ahora: Date;
+}) {
+  if (frecuencia === "MENSUAL") {
+    return mismoMes(ultimoEnvio, ahora);
+  }
+
+  return mismaSemana(ultimoEnvio, ahora);
 }
 
 async function ejecutarRuta(
@@ -136,7 +188,8 @@ export async function GET(request: Request) {
   const inicio = Date.now();
 
   try {
-    const configuracion = await prisma.configuracion.findFirst();
+    const configuracion =
+      await prisma.configuracion.findFirst();
 
     if (!configuracion) {
       return NextResponse.json(
@@ -144,61 +197,65 @@ export async function GET(request: Request) {
           ok: false,
           message: "No existe configuración institucional",
         },
-        {
-          status: 404,
-        }
+        { status: 404 }
       );
     }
 
-    const horaActual = horaPeru();
-    const diaActual = diaSemanaPeru();
     const ahora = new Date();
+    const horaActual = horaPeru();
+    const diaSemanaActual = diaSemanaPeru();
+    const diaMesActual = diaMesPeru();
 
     const resultados: Record<string, unknown> = {
       fecha: fechaPeru(),
       hora: horaActual,
+      diaSemana: diaSemanaActual,
+      diaMes: diaMesActual,
     };
 
     /*
      * 1. ALERTAS DE AUSENCIA
-     *
-     * Se ejecuta en cada llamada.
-     * La propia ruta debe validar:
-     * - margen del turno;
-     * - día no lectivo;
-     * - asistencia ya registrada;
-     * - alerta ya enviada.
      */
     resultados.alertasAusencia = await ejecutarRuta(
       "/api/alertas/ausentes"
     );
 
     /*
-     * 2. REPORTE PARA EL DIRECTOR
+     * 2. REPORTE DEL DIRECTOR
      */
     if (configuracion.reporteDirectorActivo) {
+      const frecuenciaDirector =
+        configuracion.frecuenciaReporteDirector === "MENSUAL"
+          ? "MENSUAL"
+          : "SEMANAL";
+
       const esHoraDirector =
         horaActual === configuracion.horaReporteDirector;
 
-      const esDiaDirector =
-        configuracion.frecuenciaReporteDirector === "DIARIO" ||
-        diaActual === configuracion.diaReporteDirector;
+      const correspondeDirector = correspondePeriodo({
+        frecuencia: frecuenciaDirector,
+        diaSemanaConfigurado:
+          configuracion.diaReporteDirector,
+        diaMesConfigurado:
+          configuracion.diaMesReporteDirector,
+        diaSemanaActual,
+        diaMesActual,
+      });
 
-      const yaEnviadoDirector =
-        configuracion.frecuenciaReporteDirector === "DIARIO"
-          ? mismaFechaPeru(configuracion.ultimoReporteDirectorAt)
-          : mismaSemana(
-              configuracion.ultimoReporteDirectorAt,
-              ahora
-            );
+      const yaEnviadoDirector = yaFueEnviado({
+        frecuencia: frecuenciaDirector,
+        ultimoEnvio:
+          configuracion.ultimoReporteDirectorAt,
+        ahora,
+      });
 
       if (
         esHoraDirector &&
-        esDiaDirector &&
+        correspondeDirector &&
         !yaEnviadoDirector
       ) {
         const resultadoDirector = await ejecutarRuta(
-          "/api/reportes/telegram-diario"
+          `/api/reportes/telegram-diario?frecuencia=${frecuenciaDirector}`
         );
 
         resultados.reporteDirector = resultadoDirector;
@@ -216,9 +273,12 @@ export async function GET(request: Request) {
       } else {
         resultados.reporteDirector = {
           ejecutado: false,
+          frecuencia: frecuenciaDirector,
           motivo: yaEnviadoDirector
-            ? "Ya fue enviado en el periodo correspondiente"
-            : "Todavía no corresponde el día o la hora",
+            ? `El reporte ${frecuenciaDirector.toLowerCase()} del director ya fue enviado`
+            : !correspondeDirector
+              ? "Hoy no corresponde el día configurado"
+              : `Todavía no corresponde la hora. Actual: ${horaActual}, configurada: ${configuracion.horaReporteDirector}`,
         };
       }
     } else {
@@ -228,45 +288,74 @@ export async function GET(request: Request) {
       };
     }
 
-if (configuracion.reportePadresActivo) {
-  const esHoraPadres =
-    horaActual === configuracion.horaReportePadres;
+    /*
+     * 3. REPORTES PARA PADRES
+     */
+    if (configuracion.reportePadresActivo) {
+      const frecuenciaPadres =
+        configuracion.frecuenciaReportePadres === "MENSUAL"
+          ? "MENSUAL"
+          : "SEMANAL";
 
-  const yaEnviadoPadresHoy = mismaFechaPeru(
-    configuracion.ultimoReportePadresAt
-  );
+      const esHoraPadres =
+        horaActual === configuracion.horaReportePadres;
 
-  if (esHoraPadres && !yaEnviadoPadresHoy) {
-    const resultadoPadres = await ejecutarRuta(
-      "/api/reportes/padres-semanal",
-      "POST",
-      {
-        forzarEnvio: true,
+      const correspondePadres = correspondePeriodo({
+        frecuencia: frecuenciaPadres,
+        diaSemanaConfigurado:
+          configuracion.diaReportePadres,
+        diaMesConfigurado:
+          configuracion.diaMesReportePadres,
+        diaSemanaActual,
+        diaMesActual,
+      });
+
+      const yaEnviadoPadres = yaFueEnviado({
+        frecuencia: frecuenciaPadres,
+        ultimoEnvio:
+          configuracion.ultimoReportePadresAt,
+        ahora,
+      });
+
+      if (
+        esHoraPadres &&
+        correspondePadres &&
+        !yaEnviadoPadres
+      ) {
+        const resultadoPadres = await ejecutarRuta(
+          "/api/reportes/padres-semanal",
+          "POST",
+          {
+            forzarEnvio: false,
+            frecuencia: frecuenciaPadres,
+          }
+        );
+
+        resultados.reportePadres = resultadoPadres;
+      } else {
+        resultados.reportePadres = {
+          ejecutado: false,
+          frecuencia: frecuenciaPadres,
+          motivo: yaEnviadoPadres
+            ? `Los reportes ${frecuenciaPadres.toLowerCase()}es para padres ya fueron enviados`
+            : !correspondePadres
+              ? "Hoy no corresponde el día configurado"
+              : `Todavía no corresponde la hora. Actual: ${horaActual}, configurada: ${configuracion.horaReportePadres}`,
+        };
       }
-    );
+    } else {
+      resultados.reportePadres = {
+        ejecutado: false,
+        motivo: "Reportes para padres desactivados",
+      };
+    }
 
-    resultados.reportePadres = resultadoPadres;
-  } else {
-    resultados.reportePadres = {
-      ejecutado: false,
-      motivo: yaEnviadoPadresHoy
-        ? "Los reportes para padres ya fueron enviados hoy"
-        : `Todavía no corresponde la hora. Actual: ${horaActual}, configurada: ${configuracion.horaReportePadres}`,
-    };
-  }
-} else {
-  resultados.reportePadres = {
-    ejecutado: false,
-    motivo: "Reportes para padres desactivados",
-  };
-}
-
- return NextResponse.json({
-  ok: true,
-  message: "Verificación automática finalizada",
-  duracionMs: Date.now() - inicio,
-  resultados,
-});
+    return NextResponse.json({
+      ok: true,
+      message: "Verificación automática finalizada",
+      duracionMs: Date.now() - inicio,
+      resultados,
+    });
   } catch (error) {
     console.error("Error en automatizaciones:", error);
 
@@ -279,9 +368,7 @@ if (configuracion.reportePadresActivo) {
             : "Error en el motor de automatizaciones",
         duracionMs: Date.now() - inicio,
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }

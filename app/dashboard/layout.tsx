@@ -19,6 +19,11 @@ export default function DashboardLayout({
   const [usuario, setUsuario] = useState("");
   const [menuAbierto, setMenuAbierto] = useState(false);
 
+  const esAdmin = rol === "ADMIN";
+  const esDemo = rol === "DEMO";
+  const esPersonal = rol === "PERSONAL";
+  const esDirectivo = rol === "DIRECTIVO";
+
   const linkClass = (href: string) =>
     `block rounded-xl px-4 py-3 font-semibold transition ${
       pathname === href
@@ -33,11 +38,6 @@ export default function DashboardLayout({
 
     if (logueado !== "true") {
       router.replace("/login");
-      return;
-    }
-
-    if (rolGuardado === "PERSONAL") {
-      router.replace("/marcar");
       return;
     }
 
@@ -177,129 +177,154 @@ export default function DashboardLayout({
         </div>
 
         <nav className="mt-7 flex-1 space-y-2">
-          <Link href="/dashboard" className={linkClass("/dashboard")}>
-            🏠 Dashboard
-          </Link>
-
-          <Link
-            href="/dashboard/estudiantes"
-            className={linkClass("/dashboard/estudiantes")}
-          >
-            👨‍🎓 Estudiantes
-          </Link>
-
-          <Link
-            href="/dashboard/asistencias"
-            className={linkClass("/dashboard/asistencias")}
-          >
-            📅 Asistencias
-          </Link>
-
-          <Link
-            href="/dashboard/tardanzas"
-            className={linkClass("/dashboard/tardanzas")}
-          >
-            🟠 Tardanzas
-          </Link>
-
-          <Link
-            href="/dashboard/reportes-mensuales"
-            className={linkClass(
-              "/dashboard/reportes-mensuales"
-            )}
-          >
-            📊 Reportes mensuales
-          </Link>
-
-          <Link
-            href="/dashboard/reporte-estudiante"
-            className={linkClass(
-              "/dashboard/reporte-estudiante"
-            )}
-          >
-            👨‍🎓 Reporte estudiante
-          </Link>
-
-          <Link
-            href="/dashboard/inteligencia"
-            className={linkClass("/dashboard/inteligencia")}
-          >
-            🧠 Inteligencia Escolar
-          </Link>
-
-          <Link
-            href="/dashboard/inteligencia/historial"
-            className={linkClass(
-              "/dashboard/inteligencia/historial"
-            )}
-          >
-            📚 Historial IA
-          </Link>
-
-          <Link
-            href="/dashboard/inteligencia/ranking"
-            className={linkClass(
-              "/dashboard/inteligencia/ranking"
-            )}
-          >
-            🔥 Ranking IA
-          </Link>
-
-          {rol === "ADMIN" && (
+          {(esAdmin || esDirectivo || esDemo) && (
             <Link
-              href="/dashboard/usuarios"
-              className={linkClass("/dashboard/usuarios")}
+              href="/dashboard"
+              className={linkClass("/dashboard")}
             >
-              👤 Usuarios
+              🏠 Dashboard
             </Link>
           )}
 
-          <Link
-            href="/marcar"
-            className={linkClass("/marcar")}
-          >
+          {(esAdmin || esDemo || esPersonal) && (
+            <>
+              <Link
+                href="/dashboard/estudiantes"
+                className={linkClass("/dashboard/estudiantes")}
+              >
+                👨‍🎓 Estudiantes
+              </Link>
+
+              <Link
+                href="/dashboard/asistencias"
+                className={linkClass("/dashboard/asistencias")}
+              >
+                📅 Asistencias
+              </Link>
+
+              <Link
+                href="/dashboard/tardanzas"
+                className={linkClass("/dashboard/tardanzas")}
+              >
+                🟠 Tardanzas
+              </Link>
+
+              <Link
+                href="/dashboard/reportes-mensuales"
+                className={linkClass(
+                  "/dashboard/reportes-mensuales"
+                )}
+              >
+                📊 Reportes mensuales
+              </Link>
+
+              <Link
+                href="/dashboard/reporte-estudiante"
+                className={linkClass(
+                  "/dashboard/reporte-estudiante"
+                )}
+              >
+                👨‍🎓 Reporte estudiante
+              </Link>
+            </>
+          )}
+
+          {(esAdmin || esDirectivo || esDemo) && (
+            <>
+              <Link
+                href="/dashboard/inteligencia"
+                className={linkClass("/dashboard/inteligencia")}
+              >
+                🧠 Inteligencia Escolar
+              </Link>
+
+              <Link
+                href="/dashboard/inteligencia/historial"
+                className={linkClass(
+                  "/dashboard/inteligencia/historial"
+                )}
+              >
+                📚 Historial IA
+              </Link>
+
+              <Link
+                href="/dashboard/inteligencia/ranking"
+                className={linkClass(
+                  "/dashboard/inteligencia/ranking"
+                )}
+              >
+                🔥 Ranking IA
+              </Link>
+
+              <Link
+                href="/dashboard/calendario"
+                className={linkClass("/dashboard/calendario")}
+              >
+                📅 Calendario escolar
+              </Link>
+            </>
+          )}
+
+          {esAdmin && (
+            <>
+              <Link
+                href="/dashboard/usuarios"
+                className={linkClass("/dashboard/usuarios")}
+              >
+                👤 Usuarios
+              </Link>
+
+              <Link
+                href="/dashboard/turnos"
+                className={linkClass("/dashboard/turnos")}
+              >
+                ⏰ Turnos
+              </Link>
+
+              <Link
+                href="/dashboard/configuracion"
+                className={linkClass(
+                  "/dashboard/configuracion"
+                )}
+              >
+                ⚙️ Configuración
+              </Link>
+
+              <Link
+                href="/dashboard/backup"
+                className={linkClass("/dashboard/backup")}
+              >
+                💾 Backup
+              </Link>
+
+              <Link
+                href="/dashboard/auditoria"
+                className={linkClass("/dashboard/auditoria")}
+              >
+                🧾 Auditoría
+              </Link>
+            </>
+          )}
+
+          <Link href="/marcar" className={linkClass("/marcar")}>
             📷 Marcar asistencia
           </Link>
 
-          <Link
-            href="/dashboard/turnos"
-            className={linkClass("/dashboard/turnos")}
-          >
-            ⏰ Turnos
-          </Link>
-
-          <Link
-            href="/dashboard/configuracion"
-            className={linkClass(
-              "/dashboard/configuracion"
-            )}
-          >
-            ⚙️ Configuración
-          </Link>
-
-          <Link
-            href="/dashboard/calendario"
-            className={linkClass("/dashboard/calendario")}
-          >
-            📅 Calendario escolar
-          </Link>
-
-          {rol === "ADMIN" && (
-            <Link
-              href="/dashboard/backup"
-              className={linkClass("/dashboard/backup")}
-            >
-              💾 Backup
-            </Link>
+          {esDemo && (
+            <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-200">
+              🧪 Modo demo: solo visualización
+            </div>
           )}
+          {esDirectivo && (
+  <div className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-200">
+    👔 Directivo: panel estratégico y análisis institucional
+  </div>
+)}
 
-          {rol === "ADMIN" && (
-            <Link
-              href="/dashboard/auditoria"
-              className={linkClass("/dashboard/auditoria")}
-            >
-              🧾 Auditoría
-            </Link>
+          {esPersonal && (
+            <div className="rounded-xl border border-blue-400/40 bg-blue-500/10 px-4 py-3 text-sm font-semibold text-blue-200">
+              👨‍💼 Personal: consulta y operación de asistencia
+            </div>
           )}
         </nav>
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generarAnalisisIA } from "@/services/groqService";
+import { exigirAdminODirectivo } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -139,6 +140,12 @@ function normalizarPorcentaje(valor: unknown) {
 }
 
 export async function POST(request: Request) {
+  const acceso = await exigirAdminODirectivo();
+
+  if (!acceso.autorizado) {
+    return acceso.respuesta;
+  }
+
   try {
     const body = await request.json();
     const dni = String(body.dni || "").trim();

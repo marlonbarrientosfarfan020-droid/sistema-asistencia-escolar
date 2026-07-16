@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { enviarTelegram } from "@/lib/telegram";
-import { exigirAdmin } from "@/lib/auth";
+import { exigirAdminOPersonal } from "@/lib/auth";
 import { esCronAutorizado } from "@/lib/cronAuth";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const ZONA_HORARIA = "America/Lima";
-const TIPO_REPORTE = "PADRE_DIARIO";
+
+type FrecuenciaReporte = "SEMANAL" | "MENSUAL";
 
 type EventoCalendario = {
   fechaInicio: Date;
@@ -17,6 +20,7 @@ type EventoCalendario = {
   tipo: string;
   descripcion: string;
 };
+
 function fechaPeruString(fecha: Date) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: ZONA_HORARIA,
@@ -34,9 +38,14 @@ function fechaBDString(fecha: Date) {
   return `${anio}-${mes}-${dia}`;
 }
 
-function crearFechaPeru(fecha: string, finalDia = false) {
+function crearFechaPeru(
+  fecha: string,
+  finalDia = false
+) {
   return new Date(
-    `${fecha}T${finalDia ? "23:59:59.999" : "00:00:00"}-05:00`
+    `${fecha}T${
+      finalDia ? "23:59:59.999" : "00:00:00"
+    }-05:00`
   );
 }
 
@@ -45,46 +54,21 @@ function crearFechaBD(fecha: string) {
 }
 
 function sumarDias(fecha: string, dias: number) {
-  const base = new Date(`${fecha}T12:00:00-05:00`);
+  const base = new Date(
+    `${fecha}T12:00:00-05:00`
+  );
+
   base.setDate(base.getDate() + dias);
 
   return fechaPeruString(base);
 }
 
-function numeroDiaSemanaPeru(fecha: Date) {
-  const nombreDia = new Intl.DateTimeFormat("en-US", {
-    timeZone: ZONA_HORARIA,
-    weekday: "short",
-  }).format(fecha);
-
-  const equivalencias: Record<string, number> = {
-    Mon: 1,
-    Tue: 2,
-    Wed: 3,
-    Thu: 4,
-    Fri: 5,
-    Sat: 6,
-    Sun: 7,
-  };
-
-  return equivalencias[nombreDia] || 1;
-}
-
-function obtenerPeriodoDiaActual() {
-  const hoy = fechaPeruString(new Date());
-
-  return {
-    fechaInicio: hoy,
-    fechaFin: hoy,
-    inicioAsistencias: crearFechaPeru(hoy),
-    finAsistencias: crearFechaPeru(hoy, true),
-    inicioCalendario: crearFechaBD(hoy),
-    finCalendario: crearFechaBD(hoy),
-  };
-}
-
-function generarFechasPeriodo(fechaInicio: string, fechaFin: string) {
+function generarFechasPeriodo(
+  fechaInicio: string,
+  fechaFin: string
+) {
   const fechas: string[] = [];
+
   let actual = fechaInicio;
 
   while (actual <= fechaFin) {
@@ -96,10 +80,59 @@ function generarFechasPeriodo(fechaInicio: string, fechaFin: string) {
 }
 
 function esFinDeSemana(fecha: string) {
-  const valor = new Date(`${fecha}T12:00:00-05:00`);
+  const valor = new Date(
+    `${fecha}T12:00:00-05:00`
+  );
+
   const dia = valor.getDay();
 
   return dia === 0 || dia === 6;
+}
+
+function obtenerPeriodo(
+  frecuencia: FrecuenciaReporte
+) {
+  const hoy = fechaPeruString(new Date());
+
+  const fechaActual = new Date(
+    `${hoy}T12:00:00-05:00`
+  );
+
+  let fechaInicio = hoy;
+
+  if (frecuencia === "MENSUAL") {
+    fechaInicio = `${hoy.slice(0, 7)}-01`;
+  } else {
+    const diaActual = fechaActual.getDay();
+
+    const diasDesdeLunes =
+      diaActual === 0
+        ? 6
+        : diaActual - 1;
+
+    fechaActual.setDate(
+      fechaActual.getDate() - diasDesdeLunes
+    );
+
+    fechaInicio = fechaPeruString(fechaActual);
+  }
+
+  return {
+    fechaInicio,
+    fechaFin: hoy,
+
+    inicioAsistencias:
+      crearFechaPeru(fechaInicio),
+
+    finAsistencias:
+      crearFechaPeru(hoy, true),
+
+    inicioCalendario:
+      crearFechaBD(fechaInicio),
+
+    finCalendario:
+      crearFechaBD(hoy),
+  };
 }
 
 function existeEventoNoLectivo(
@@ -108,29 +141,45 @@ function existeEventoNoLectivo(
   eventos: EventoCalendario[]
 ) {
   return eventos.some((evento) => {
-    const inicio = fechaBDString(evento.fechaInicio);
-    const fin = fechaBDString(evento.fechaFin);
+    const inicio = fechaBDString(
+      evento.fechaInicio
+    );
 
-    const aplicaFecha = fecha >= inicio && fecha <= fin;
+    const fin = fechaBDString(
+      evento.fechaFin
+    );
+
+    const aplicaFecha =
+      fecha >= inicio &&
+      fecha <= fin;
 
     const aplicaTurno =
       evento.todosLosTurnos ||
-      (!evento.todosLosTurnos && evento.turnoId === turnoId);
+      (!evento.todosLosTurnos &&
+        evento.turnoId === turnoId);
 
     return aplicaFecha && aplicaTurno;
   });
 }
 
 function formatoFechaPeru(fecha: string) {
-  const [anio, mes, dia] = fecha.split("-");
+  const [anio, mes, dia] =
+    fecha.split("-");
+
   return `${dia}/${mes}/${anio}`;
 }
 
 function nombreNivelRiesgo(nivel: string) {
   const valor = nivel.toUpperCase();
 
-  if (valor === "ALTO") return "🔴 ALTO";
-  if (valor === "MEDIO") return "🟠 MEDIO";
+  if (valor === "ALTO") {
+    return "🔴 ALTO";
+  }
+
+  if (valor === "MEDIO") {
+    return "🟠 MEDIO";
+  }
+
   return "🟢 BAJO";
 }
 
@@ -139,64 +188,124 @@ function obtenerEstadoGeneral(
   tardanzas: number,
   ausencias: number
 ) {
-  if (porcentajeAsistencia >= 90 && tardanzas <= 1 && ausencias === 0) {
+  if (
+    porcentajeAsistencia >= 90 &&
+    tardanzas <= 1 &&
+    ausencias === 0
+  ) {
     return "Excelente";
   }
 
-  if (porcentajeAsistencia >= 75 && ausencias <= 1) {
+  if (
+    porcentajeAsistencia >= 75 &&
+    ausencias <= 1
+  ) {
     return "Regular";
   }
 
   return "Requiere seguimiento";
 }
 
+function nombreFrecuencia(
+  frecuencia: FrecuenciaReporte
+) {
+  return frecuencia === "MENSUAL"
+    ? "mensual"
+    : "semanal";
+}
+
+function tipoReporte(
+  frecuencia: FrecuenciaReporte
+) {
+  return frecuencia === "MENSUAL"
+    ? "PADRE_MENSUAL"
+    : "PADRE_SEMANAL";
+}
+
 export async function POST(request: Request) {
-  const accesoCron = esCronAutorizado(request);
+ const accesoCron = esCronAutorizado(request);
 
-  if (!accesoCron) {
-    const acceso = await exigirAdmin();
+if (!accesoCron) {
+  const acceso = await exigirAdminOPersonal();
 
-    if (!acceso.autorizado) {
-      return acceso.respuesta;
-    }
+  if (!acceso.autorizado) {
+    return acceso.respuesta;
   }
+}
 
   try {
-    const body = await request.json().catch(() => ({}));
-    const forzarEnvio = body.forzarEnvio === true;
+    const body = await request
+      .json()
+      .catch(() => ({}));
 
-    const configuracion = await prisma.configuracion.findFirst();
+    const forzarEnvio =
+      body.forzarEnvio === true;
+
+    const configuracion =
+      await prisma.configuracion.findFirst();
 
     if (!configuracion) {
       return NextResponse.json(
         {
           ok: false,
-          message: "No existe configuración institucional",
+          message:
+            "No existe configuración institucional",
         },
         { status: 404 }
       );
     }
 
-    if (!forzarEnvio && !configuracion.reportePadresActivo) {
+    const frecuenciaSolicitada =
+      String(
+        body.frecuencia || ""
+      ).toUpperCase();
+
+    const frecuencia: FrecuenciaReporte =
+      frecuenciaSolicitada === "MENSUAL"
+        ? "MENSUAL"
+        : frecuenciaSolicitada === "SEMANAL"
+        ? "SEMANAL"
+        : configuracion.frecuenciaReportePadres ===
+          "MENSUAL"
+        ? "MENSUAL"
+        : "SEMANAL";
+
+    const nombrePeriodo =
+      nombreFrecuencia(frecuencia);
+
+    const tipo =
+      tipoReporte(frecuencia);
+
+    if (
+      !forzarEnvio &&
+      !configuracion.reportePadresActivo
+    ) {
       return NextResponse.json({
         ok: false,
-        message: "Los reportes diarios para padres están desactivados",
+        message:
+          "Los reportes automáticos para padres están desactivados",
       });
     }
 
-    const periodo = obtenerPeriodoDiaActual();
+    const periodo =
+      obtenerPeriodo(frecuencia);
 
     const eventosCalendario =
       await prisma.calendarioEscolar.findMany({
         where: {
           estado: true,
+
           fechaInicio: {
-            lte: periodo.finCalendario,
+            lte:
+              periodo.finCalendario,
           },
+
           fechaFin: {
-            gte: periodo.inicioCalendario,
+            gte:
+              periodo.inicioCalendario,
           },
         },
+
         select: {
           fechaInicio: true,
           fechaFin: true,
@@ -207,39 +316,48 @@ export async function POST(request: Request) {
         },
       });
 
-    const estudiantes = await prisma.estudiante.findMany({
-      where: {
-        estado: true,
-      },
-      include: {
-        turno: true,
-        riesgoIA: true,
-        asistencias: {
-          where: {
-            fecha: {
-              gte: periodo.inicioAsistencias,
-              lte: periodo.finAsistencias,
+    const estudiantes =
+      await prisma.estudiante.findMany({
+        where: {
+          estado: true,
+        },
+
+        include: {
+          turno: true,
+          riesgoIA: true,
+
+          asistencias: {
+            where: {
+              fecha: {
+                gte:
+                  periodo.inicioAsistencias,
+
+                lte:
+                  periodo.finAsistencias,
+              },
+            },
+
+            orderBy: {
+              fecha: "asc",
             },
           },
-          orderBy: {
-            fecha: "asc",
-          },
         },
-      },
-      orderBy: [
-        {
-          apellidos: "asc",
-        },
-        {
-          nombres: "asc",
-        },
-      ],
-    });
 
-    const fechasSemana = generarFechasPeriodo(
-      periodo.fechaInicio,
-      periodo.fechaFin
-    );
+        orderBy: [
+          {
+            apellidos: "asc",
+          },
+          {
+            nombres: "asc",
+          },
+        ],
+      });
+
+    const fechasPeriodo =
+      generarFechasPeriodo(
+        periodo.fechaInicio,
+        periodo.fechaFin
+      );
 
     let enviados = 0;
     let omitidos = 0;
@@ -256,28 +374,46 @@ export async function POST(request: Request) {
       const nombreCompleto =
         `${estudiante.nombres} ${estudiante.apellidos}`.trim();
 
-      if (!estudiante.telegramChatId.trim()) {
+      if (
+        !estudiante.telegramChatId.trim()
+      ) {
         sinTelegram++;
         omitidos++;
 
-        await prisma.historialReporteAutomatico.create({
-          data: {
-            tipo: TIPO_REPORTE,
-            destinatario:
-              estudiante.nombreTutor || "Tutor no registrado",
-            chatId: "",
-            estudianteId: estudiante.id,
-            fechaInicio: periodo.inicioAsistencias,
-            fechaFin: periodo.finAsistencias,
-            estado: "SIN_TELEGRAM",
-            detalle: `No se envió el reporte de ${nombreCompleto} porque no tiene Telegram Chat ID.`,
-          },
-        });
+        await prisma.historialReporteAutomatico.create(
+          {
+            data: {
+              tipo,
+
+              destinatario:
+                estudiante.nombreTutor ||
+                "Tutor no registrado",
+
+              chatId: "",
+
+              estudianteId:
+                estudiante.id,
+
+              fechaInicio:
+                periodo.inicioAsistencias,
+
+              fechaFin:
+                periodo.finAsistencias,
+
+              estado:
+                "SIN_TELEGRAM",
+
+              detalle:
+                `No se envió el reporte ${nombrePeriodo} de ${nombreCompleto} porque no tiene Telegram Chat ID.`,
+            },
+          }
+        );
 
         detalleProceso.push({
           estudiante: nombreCompleto,
           estado: "SIN_TELEGRAM",
-          detalle: "El tutor no tiene Telegram Chat ID registrado",
+          detalle:
+            "El tutor no tiene Telegram Chat ID registrado",
         });
 
         continue;
@@ -286,142 +422,217 @@ export async function POST(request: Request) {
       if (!estudiante.turno) {
         omitidos++;
 
-        await prisma.historialReporteAutomatico.create({
-          data: {
-            tipo: TIPO_REPORTE,
-            destinatario:
-              estudiante.nombreTutor || "Tutor no registrado",
-            chatId: estudiante.telegramChatId,
-            estudianteId: estudiante.id,
-            fechaInicio: periodo.inicioAsistencias,
-            fechaFin: periodo.finAsistencias,
-            estado: "OMITIDO",
-            detalle: `No se generó el reporte de ${nombreCompleto} porque no tiene turno asignado.`,
-          },
-        });
+        await prisma.historialReporteAutomatico.create(
+          {
+            data: {
+              tipo,
+
+              destinatario:
+                estudiante.nombreTutor ||
+                "Tutor no registrado",
+
+              chatId:
+                estudiante.telegramChatId,
+
+              estudianteId:
+                estudiante.id,
+
+              fechaInicio:
+                periodo.inicioAsistencias,
+
+              fechaFin:
+                periodo.finAsistencias,
+
+              estado:
+                "OMITIDO",
+
+              detalle:
+                `No se generó el reporte ${nombrePeriodo} de ${nombreCompleto} porque no tiene turno asignado.`,
+            },
+          }
+        );
 
         detalleProceso.push({
           estudiante: nombreCompleto,
           estado: "OMITIDO",
-          detalle: "El estudiante no tiene turno asignado",
+          detalle:
+            "El estudiante no tiene turno asignado",
         });
 
         continue;
       }
 
       const reporteExistente =
-        await prisma.historialReporteAutomatico.findFirst({
-          where: {
-            tipo: TIPO_REPORTE,
-            estudianteId: estudiante.id,
-            fechaInicio: periodo.inicioAsistencias,
-            fechaFin: periodo.finAsistencias,
-            estado: "ENVIADO",
-          },
-        });
+        await prisma.historialReporteAutomatico.findFirst(
+          {
+            where: {
+              tipo,
 
-      if (reporteExistente && !forzarEnvio) {
+              estudianteId:
+                estudiante.id,
+
+              fechaInicio:
+                periodo.inicioAsistencias,
+
+              fechaFin:
+                periodo.finAsistencias,
+
+              estado:
+                "ENVIADO",
+            },
+          }
+        );
+
+      if (
+        reporteExistente &&
+        !forzarEnvio
+      ) {
         omitidos++;
 
         detalleProceso.push({
           estudiante: nombreCompleto,
           estado: "OMITIDO",
-          detalle: "El reporte de hoy ya fue enviado",
+          detalle:
+            `El reporte ${nombrePeriodo} ya fue enviado`,
         });
 
         continue;
       }
 
-      const fechasLectivas = fechasSemana.filter((fecha) => {
-        if (esFinDeSemana(fecha)) {
-          return false;
-        }
+      const fechasLectivas =
+        fechasPeriodo.filter((fecha) => {
+          if (esFinDeSemana(fecha)) {
+            return false;
+          }
 
-        return !existeEventoNoLectivo(
-          fecha,
-          estudiante.turnoId,
-          eventosCalendario
+          return !existeEventoNoLectivo(
+            fecha,
+            estudiante.turnoId,
+            eventosCalendario
+          );
+        });
+
+      const conjuntoFechasLectivas =
+        new Set(fechasLectivas);
+
+      const asistenciasLectivas =
+        estudiante.asistencias.filter(
+          (asistencia) =>
+            conjuntoFechasLectivas.has(
+              fechaPeruString(
+                asistencia.fecha
+              )
+            )
         );
-      });
 
-      const conjuntoFechasLectivas = new Set(fechasLectivas);
-
-      const asistenciasLectivas = estudiante.asistencias.filter(
-        (asistencia) =>
-          conjuntoFechasLectivas.has(
-            fechaPeruString(asistencia.fecha)
+      const fechasConAsistencia =
+        new Set(
+          asistenciasLectivas.map(
+            (asistencia) =>
+              fechaPeruString(
+                asistencia.fecha
+              )
           )
-      );
+        );
 
-      const fechasConAsistencia = new Set(
-        asistenciasLectivas.map((asistencia) =>
-          fechaPeruString(asistencia.fecha)
-        )
-      );
+      const diasLectivosEsperados =
+        fechasLectivas.length;
 
-      const diasLectivosEsperados = fechasLectivas.length;
-      const presentes = fechasConAsistencia.size;
+      const presentes =
+        fechasConAsistencia.size;
 
-      const ausencias = Math.max(
-        diasLectivosEsperados - presentes,
-        0
-      );
+      const ausencias =
+        Math.max(
+          diasLectivosEsperados -
+            presentes,
+          0
+        );
 
-      const puntuales = asistenciasLectivas.filter(
-        (asistencia) => asistencia.estado === "PUNTUAL"
-      ).length;
+      const puntuales =
+        asistenciasLectivas.filter(
+          (asistencia) =>
+            asistencia.estado ===
+            "PUNTUAL"
+        ).length;
 
-      const tardanzas = asistenciasLectivas.filter(
-        (asistencia) => asistencia.estado === "TARDE"
-      ).length;
+      const tardanzas =
+        asistenciasLectivas.filter(
+          (asistencia) =>
+            asistencia.estado ===
+            "TARDE"
+        ).length;
 
-      const sinSalida = asistenciasLectivas.filter(
-        (asistencia) =>
-          asistencia.horaEntrada !== null &&
-          asistencia.horaSalida === null
-      ).length;
+      const sinSalida =
+        asistenciasLectivas.filter(
+          (asistencia) =>
+            asistencia.horaEntrada !==
+              null &&
+            asistencia.horaSalida ===
+              null
+        ).length;
 
       const porcentajeAsistencia =
         diasLectivosEsperados > 0
           ? Math.round(
-              (presentes / diasLectivosEsperados) * 100
+              (presentes /
+                diasLectivosEsperados) *
+                100
             )
           : 0;
 
-      const fechasAusencia = fechasLectivas.filter(
-        (fecha) => !fechasConAsistencia.has(fecha)
-      );
+      const fechasAusencia =
+        fechasLectivas.filter(
+          (fecha) =>
+            !fechasConAsistencia.has(
+              fecha
+            )
+        );
 
-      const eventosAplicables = eventosCalendario
-        .filter((evento) => {
-          return (
-            evento.todosLosTurnos ||
-            evento.turnoId === estudiante.turnoId
-          );
-        })
-        .map((evento) => ({
-          tipo: evento.tipo,
-          descripcion: evento.descripcion,
-          desde: fechaBDString(evento.fechaInicio),
-          hasta: fechaBDString(evento.fechaFin),
-        }));
+      const eventosAplicables =
+        eventosCalendario
+          .filter(
+            (evento) =>
+              evento.todosLosTurnos ||
+              evento.turnoId ===
+                estudiante.turnoId
+          )
+          .map((evento) => ({
+            descripcion:
+              evento.descripcion,
 
-      const estadoGeneral = obtenerEstadoGeneral(
-        porcentajeAsistencia,
-        tardanzas,
-        ausencias
-      );
+            desde:
+              fechaBDString(
+                evento.fechaInicio
+              ),
+
+            hasta:
+              fechaBDString(
+                evento.fechaFin
+              ),
+          }));
+
+      const estadoGeneral =
+        obtenerEstadoGeneral(
+          porcentajeAsistencia,
+          tardanzas,
+          ausencias
+        );
 
       let bloqueRiesgoIA = "";
 
-      if (configuracion.incluirRiesgoIAReportePadres) {
+      if (
+        configuracion
+          .incluirRiesgoIAReportePadres
+      ) {
         if (estudiante.riesgoIA) {
           bloqueRiesgoIA = `
 
 🧠 ANÁLISIS PREVENTIVO
 
 Nivel de riesgo:
-${nombreNivelRiesgo(estudiante.riesgoIA.nivel)} (${estudiante.riesgoIA.porcentaje}%)
+${nombreNivelRiesgo(
+  estudiante.riesgoIA.nivel
+)} (${estudiante.riesgoIA.porcentaje}%)
 
 📋 Resumen:
 ${estudiante.riesgoIA.resumen}
@@ -439,46 +650,56 @@ El estudiante todavía no cuenta con un análisis de riesgo IA actualizado.`;
 
       const textoAusencias =
         fechasAusencia.length > 0
-          ? fechasAusencia.map(formatoFechaPeru).join(", ")
+          ? fechasAusencia
+              .map(formatoFechaPeru)
+              .join(", ")
           : "Ninguna";
 
       const textoDiasNoLectivos =
         eventosAplicables.length > 0
           ? eventosAplicables
-              .map(
-                (evento) =>
-                  `${evento.descripcion} (${formatoFechaPeru(
-                    evento.desde
-                  )}${
-                    evento.desde !== evento.hasta
-                      ? ` al ${formatoFechaPeru(evento.hasta)}`
-                      : ""
-                  })`
-              )
+              .map((evento) => {
+                const rango =
+                  evento.desde ===
+                  evento.hasta
+                    ? formatoFechaPeru(
+                        evento.desde
+                      )
+                    : `${formatoFechaPeru(
+                        evento.desde
+                      )} al ${formatoFechaPeru(
+                        evento.hasta
+                      )}`;
+
+                return `${evento.descripcion} (${rango})`;
+              })
               .join("; ")
           : "Ninguno";
 
-      const mensaje = `📊 REPORTE DIARIO DE ASISTENCIA
+      const mensaje = `📊 REPORTE ${nombrePeriodo.toUpperCase()} DE ASISTENCIA
 
 🏫 ${configuracion.nombreColegio}
 
 Estimado(a) ${
-        estudiante.nombreTutor || "padre/madre de familia"
+        estudiante.nombreTutor ||
+        "padre/madre de familia"
       }:
 
-Se presenta el resumen diario del estudiante:
+Se presenta el resumen ${nombrePeriodo} del estudiante:
 
 👨‍🎓 ${nombreCompleto}
 🪪 DNI: ${estudiante.dni}
 📚 Grado: ${estudiante.grado} - ${estudiante.seccion}
 ⏰ Turno: ${estudiante.turno.nombre}
 
-📅 Periodo:
-${formatoFechaPeru(periodo.fechaInicio)} al ${formatoFechaPeru(
+📅 PERIODO:
+${formatoFechaPeru(
+  periodo.fechaInicio
+)} al ${formatoFechaPeru(
         periodo.fechaFin
       )}
 
-📌 RESUMEN
+📌 RESUMEN ${nombrePeriodo.toUpperCase()}
 
 Días lectivos: ${diasLectivosEsperados}
 ✅ Asistencias: ${presentes}
@@ -488,7 +709,7 @@ Días lectivos: ${diasLectivosEsperados}
 🔵 Sin salida: ${sinSalida}
 📈 Porcentaje de asistencia: ${porcentajeAsistencia}%
 
-Estado del día:
+Estado del periodo:
 ${estadoGeneral}
 
 📅 Fechas de ausencia:
@@ -501,10 +722,11 @@ ${bloqueRiesgoIA}
 Este reporte tiene carácter preventivo. Ante cualquier duda, comuníquese con la institución educativa.`;
 
       try {
-        const enviado = await enviarTelegram(
-          estudiante.telegramChatId,
-          mensaje
-        );
+        const enviado =
+          await enviarTelegram(
+            estudiante.telegramChatId,
+            mensaje
+          );
 
         if (!enviado) {
           throw new Error(
@@ -514,24 +736,41 @@ Este reporte tiene carácter preventivo. Ante cualquier duda, comuníquese con l
 
         enviados++;
 
-        await prisma.historialReporteAutomatico.create({
-          data: {
-            tipo: TIPO_REPORTE,
-            destinatario:
-              estudiante.nombreTutor || "Tutor no registrado",
-            chatId: estudiante.telegramChatId,
-            estudianteId: estudiante.id,
-            fechaInicio: periodo.inicioAsistencias,
-            fechaFin: periodo.finAsistencias,
-            estado: "ENVIADO",
-           detalle: `Reporte diario enviado para ${nombreCompleto}. Asistencia: ${porcentajeAsistencia}%.`,
-          },
-        });
+        await prisma.historialReporteAutomatico.create(
+          {
+            data: {
+              tipo,
+
+              destinatario:
+                estudiante.nombreTutor ||
+                "Tutor no registrado",
+
+              chatId:
+                estudiante.telegramChatId,
+
+              estudianteId:
+                estudiante.id,
+
+              fechaInicio:
+                periodo.inicioAsistencias,
+
+              fechaFin:
+                periodo.finAsistencias,
+
+              estado:
+                "ENVIADO",
+
+              detalle:
+                `Reporte ${nombrePeriodo} enviado para ${nombreCompleto}. Asistencia: ${porcentajeAsistencia}%.`,
+            },
+          }
+        );
 
         detalleProceso.push({
           estudiante: nombreCompleto,
           estado: "ENVIADO",
-          detalle: `Reporte enviado. Asistencia: ${porcentajeAsistencia}%`,
+          detalle:
+            `Reporte ${nombrePeriodo} enviado. Asistencia: ${porcentajeAsistencia}%`,
         });
       } catch (error) {
         errores++;
@@ -541,70 +780,108 @@ Este reporte tiene carácter preventivo. Ante cualquier duda, comuníquese con l
             ? error.message
             : "Error desconocido al enviar por Telegram";
 
-        await prisma.historialReporteAutomatico.create({
-          data: {
-            tipo: TIPO_REPORTE,
-            destinatario:
-              estudiante.nombreTutor || "Tutor no registrado",
-            chatId: estudiante.telegramChatId,
-            estudianteId: estudiante.id,
-            fechaInicio: periodo.inicioAsistencias,
-            fechaFin: periodo.finAsistencias,
-            estado: "ERROR",
-            detalle: `Error enviando el reporte de ${nombreCompleto}: ${mensajeError}`,
-          },
-        });
+        await prisma.historialReporteAutomatico.create(
+          {
+            data: {
+              tipo,
+
+              destinatario:
+                estudiante.nombreTutor ||
+                "Tutor no registrado",
+
+              chatId:
+                estudiante.telegramChatId,
+
+              estudianteId:
+                estudiante.id,
+
+              fechaInicio:
+                periodo.inicioAsistencias,
+
+              fechaFin:
+                periodo.finAsistencias,
+
+              estado:
+                "ERROR",
+
+              detalle:
+                `Error enviando el reporte ${nombrePeriodo} de ${nombreCompleto}: ${mensajeError}`,
+            },
+          }
+        );
 
         detalleProceso.push({
-          estudiante: nombreCompleto,
-          estado: "ERROR",
-          detalle: mensajeError,
+          estudiante:
+            nombreCompleto,
+
+          estado:
+            "ERROR",
+
+          detalle:
+            mensajeError,
         });
       }
     }
 
-if (enviados > 0) {
-  await prisma.configuracion.update({
-    where: {
-      id: configuracion.id,
-    },
-    data: {
-      ultimoReportePadresAt: new Date(),
-    },
-  });
-}
+    if (enviados > 0) {
+      await prisma.configuracion.update({
+        where: {
+          id: configuracion.id,
+        },
+
+        data: {
+          ultimoReportePadresAt:
+            new Date(),
+        },
+      });
+    }
 
     return NextResponse.json({
       ok: errores === 0,
-     message: "Proceso de reportes diarios para padres finalizado",
+
+      message:
+        `Proceso de reportes ${nombrePeriodo}es para padres finalizado`,
+
+      frecuencia,
+
       periodo: {
-        desde: periodo.fechaInicio,
-        hasta: periodo.fechaFin,
+        desde:
+          periodo.fechaInicio,
+
+        hasta:
+          periodo.fechaFin,
       },
-      totalEstudiantes: estudiantes.length,
+
+      totalEstudiantes:
+        estudiantes.length,
+
       enviados,
       omitidos,
       sinTelegram,
       errores,
-      detalle: detalleProceso,
+
+      detalle:
+        detalleProceso,
     });
   } catch (error: unknown) {
     console.error(
-  "Error generando reportes diarios para padres:",
-  error
-);
+      "Error generando reportes para padres:",
+      error
+    );
 
     const mensaje =
       error instanceof Error
         ? error.message
-       : "Error interno al generar reportes diarios";
+        : "Error interno al generar reportes para padres";
 
     return NextResponse.json(
       {
         ok: false,
         message: mensaje,
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

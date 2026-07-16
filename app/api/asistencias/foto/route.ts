@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
+import { exigirAdminOPersonal } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +14,12 @@ const TIPOS_PERMITIDOS = [
 const TAMANO_MAXIMO = 2 * 1024 * 1024;
 
 export async function POST(request: Request) {
+  const acceso = await exigirAdminOPersonal();
+
+  if (!acceso.autorizado) {
+    return acceso.respuesta;
+  }
+
   try {
     const formData = await request.formData();
     const archivo = formData.get("foto");
@@ -37,6 +44,16 @@ export async function POST(request: Request) {
       );
     }
 
+    if (archivo.size <= 0) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: "La fotografía está vacía",
+        },
+        { status: 400 }
+      );
+    }
+
     if (archivo.size > TAMANO_MAXIMO) {
       return NextResponse.json(
         {
@@ -51,10 +68,11 @@ export async function POST(request: Request) {
       archivo.type === "image/png"
         ? "png"
         : archivo.type === "image/webp"
-        ? "webp"
-        : "jpg";
+          ? "webp"
+          : "jpg";
 
-    const nombre = `asistencias/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+    const nombre =
+      `asistencias/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
     const blob = await put(nombre, archivo, {
       access: "public",

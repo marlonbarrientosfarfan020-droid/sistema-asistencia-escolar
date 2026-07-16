@@ -1,23 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { exigirAdminDirectivoODemo } from "@/lib/auth";
 
 const ZONA_HORARIA = "America/Lima";
 
-function obtenerRol(request: Request) {
-  return request.headers.get("x-user-role") || "";
-}
 
-function esAdminODemo(request: Request) {
-  const rol = obtenerRol(request);
-  return rol === "ADMIN" || rol === "DEMO";
-}
-
-function noAutorizado() {
-  return NextResponse.json(
-    { message: "No autorizado" },
-    { status: 401 }
-  );
-}
 
 function contarRiesgo(texto: string, palabra: string) {
   const regex = new RegExp(palabra, "gi");
@@ -33,9 +20,11 @@ function fechaPeru() {
   }).format(new Date());
 }
 
-export async function GET(request: Request) {
-  if (!esAdminODemo(request)) {
-    return noAutorizado();
+export async function GET() {
+  const acceso = await exigirAdminDirectivoODemo();
+
+  if (!acceso.autorizado) {
+    return acceso.respuesta;
   }
 
   try {

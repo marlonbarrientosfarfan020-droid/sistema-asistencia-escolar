@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
 import { generarAnalisisIA } from "@/services/groqService";
+import { exigirAdmin } from "@/lib/auth";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const acceso = await exigirAdmin();
+
+  if (!acceso.autorizado) {
+    return acceso.respuesta;
+  }
+
   try {
     const respuesta = await generarAnalisisIA(
       "Redacta una alerta breve y profesional para un padre indicando que su hijo registra tardanzas frecuentes."
@@ -11,13 +21,20 @@ export async function GET() {
       ok: true,
       respuesta,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    console.error("Error probando conexión con IA:", error);
+
     return NextResponse.json(
       {
         ok: false,
-        message: error.message || "Error con Groq",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Error con Groq",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

@@ -21,15 +21,18 @@ type Configuracion = {
 
   // Reporte automático para el director
   reporteDirectorActivo: boolean;
-  frecuenciaReporteDirector: "DIARIO" | "SEMANAL";
-  diaReporteDirector: number;
-  horaReporteDirector: string;
+frecuenciaReporteDirector: "SEMANAL" | "MENSUAL";
+diaReporteDirector: number;
+diaMesReporteDirector: number;
+horaReporteDirector: string;
   ultimoReporteDirectorAt?: string | null;
 
   // Reporte semanal para padres
-  reportePadresActivo: boolean;
-  diaReportePadres: number;
-  horaReportePadres: string;
+reportePadresActivo: boolean;
+frecuenciaReportePadres: "SEMANAL" | "MENSUAL";
+diaReportePadres: number;
+diaMesReportePadres: number;
+horaReportePadres: string;
   incluirRiesgoIAReportePadres: boolean;
   ultimoReportePadresAt?: string | null;
 };
@@ -60,17 +63,20 @@ const FORM_INICIAL: Configuracion = {
   ultimoReporteTelegramAt: null,
   ultimoReporteTelegramEstado: "",
 
-  reporteDirectorActivo: false,
-  frecuenciaReporteDirector: "DIARIO",
-  diaReporteDirector: 5,
-  horaReporteDirector: "21:00",
-  ultimoReporteDirectorAt: null,
+reporteDirectorActivo: false,
+frecuenciaReporteDirector: "SEMANAL",
+diaReporteDirector: 5,
+diaMesReporteDirector: 28,
+horaReporteDirector: "18:00",
+ultimoReporteDirectorAt: null,
 
-  reportePadresActivo: false,
-  diaReportePadres: 5,
-  horaReportePadres: "18:00",
-  incluirRiesgoIAReportePadres: true,
-  ultimoReportePadresAt: null,
+reportePadresActivo: false,
+frecuenciaReportePadres: "SEMANAL",
+diaReportePadres: 5,
+diaMesReportePadres: 28,
+horaReportePadres: "19:00",
+incluirRiesgoIAReportePadres: true,
+ultimoReportePadresAt: null,
 };
 
 export default function ConfiguracionPage() {
@@ -130,37 +136,48 @@ const [subiendoLogo, setSubiendoLogo] = useState(false);
         ultimoReporteTelegramEstado:
           data.ultimoReporteTelegramEstado || "",
 
-        reporteDirectorActivo:
-          data.reporteDirectorActivo ?? false,
+reporteDirectorActivo:
+  data.reporteDirectorActivo ?? false,
 
-        frecuenciaReporteDirector:
-          data.frecuenciaReporteDirector === "SEMANAL"
-            ? "SEMANAL"
-            : "DIARIO",
+frecuenciaReporteDirector:
+  data.frecuenciaReporteDirector === "MENSUAL"
+    ? "MENSUAL"
+    : "SEMANAL",
 
-        diaReporteDirector:
-          Number(data.diaReporteDirector || 5),
+diaReporteDirector:
+  Number(data.diaReporteDirector || 5),
 
-        horaReporteDirector:
-          data.horaReporteDirector || "21:00",
+diaMesReporteDirector:
+  Number(data.diaMesReporteDirector || 28),
 
-        ultimoReporteDirectorAt:
-          data.ultimoReporteDirectorAt || null,
+horaReporteDirector:
+  data.horaReporteDirector || "18:00",
 
-        reportePadresActivo:
-          data.reportePadresActivo ?? false,
+ultimoReporteDirectorAt:
+  data.ultimoReporteDirectorAt || null,
 
-        diaReportePadres:
-          Number(data.diaReportePadres || 5),
+reportePadresActivo:
+  data.reportePadresActivo ?? false,
 
-        horaReportePadres:
-          data.horaReportePadres || "18:00",
+frecuenciaReportePadres:
+  data.frecuenciaReportePadres === "MENSUAL"
+    ? "MENSUAL"
+    : "SEMANAL",
 
-        incluirRiesgoIAReportePadres:
-          data.incluirRiesgoIAReportePadres ?? true,
+diaReportePadres:
+  Number(data.diaReportePadres || 5),
 
-        ultimoReportePadresAt:
-          data.ultimoReportePadresAt || null,
+diaMesReportePadres:
+  Number(data.diaMesReportePadres || 28),
+
+horaReportePadres:
+  data.horaReportePadres || "19:00",
+
+incluirRiesgoIAReportePadres:
+  data.incluirRiesgoIAReportePadres ?? true,
+
+ultimoReportePadresAt:
+  data.ultimoReportePadresAt || null,
 
           
       });
@@ -304,10 +321,13 @@ credentials: "include",
     setMensaje("⏳ Generando reporte para el director...");
 
     try {
-      const res = await fetch("/api/reportes/telegram-diario", {
-  cache: "no-store",
-  credentials: "include",
-});
+    const res = await fetch(
+  `/api/reportes/telegram-diario?frecuencia=${form.frecuenciaReporteDirector}`,
+  {
+    cache: "no-store",
+    credentials: "include",
+  }
+);
 
       const data = await res.json();
 
@@ -332,53 +352,68 @@ credentials: "include",
     }
   }
 
-  async function enviarPadresAhora() {
-    setEnviandoPadres(true);
-    setMensaje("⏳ Generando reportes semanales para los padres...");
+async function enviarPadresAhora() {
+  setEnviandoPadres(true);
 
-    try {
-      const res = await fetch("/api/reportes/padres-semanal", {
+  setMensaje(
+    `⏳ Generando reportes ${
+      form.frecuenciaReportePadres === "MENSUAL"
+        ? "mensuales"
+        : "semanales"
+    } para los padres...`
+  );
+
+  try {
+    const res = await fetch(
+      "/api/reportes/padres-semanal",
+      {
         method: "POST",
         headers: {
-  "Content-Type": "application/json",
-},
-credentials: "include",
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
         body: JSON.stringify({
           forzarEnvio: true,
+          frecuencia: form.frecuenciaReportePadres,
         }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setMensaje(
-          `✅ Proceso terminado: ${
-            data.enviados ?? 0
-          } enviados, ${data.omitidos ?? 0} omitidos y ${
-            data.errores ?? 0
-          } errores.`
-        );
-
-        await cargarConfiguracion();
-      } else {
-        setMensaje(
-          `❌ ${
-            data.message ||
-            "Error al enviar los reportes semanales para padres"
-          }`
-        );
       }
-    } catch (error) {
-      console.error("Error enviando reportes a padres:", error);
+    );
 
+    const data = await res.json();
+
+    if (res.ok) {
       setMensaje(
-        "❌ La ruta de reportes semanales para padres todavía no está disponible"
+        `✅ Proceso terminado: ${
+          data.enviados ?? 0
+        } enviados, ${
+          data.omitidos ?? 0
+        } omitidos y ${
+          data.errores ?? 0
+        } errores.`
       );
-    } finally {
-      setEnviandoPadres(false);
-    }
-  }
 
+      await cargarConfiguracion();
+    } else {
+      setMensaje(
+        `❌ ${
+          data.message ||
+          "Error al enviar los reportes para padres"
+        }`
+      );
+    }
+  } catch (error) {
+    console.error(
+      "Error enviando reportes a padres:",
+      error
+    );
+
+    setMensaje(
+      "❌ No se pudieron enviar los reportes para padres"
+    );
+  } finally {
+    setEnviandoPadres(false);
+  }
+}
   function formatearFecha(fecha?: string | null) {
     if (!fecha) return "Sin registro";
 
@@ -599,67 +634,91 @@ credentials: "include",
                   Frecuencia
                 </label>
 
-                <select
-                  value={form.frecuenciaReporteDirector}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      frecuenciaReporteDirector:
-                        e.target.value === "SEMANAL"
-                          ? "SEMANAL"
-                          : "DIARIO",
-                    })
-                  }
-                  className="border rounded-xl p-3 w-full"
-                >
-                  <option value="DIARIO">Diario</option>
-                  <option value="SEMANAL">Semanal</option>
-                </select>
-              </div>
+                 <select
+    value={form.frecuenciaReporteDirector}
+    onChange={(e) =>
+      setForm({
+        ...form,
+        frecuenciaReporteDirector:
+          e.target.value === "MENSUAL"
+            ? "MENSUAL"
+            : "SEMANAL",
+      })
+    }
+    className="border rounded-xl p-3 w-full"
+  >
+    <option value="SEMANAL">Semanal</option>
+    <option value="MENSUAL">Mensual</option>
+  </select>
+</div>
 
-              {form.frecuenciaReporteDirector === "SEMANAL" && (
-                <div>
-                  <label className="block font-bold mb-2">
-                    Día de envío
-                  </label>
+{form.frecuenciaReporteDirector === "SEMANAL" ? (
+  <div>
+    <label className="block font-bold mb-2">
+      Día de la semana
+    </label>
 
-                  <select
-                    value={form.diaReporteDirector}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        diaReporteDirector: Number(e.target.value),
-                      })
-                    }
-                    className="border rounded-xl p-3 w-full"
-                  >
-                    {DIAS_SEMANA.map((dia) => (
-                      <option key={dia.value} value={dia.value}>
-                        {dia.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+    <select
+      value={form.diaReporteDirector}
+      onChange={(e) =>
+        setForm({
+          ...form,
+          diaReporteDirector: Number(e.target.value),
+        })
+      }
+      className="border rounded-xl p-3 w-full"
+    >
+      {DIAS_SEMANA.map((dia) => (
+        <option key={dia.value} value={dia.value}>
+          {dia.label}
+        </option>
+      ))}
+    </select>
+  </div>
+) : (
+  <div>
+    <label className="block font-bold mb-2">
+      Día del mes
+    </label>
 
-              <div>
-                <label className="block font-bold mb-2">
-                  Hora de envío
-                </label>
+    <select
+      value={form.diaMesReporteDirector}
+      onChange={(e) =>
+        setForm({
+          ...form,
+          diaMesReporteDirector: Number(e.target.value),
+        })
+      }
+      className="border rounded-xl p-3 w-full"
+    >
+      {Array.from({ length: 28 }, (_, indice) => indice + 1).map(
+        (dia) => (
+          <option key={dia} value={dia}>
+            Día {dia}
+          </option>
+        )
+      )}
+    </select>
+  </div>
+)}
 
-                <input
-                  type="time"
-                  value={form.horaReporteDirector}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      horaReporteDirector: e.target.value,
-                    })
-                  }
-                  className="border rounded-xl p-3 w-full"
-                />
-              </div>
+<div>
+  <label className="block font-bold mb-2">
+    Hora de envío
+  </label>
 
+  <input
+    type="time"
+    value={form.horaReporteDirector}
+    onChange={(e) =>
+      setForm({
+        ...form,
+        horaReporteDirector: e.target.value,
+      })
+    }
+    className="border rounded-xl p-3 w-full"
+  />
+</div>
               <div>
                 <label className="block font-bold mb-2">
                   Telegram Chat ID
@@ -735,9 +794,9 @@ credentials: "include",
                 }
                 className="mt-5 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold disabled:opacity-50"
               >
-                {enviandoDirector
-                  ? "⏳ Enviando..."
-                  : "📤 Enviar reporte al director ahora"}
+              {enviandoDirector
+  ? "⏳ Enviando..."
+  : `📤 Enviar reporte ${form.frecuenciaReporteDirector.toLowerCase()} ahora`}
               </button>
             </div>
           </div>
@@ -747,11 +806,11 @@ credentials: "include",
         <section className="bg-white rounded-3xl shadow overflow-hidden">
           <div className="bg-emerald-700 text-white p-6">
             <h2 className="text-3xl font-extrabold">
-              👨‍👩‍👧 Reporte diario para padres
-            </h2>
+  👨‍👩‍👧 Reportes automáticos para padres
+</h2>
 
             <p className="text-emerald-100 mt-2">
-              Cada tutor recibirá diariamente el resumen de asistencia de su hijo.
+              Cada tutor recibirá un resumen semanal o mensual de la asistencia de su hijo.
             </p>
           </div>
 
@@ -768,49 +827,120 @@ credentials: "include",
                 }
                 className="w-5 h-5"
               />
-
-              Activar reportes diarios para padres
+Activar reportes automáticos para padres
             </label>
 
-           <div className="grid md:grid-cols-2 gap-5">
-             
+  <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+  <div>
+    <label className="mb-2 block font-bold">
+      Frecuencia
+    </label>
 
-              <div>
-                <label className="block font-bold mb-2">
-                  Hora de envío
-                </label>
+    <select
+      value={form.frecuenciaReportePadres}
+      onChange={(e) =>
+        setForm({
+          ...form,
+          frecuenciaReportePadres:
+            e.target.value === "MENSUAL"
+              ? "MENSUAL"
+              : "SEMANAL",
+        })
+      }
+      className="w-full rounded-xl border p-3"
+    >
+      <option value="SEMANAL">Semanal</option>
+      <option value="MENSUAL">Mensual</option>
+    </select>
+  </div>
 
-                <input
-                  type="time"
-                  value={form.horaReportePadres}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      horaReportePadres: e.target.value,
-                    })
-                  }
-                  className="border rounded-xl p-3 w-full"
-                />
-              </div>
+  {form.frecuenciaReportePadres === "SEMANAL" ? (
+    <div>
+      <label className="mb-2 block font-bold">
+        Día de la semana
+      </label>
 
-              <div className="flex items-end">
-                <label className="flex items-center gap-3 font-bold border rounded-xl p-3 w-full">
-                  <input
-                    type="checkbox"
-                    checked={form.incluirRiesgoIAReportePadres}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        incluirRiesgoIAReportePadres:
-                          e.target.checked,
-                      })
-                    }
-                  />
+      <select
+        value={form.diaReportePadres}
+        onChange={(e) =>
+          setForm({
+            ...form,
+            diaReportePadres: Number(e.target.value),
+          })
+        }
+        className="w-full rounded-xl border p-3"
+      >
+        {DIAS_SEMANA.map((dia) => (
+          <option key={dia.value} value={dia.value}>
+            {dia.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  ) : (
+    <div>
+      <label className="mb-2 block font-bold">
+        Día del mes
+      </label>
 
-                  Incluir análisis y riesgo IA
-                </label>
-              </div>
-            </div>
+      <select
+        value={form.diaMesReportePadres}
+        onChange={(e) =>
+          setForm({
+            ...form,
+            diaMesReportePadres: Number(e.target.value),
+          })
+        }
+        className="w-full rounded-xl border p-3"
+      >
+        {Array.from(
+          { length: 28 },
+          (_, indice) => indice + 1
+        ).map((dia) => (
+          <option key={dia} value={dia}>
+            Día {dia}
+          </option>
+        ))}
+      </select>
+    </div>
+  )}
+
+  <div>
+    <label className="mb-2 block font-bold">
+      Hora de envío
+    </label>
+
+    <input
+      type="time"
+      value={form.horaReportePadres}
+      onChange={(e) =>
+        setForm({
+          ...form,
+          horaReportePadres: e.target.value,
+        })
+      }
+      className="w-full rounded-xl border p-3"
+    />
+  </div>
+
+  <div className="flex items-end">
+    <label className="flex w-full items-center gap-3 rounded-xl border p-3 font-bold">
+      <input
+        type="checkbox"
+        checked={form.incluirRiesgoIAReportePadres}
+        onChange={(e) =>
+          setForm({
+            ...form,
+            incluirRiesgoIAReportePadres:
+              e.target.checked,
+          })
+        }
+      />
+
+      Incluir análisis y riesgo IA
+    </label>
+  </div>
+</div>
 
             <div className="grid md:grid-cols-4 gap-4">
               <div className="bg-green-50 text-green-700 rounded-2xl p-4 font-bold">
@@ -832,7 +962,7 @@ credentials: "include",
 
             <div className="bg-slate-50 border rounded-2xl p-5">
               <p className="font-bold">
-                Último envío diario:
+                Último envío:
                 <span className="ml-2 text-emerald-700">
                   {formatearFecha(form.ultimoReportePadresAt)}
                 </span>
@@ -850,8 +980,8 @@ credentials: "include",
                 className="mt-5 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-bold disabled:opacity-50"
               >
                 {enviandoPadres
-                  ? "⏳ Enviando reportes..."
-                  : "📤 Enviar reportes diarios ahora"}
+  ? "⏳ Enviando reportes..."
+  : `📤 Enviar reporte ${form.frecuenciaReportePadres.toLowerCase()} ahora`}
               </button>
             </div>
           </div>

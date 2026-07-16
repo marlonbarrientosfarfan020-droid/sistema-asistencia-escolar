@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generarAnalisisIA } from "@/services/groqService";
+import { exigirAdminODirectivo } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -101,6 +102,12 @@ function existeEventoNoLectivo(
 }
 
 export async function GET(request: Request) {
+  const acceso = await exigirAdminODirectivo();
+
+  if (!acceso.autorizado) {
+    return acceso.respuesta;
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const dni = searchParams.get("dni")?.trim() || null;

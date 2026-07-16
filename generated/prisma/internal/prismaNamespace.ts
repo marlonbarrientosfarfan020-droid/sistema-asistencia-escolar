@@ -1346,10 +1346,13 @@ export const ConfiguracionScalarFieldEnum = {
   reporteDirectorActivo: 'reporteDirectorActivo',
   frecuenciaReporteDirector: 'frecuenciaReporteDirector',
   diaReporteDirector: 'diaReporteDirector',
+  diaMesReporteDirector: 'diaMesReporteDirector',
   horaReporteDirector: 'horaReporteDirector',
   ultimoReporteDirectorAt: 'ultimoReporteDirectorAt',
   reportePadresActivo: 'reportePadresActivo',
+  frecuenciaReportePadres: 'frecuenciaReportePadres',
   diaReportePadres: 'diaReportePadres',
+  diaMesReportePadres: 'diaMesReportePadres',
   horaReportePadres: 'horaReportePadres',
   incluirRiesgoIAReportePadres: 'incluirRiesgoIAReportePadres',
   ultimoReportePadresAt: 'ultimoReportePadresAt'

@@ -86,19 +86,22 @@ model Configuracion {
   ultimoReporteTelegramAt      DateTime?
   ultimoReporteTelegramEstado  String   @default("")
 
-  // Reporte automático para el director
-  reporteDirectorActivo      Boolean @default(false)
-  frecuenciaReporteDirector  String  @default("DIARIO")
-  diaReporteDirector         Int     @default(1)
-  horaReporteDirector        String  @default("21:00")
-  ultimoReporteDirectorAt    DateTime?
+// Reportes para el director
+reporteDirectorActivo       Boolean  @default(false)
+frecuenciaReporteDirector   String   @default("SEMANAL")
+diaReporteDirector          Int      @default(5)
+diaMesReporteDirector       Int      @default(28)
+horaReporteDirector         String   @default("18:00")
+ultimoReporteDirectorAt     DateTime?
 
-  // Reporte semanal para padres
-  reportePadresActivo           Boolean @default(false)
-  diaReportePadres              Int     @default(5)
-  horaReportePadres             String  @default("18:00")
-  incluirRiesgoIAReportePadres  Boolean @default(true)
-  ultimoReportePadresAt DateTime?
+// Reportes para padres
+reportePadresActivo            Boolean  @default(false)
+frecuenciaReportePadres        String   @default("SEMANAL")
+diaReportePadres               Int      @default(5)
+diaMesReportePadres            Int      @default(28)
+horaReportePadres              String   @default("19:00")
+incluirRiesgoIAReportePadres   Boolean  @default(true)
+ultimoReportePadresAt          DateTime?
 }
 model Auditoria {
   id        Int      @id @default(autoincrement())
