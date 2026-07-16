@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { enviarTelegram } from "@/lib/telegram";
-import { exigirAdminOPersonal } from "@/lib/auth";
+import { exigirAdminDirectivoDemoOPersonal } from "@/lib/auth";
 import { esCronAutorizado } from "@/lib/cronAuth";
 
 export const runtime = "nodejs";
@@ -226,7 +226,8 @@ export async function POST(request: Request) {
  const accesoCron = esCronAutorizado(request);
 
 if (!accesoCron) {
-  const acceso = await exigirAdminOPersonal();
+ const acceso =
+  await exigirAdminDirectivoDemoOPersonal();
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
@@ -837,7 +838,7 @@ Este reporte tiene carácter preventivo. Ante cualquier duda, comuníquese con l
     }
 
     return NextResponse.json({
-      ok: errores === 0,
+    ok: true,
 
       message:
         `Proceso de reportes ${nombrePeriodo}es para padres finalizado`,
@@ -855,10 +856,9 @@ Este reporte tiene carácter preventivo. Ante cualquier duda, comuníquese con l
       totalEstudiantes:
         estudiantes.length,
 
-      enviados,
-      omitidos,
-      sinTelegram,
       errores,
+enviados,
+omitidos,
 
       detalle:
         detalleProceso,

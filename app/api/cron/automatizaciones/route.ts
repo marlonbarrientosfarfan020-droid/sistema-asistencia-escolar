@@ -57,6 +57,25 @@ function diaMesPeru() {
   );
 }
 
+function minutosHora(hora: string) {
+  const [horas, minutos] = hora
+    .split(":")
+    .map(Number);
+
+  if (
+    !Number.isInteger(horas) ||
+    !Number.isInteger(minutos) ||
+    horas < 0 ||
+    horas > 23 ||
+    minutos < 0 ||
+    minutos > 59
+  ) {
+    return 0;
+  }
+
+  return horas * 60 + minutos;
+}
+
 function obtenerPeriodoSemana(fecha: Date) {
   const texto = new Intl.DateTimeFormat("en-CA", {
     timeZone: ZONA_HORARIA,
@@ -83,7 +102,9 @@ function mismaSemana(
   fechaA: Date | null | undefined,
   fechaB: Date
 ) {
-  if (!fechaA) return false;
+  if (!fechaA) {
+    return false;
+  }
 
   return (
     obtenerPeriodoSemana(fechaA) ===
@@ -103,9 +124,14 @@ function mismoMes(
   fechaA: Date | null | undefined,
   fechaB: Date
 ) {
-  if (!fechaA) return false;
+  if (!fechaA) {
+    return false;
+  }
 
-  return obtenerMesPeru(fechaA) === obtenerMesPeru(fechaB);
+  return (
+    obtenerMesPeru(fechaA) ===
+    obtenerMesPeru(fechaB)
+  );
 }
 
 function correspondePeriodo({
@@ -150,28 +176,50 @@ async function ejecutarRuta(
   body?: Record<string, unknown>
 ) {
   const appUrl = process.env.APP_URL;
+  const cronSecret = process.env.CRON_SECRET;
 
   if (!appUrl) {
-    throw new Error("APP_URL no está configurado");
+    throw new Error(
+      "APP_URL no está configurado"
+    );
   }
 
-  const respuesta = await fetch(`${appUrl}${ruta}`, {
-    method: metodo,
-    headers: {
-      Authorization: `Bearer ${process.env.CRON_SECRET}`,
-      ...(body
-        ? {
-            "Content-Type": "application/json",
-          }
-        : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-    cache: "no-store",
-  });
+  if (!cronSecret) {
+    throw new Error(
+      "CRON_SECRET no está configurado"
+    );
+  }
 
-  const data = await respuesta.json().catch(() => ({
-    message: "La ruta no devolvió JSON",
-  }));
+  const respuesta = await fetch(
+    `${appUrl}${ruta}`,
+    {
+      method: metodo,
+      headers: {
+        Authorization:
+          `Bearer ${cronSecret}`,
+
+        ...(body
+          ? {
+              "Content-Type":
+                "application/json",
+            }
+          : {}),
+      },
+
+      body: body
+        ? JSON.stringify(body)
+        : undefined,
+
+      cache: "no-store",
+    }
+  );
+
+  const data = await respuesta
+    .json()
+    .catch(() => ({
+      message:
+        "La ruta no devolvió JSON",
+    }));
 
   return {
     ok: respuesta.ok,
@@ -195,9 +243,12 @@ export async function GET(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          message: "No existe configuración institucional",
+          message:
+            "No existe configuración institucional",
         },
-        { status: 404 }
+        {
+          status: 404,
+        }
       );
     }
 
@@ -216,57 +267,75 @@ export async function GET(request: Request) {
     /*
      * 1. ALERTAS DE AUSENCIA
      */
-    resultados.alertasAusencia = await ejecutarRuta(
-      "/api/alertas/ausentes"
-    );
+    resultados.alertasAusencia =
+      await ejecutarRuta(
+        "/api/alertas/ausentes"
+      );
 
     /*
      * 2. REPORTE DEL DIRECTOR
      */
     if (configuracion.reporteDirectorActivo) {
       const frecuenciaDirector =
-        configuracion.frecuenciaReporteDirector === "MENSUAL"
+        configuracion
+          .frecuenciaReporteDirector ===
+        "MENSUAL"
           ? "MENSUAL"
           : "SEMANAL";
 
       const esHoraDirector =
-        horaActual === configuracion.horaReporteDirector;
+        minutosHora(horaActual) >=
+        minutosHora(
+          configuracion.horaReporteDirector
+        );
 
-      const correspondeDirector = correspondePeriodo({
-        frecuencia: frecuenciaDirector,
-        diaSemanaConfigurado:
-          configuracion.diaReporteDirector,
-        diaMesConfigurado:
-          configuracion.diaMesReporteDirector,
-        diaSemanaActual,
-        diaMesActual,
-      });
+      const correspondeDirector =
+        correspondePeriodo({
+          frecuencia: frecuenciaDirector,
 
-      const yaEnviadoDirector = yaFueEnviado({
-        frecuencia: frecuenciaDirector,
-        ultimoEnvio:
-          configuracion.ultimoReporteDirectorAt,
-        ahora,
-      });
+          diaSemanaConfigurado:
+            configuracion.diaReporteDirector,
+
+          diaMesConfigurado:
+            configuracion.diaMesReporteDirector,
+
+          diaSemanaActual,
+          diaMesActual,
+        });
+
+      const yaEnviadoDirector =
+        yaFueEnviado({
+          frecuencia: frecuenciaDirector,
+
+          ultimoEnvio:
+            configuracion
+              .ultimoReporteDirectorAt,
+
+          ahora,
+        });
 
       if (
         esHoraDirector &&
         correspondeDirector &&
         !yaEnviadoDirector
       ) {
-        const resultadoDirector = await ejecutarRuta(
-          `/api/reportes/telegram-diario?frecuencia=${frecuenciaDirector}`
-        );
+        const resultadoDirector =
+          await ejecutarRuta(
+            `/api/reportes/telegram-diario?frecuencia=${frecuenciaDirector}`
+          );
 
-        resultados.reporteDirector = resultadoDirector;
+        resultados.reporteDirector =
+          resultadoDirector;
 
         if (resultadoDirector.ok) {
           await prisma.configuracion.update({
             where: {
               id: configuracion.id,
             },
+
             data: {
-              ultimoReporteDirectorAt: ahora,
+              ultimoReporteDirectorAt:
+                ahora,
             },
           });
         }
@@ -274,6 +343,7 @@ export async function GET(request: Request) {
         resultados.reporteDirector = {
           ejecutado: false,
           frecuencia: frecuenciaDirector,
+
           motivo: yaEnviadoDirector
             ? `El reporte ${frecuenciaDirector.toLowerCase()} del director ya fue enviado`
             : !correspondeDirector
@@ -284,7 +354,8 @@ export async function GET(request: Request) {
     } else {
       resultados.reporteDirector = {
         ejecutado: false,
-        motivo: "Reporte del director desactivado",
+        motivo:
+          "Reporte del director desactivado",
       };
     }
 
@@ -293,49 +364,66 @@ export async function GET(request: Request) {
      */
     if (configuracion.reportePadresActivo) {
       const frecuenciaPadres =
-        configuracion.frecuenciaReportePadres === "MENSUAL"
+        configuracion
+          .frecuenciaReportePadres ===
+        "MENSUAL"
           ? "MENSUAL"
           : "SEMANAL";
 
       const esHoraPadres =
-        horaActual === configuracion.horaReportePadres;
+        minutosHora(horaActual) >=
+        minutosHora(
+          configuracion.horaReportePadres
+        );
 
-      const correspondePadres = correspondePeriodo({
-        frecuencia: frecuenciaPadres,
-        diaSemanaConfigurado:
-          configuracion.diaReportePadres,
-        diaMesConfigurado:
-          configuracion.diaMesReportePadres,
-        diaSemanaActual,
-        diaMesActual,
-      });
+      const correspondePadres =
+        correspondePeriodo({
+          frecuencia: frecuenciaPadres,
 
-      const yaEnviadoPadres = yaFueEnviado({
-        frecuencia: frecuenciaPadres,
-        ultimoEnvio:
-          configuracion.ultimoReportePadresAt,
-        ahora,
-      });
+          diaSemanaConfigurado:
+            configuracion.diaReportePadres,
+
+          diaMesConfigurado:
+            configuracion.diaMesReportePadres,
+
+          diaSemanaActual,
+          diaMesActual,
+        });
+
+      const yaEnviadoPadres =
+        yaFueEnviado({
+          frecuencia: frecuenciaPadres,
+
+          ultimoEnvio:
+            configuracion
+              .ultimoReportePadresAt,
+
+          ahora,
+        });
 
       if (
         esHoraPadres &&
         correspondePadres &&
         !yaEnviadoPadres
       ) {
-        const resultadoPadres = await ejecutarRuta(
-          "/api/reportes/padres-semanal",
-          "POST",
-          {
-            forzarEnvio: false,
-            frecuencia: frecuenciaPadres,
-          }
-        );
+        const resultadoPadres =
+          await ejecutarRuta(
+            "/api/reportes/padres-semanal",
+            "POST",
+            {
+              forzarEnvio: false,
+              frecuencia:
+                frecuenciaPadres,
+            }
+          );
 
-        resultados.reportePadres = resultadoPadres;
+        resultados.reportePadres =
+          resultadoPadres;
       } else {
         resultados.reportePadres = {
           ejecutado: false,
           frecuencia: frecuenciaPadres,
+
           motivo: yaEnviadoPadres
             ? `Los reportes ${frecuenciaPadres.toLowerCase()}es para padres ya fueron enviados`
             : !correspondePadres
@@ -346,29 +434,42 @@ export async function GET(request: Request) {
     } else {
       resultados.reportePadres = {
         ejecutado: false,
-        motivo: "Reportes para padres desactivados",
+        motivo:
+          "Reportes para padres desactivados",
       };
     }
 
     return NextResponse.json({
       ok: true,
-      message: "Verificación automática finalizada",
-      duracionMs: Date.now() - inicio,
+      message:
+        "Verificación automática finalizada",
+
+      duracionMs:
+        Date.now() - inicio,
+
       resultados,
     });
   } catch (error) {
-    console.error("Error en automatizaciones:", error);
+    console.error(
+      "Error en automatizaciones:",
+      error
+    );
 
     return NextResponse.json(
       {
         ok: false,
+
         message:
           error instanceof Error
             ? error.message
             : "Error en el motor de automatizaciones",
-        duracionMs: Date.now() - inicio,
+
+        duracionMs:
+          Date.now() - inicio,
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
