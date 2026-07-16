@@ -1,29 +1,41 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { exigirAdmin } from "@/lib/auth";
 
-function esAdmin(request: Request) {
-  return request.headers.get("x-user-role") === "ADMIN";
-}
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
-function noAutorizado() {
-  return NextResponse.json({ message: "No autorizado" }, { status: 401 });
-}
+export async function GET() {
+  const acceso = await exigirAdmin();
 
-export async function GET(request: Request) {
-  if (!esAdmin(request)) return noAutorizado();
+  if (!acceso.autorizado) {
+    return acceso.respuesta;
+  }
 
   try {
-    const fecha = new Date().toISOString().replace(/[:.]/g, "-");
+    const fecha = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-");
 
-    const data = {
-      generadoEn: new Date(),
-      sistema: "Sistema de Asistencia Escolar",
-      version: "1.0",
+    const [
+      estudiantes,
+      turnos,
+      asistencias,
+      usuarios,
+      configuracion,
+      auditoria,
+      alertasAsistencia,
+      analisisIA,
+      riesgosIA,
+      calendarioEscolar,
+      historialReportes,
+    ] = await Promise.all([
+      prisma.estudiante.findMany(),
+      prisma.turno.findMany(),
+      prisma.asistencia.findMany(),
 
-      estudiantes: await prisma.estudiante.findMany(),
-      turnos: await prisma.turno.findMany(),
-      asistencias: await prisma.asistencia.findMany(),
-      usuarios: await prisma.usuario.findMany({
+      prisma.usuario.findMany({
         select: {
           id: true,
           usuario: true,
@@ -32,8 +44,36 @@ export async function GET(request: Request) {
           createdAt: true,
         },
       }),
-      configuracion: await prisma.configuracion.findMany(),
-      auditoria: await prisma.auditoria.findMany(),
+
+      prisma.configuracion.findMany(),
+      prisma.auditoria.findMany(),
+      prisma.alertaAsistencia.findMany(),
+      prisma.analisisIA.findMany(),
+      prisma.riesgoEstudianteIA.findMany(),
+      prisma.calendarioEscolar.findMany(),
+      prisma.historialReporteAutomatico.findMany(),
+    ]);
+
+    const data = {
+      generadoEn: new Date().toISOString(),
+      generadoPor: {
+        usuario: acceso.sesion.usuario,
+        rol: acceso.sesion.rol,
+      },
+      sistema: "Sistema de Asistencia Escolar",
+      version: "1.0",
+
+      estudiantes,
+      turnos,
+      asistencias,
+      usuarios,
+      configuracion,
+      auditoria,
+      alertasAsistencia,
+      analisisIA,
+      riesgosIA,
+      calendarioEscolar,
+      historialReportes,
     };
 
     const json = JSON.stringify(data, null, 2);
@@ -41,16 +81,28 @@ export async function GET(request: Request) {
     return new NextResponse(json, {
       status: 200,
       headers: {
-        "Content-Type": "application/json",
-        "Content-Disposition": `attachment; filename="backup_asistencia_${fecha}.json"`,
+        "Content-Type":
+          "application/json; charset=utf-8",
+        "Content-Disposition":
+          `attachment; filename="backup_asistencia_${fecha}.json"`,
+        "Cache-Control":
+          "no-store, no-cache, must-revalidate",
       },
     });
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Error generando backup:",
+      error
+    );
 
     return NextResponse.json(
-      { message: "Error al generar backup" },
-      { status: 500 }
+      {
+        ok: false,
+        message: "Error al generar backup",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }

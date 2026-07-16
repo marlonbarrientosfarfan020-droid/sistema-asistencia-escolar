@@ -1,27 +1,36 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { exigirAdminODirectivo } from "@/lib/auth";
 
-function obtenerRol(request: Request) {
-  return request.headers.get("x-user-role") || "";
-}
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-function esAdmin(request: Request) {
-  return obtenerRol(request) === "ADMIN";
-}
+export async function GET() {
+  const acceso = await exigirAdminODirectivo();
 
-function noAutorizado() {
-  return NextResponse.json({ message: "No autorizado" }, { status: 401 });
-}
+  if (!acceso.autorizado) {
+    return acceso.respuesta;
+  }
 
-export async function GET(request: Request) {
-  if (!esAdmin(request)) return noAutorizado();
+  try {
+    const auditoria = await prisma.auditoria.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 100,
+    });
 
-  const auditoria = await prisma.auditoria.findMany({
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: 100,
-  });
+    return NextResponse.json(auditoria);
+  } catch (error) {
+    console.error("Error obteniendo auditoría:", error);
 
-  return NextResponse.json(auditoria);
+    return NextResponse.json(
+      {
+        message: "Error al obtener la auditoría",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
 }

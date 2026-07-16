@@ -110,6 +110,8 @@ type ColorTarjeta =
 const cardClass =
   "rounded-3xl border border-slate-200/80 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)]";
 
+import ProteccionRol from "@/components/auth/ProteccionRol";
+
 export default function Dashboard() {
   const [horaActual, setHoraActual] = useState("");
   const [mensaje, setMensaje] = useState("");
@@ -286,6 +288,13 @@ export default function Dashboard() {
   ];
 
   return (
+  <ProteccionRol
+    rolesPermitidos={[
+      "ADMIN",
+      "DIRECTIVO",
+      "DEMO",
+    ]}
+  >
     <main className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50/60 to-indigo-50 px-4 py-6 md:px-7 lg:px-8">
       <div className="mx-auto max-w-[1700px] space-y-7">
         {mensaje && (
@@ -975,7 +984,8 @@ export default function Dashboard() {
         </section>
       </div>
     </main>
-  );
+  </ProteccionRol>
+);
 }
 
 function RiskCard({

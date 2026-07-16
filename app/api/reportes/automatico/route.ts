@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  esCronAutorizado,
+  respuestaCronNoAutorizado,
+} from "@/lib/cronAuth";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const ZONA_HORARIA = "America/Lima";
 
@@ -34,8 +42,12 @@ function minutosHora(hora: string) {
   const [horas, minutos] = hora.split(":").map(Number);
 
   if (
-    !Number.isFinite(horas) ||
-    !Number.isFinite(minutos)
+    !Number.isInteger(horas) ||
+    !Number.isInteger(minutos) ||
+    horas < 0 ||
+    horas > 23 ||
+    minutos < 0 ||
+    minutos > 59
   ) {
     return 0;
   }
@@ -44,13 +56,33 @@ function minutosHora(hora: string) {
 }
 
 export async function GET(request: Request) {
-  try {
-    const configuracion = await prisma.configuracion.findFirst();
+  if (!esCronAutorizado(request)) {
+    return respuestaCronNoAutorizado();
+  }
 
-    if (!configuracion?.reporteTelegramActivo) {
+  try {
+    const configuracion =
+      await prisma.configuracion.findFirst();
+
+    if (!configuracion) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "No existe configuración institucional",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    if (!configuracion.reporteTelegramActivo) {
       return NextResponse.json({
         ok: false,
-        message: "Reporte automático desactivado",
+        omitido: true,
+        message:
+          "El reporte automático está desactivado",
       });
     }
 
@@ -58,19 +90,28 @@ export async function GET(request: Request) {
     const fechaHoy = fechaPeruActual();
 
     /*
-     * Usamos >= en lugar de igualdad exacta.
-     * Así funciona aunque el cron se ejecute algunos minutos después.
+     * Se permite ejecutar algunos minutos después
+     * de la hora programada.
      */
     if (
       minutosHora(horaActual) <
-      minutosHora(configuracion.horaReporteDiario)
+      minutosHora(
+        configuracion.horaReporteDiario
+      )
     ) {
       return NextResponse.json({
         ok: false,
-        message: `Aún no es la hora. Actual: ${horaActual}, configurada: ${configuracion.horaReporteDiario}`,
+        omitido: true,
+        message:
+          `Aún no corresponde el envío. ` +
+          `Actual: ${horaActual}, ` +
+          `configurada: ${configuracion.horaReporteDiario}`,
       });
     }
 
+    /*
+     * Evita repetir el reporte el mismo día.
+     */
     if (configuracion.ultimoReporteTelegramAt) {
       const ultimaFecha = fechaPeruDeDate(
         configuracion.ultimoReporteTelegramAt
@@ -79,28 +120,31 @@ export async function GET(request: Request) {
       if (ultimaFecha === fechaHoy) {
         return NextResponse.json({
           ok: false,
-          message: "El reporte de hoy ya fue enviado",
+          omitido: true,
+          message:
+            "El reporte de hoy ya fue enviado",
         });
       }
     }
 
-    const inicioDia = new Date(`${fechaHoy}T00:00:00-05:00`);
-    const finDia = new Date(`${fechaHoy}T23:59:59.999-05:00`);
-
     /*
-     * Solo se detiene completamente el reporte si el evento
-     * aplica a todos los turnos.
+     * CalendarioEscolar usa columnas @db.Date.
+     * Por eso se compara con medianoche UTC.
      */
+    const fechaHoyBD = new Date(
+      `${fechaHoy}T00:00:00.000Z`
+    );
+
     const eventoNoLectivoGeneral =
       await prisma.calendarioEscolar.findFirst({
         where: {
           estado: true,
           todosLosTurnos: true,
           fechaInicio: {
-            lte: finDia,
+            lte: fechaHoyBD,
           },
           fechaFin: {
-            gte: inicioDia,
+            gte: fechaHoyBD,
           },
         },
       });
@@ -111,7 +155,9 @@ export async function GET(request: Request) {
           id: configuracion.id,
         },
         data: {
-          ultimoReporteTelegramEstado: `📅 No enviado: día no lectivo (${eventoNoLectivoGeneral.descripcion})`,
+          ultimoReporteTelegramEstado:
+            `📅 No enviado: día no lectivo ` +
+            `(${eventoNoLectivoGeneral.descripcion})`,
         },
       });
 
@@ -119,31 +165,53 @@ export async function GET(request: Request) {
         ok: true,
         omitido: true,
         diaNoLectivo: true,
-        message: `Reporte omitido porque hoy es día no lectivo: ${eventoNoLectivoGeneral.descripcion}`,
+        message:
+          `Reporte omitido porque hoy es día no lectivo: ` +
+          `${eventoNoLectivoGeneral.descripcion}`,
         evento: {
           id: eventoNoLectivoGeneral.id,
           tipo: eventoNoLectivoGeneral.tipo,
-          descripcion: eventoNoLectivoGeneral.descripcion,
-          fechaInicio: eventoNoLectivoGeneral.fechaInicio,
-          fechaFin: eventoNoLectivoGeneral.fechaFin,
+          descripcion:
+            eventoNoLectivoGeneral.descripcion,
+          fechaInicio:
+            eventoNoLectivoGeneral.fechaInicio,
+          fechaFin:
+            eventoNoLectivoGeneral.fechaFin,
         },
       });
     }
 
-    const url = new URL(request.url);
-    const baseUrl = `${url.protocol}//${url.host}`;
+    const appUrl =
+      process.env.APP_URL ||
+      new URL(request.url).origin;
+
+    const cronSecret =
+      process.env.CRON_SECRET;
+
+    if (!cronSecret) {
+      throw new Error(
+        "CRON_SECRET no está configurado"
+      );
+    }
 
     const respuesta = await fetch(
-      `${baseUrl}/api/reportes/telegram-diario`,
+      `${appUrl}/api/reportes/telegram-diario`,
       {
+        method: "GET",
         headers: {
-          "x-user-role": "ADMIN",
+          Authorization:
+            `Bearer ${cronSecret}`,
         },
         cache: "no-store",
       }
     );
 
-    const resultado = await respuesta.json().catch(() => ({}));
+    const resultado = await respuesta
+      .json()
+      .catch(() => ({
+        message:
+          "La ruta del reporte no devolvió JSON",
+      }));
 
     if (!respuesta.ok) {
       await prisma.configuracion.update({
@@ -151,7 +219,8 @@ export async function GET(request: Request) {
           id: configuracion.id,
         },
         data: {
-          ultimoReporteTelegramEstado: "❌ Error automático",
+          ultimoReporteTelegramEstado:
+            "❌ Error automático",
         },
       });
 
@@ -160,26 +229,38 @@ export async function GET(request: Request) {
           ok: false,
           message:
             resultado.message ||
-            "Error al enviar reporte automático",
+            "Error al enviar el reporte automático",
+          detalle: resultado,
         },
-        { status: 500 }
+        {
+          status: respuesta.status,
+        }
       );
     }
 
     return NextResponse.json({
       ok: true,
-      message: "Reporte automático enviado correctamente",
+      message:
+        "Reporte automático enviado correctamente",
       resultado,
     });
   } catch (error) {
-    console.error("Error reporte automático:", error);
+    console.error(
+      "Error en reporte automático:",
+      error
+    );
 
     return NextResponse.json(
       {
         ok: false,
-        message: "Error interno del reporte automático",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Error interno del reporte automático",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

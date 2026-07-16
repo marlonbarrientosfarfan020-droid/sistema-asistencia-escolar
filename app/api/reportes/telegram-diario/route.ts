@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { enviarArchivoTelegram } from "@/lib/telegram";
-import { exigirAdmin } from "@/lib/auth";
+import { exigirAdminODirectivo } from "@/lib/auth";
 import { esCronAutorizado } from "@/lib/cronAuth";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -268,7 +268,7 @@ export async function GET(
     esCronAutorizado(request);
 
   if (!accesoCron) {
-    const acceso = await exigirAdmin();
+   const acceso = await exigirAdminODirectivo();
 
     if (!acceso.autorizado) {
       return acceso.respuesta;

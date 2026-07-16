@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { exigirAdmin } from "@/lib/auth";
+import { exigirAdminODirectivo } from "@/lib/auth";
 import { put } from "@vercel/blob";
 
 export const runtime = "nodejs";
@@ -15,7 +15,7 @@ const TIPOS_PERMITIDOS = [
 const TAMANO_MAXIMO = 2 * 1024 * 1024;
 
 export async function POST(request: Request) {
-  const acceso = await exigirAdmin();
+  const acceso = await exigirAdminODirectivo();
 
   if (!acceso.autorizado) {
     return acceso.respuesta;

@@ -186,7 +186,7 @@ export default function DashboardLayout({
             </Link>
           )}
 
-          {(esAdmin || esDemo || esPersonal) && (
+          {(esAdmin || esDirectivo || esDemo || esPersonal) && (
             <>
               <Link
                 href="/dashboard/estudiantes"
@@ -265,46 +265,48 @@ export default function DashboardLayout({
             </>
           )}
 
-          {esAdmin && (
-            <>
-              <Link
-                href="/dashboard/usuarios"
-                className={linkClass("/dashboard/usuarios")}
-              >
-                👤 Usuarios
-              </Link>
+         {esAdmin && (
+  <>
+    <Link
+      href="/dashboard/usuarios"
+      className={linkClass("/dashboard/usuarios")}
+    >
+      👤 Usuarios
+    </Link>
 
-              <Link
-                href="/dashboard/turnos"
-                className={linkClass("/dashboard/turnos")}
-              >
-                ⏰ Turnos
-              </Link>
+    <Link
+      href="/dashboard/backup"
+      className={linkClass("/dashboard/backup")}
+    >
+      💾 Backup
+    </Link>
+  </>
+)}
 
-              <Link
-                href="/dashboard/configuracion"
-                className={linkClass(
-                  "/dashboard/configuracion"
-                )}
-              >
-                ⚙️ Configuración
-              </Link>
+             {(esAdmin || esDirectivo) && (
+  <>
+    <Link
+      href="/dashboard/turnos"
+      className={linkClass("/dashboard/turnos")}
+    >
+      ⏰ Turnos
+    </Link>
 
-              <Link
-                href="/dashboard/backup"
-                className={linkClass("/dashboard/backup")}
-              >
-                💾 Backup
-              </Link>
+    <Link
+      href="/dashboard/configuracion"
+      className={linkClass("/dashboard/configuracion")}
+    >
+      ⚙️ Configuración
+    </Link>
 
-              <Link
-                href="/dashboard/auditoria"
-                className={linkClass("/dashboard/auditoria")}
-              >
-                🧾 Auditoría
-              </Link>
-            </>
-          )}
+    <Link
+      href="/dashboard/auditoria"
+      className={linkClass("/dashboard/auditoria")}
+    >
+      🧾 Auditoría
+    </Link>
+  </>
+)}
 
           <Link href="/marcar" className={linkClass("/marcar")}>
             📷 Marcar asistencia

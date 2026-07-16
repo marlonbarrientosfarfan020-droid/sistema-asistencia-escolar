@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { revisarAusentes } from "@/services/alertaService";
-import { exigirAdmin } from "@/lib/auth";
+import { exigirAdminODirectivo } from "@/lib/auth";
 import { esCronAutorizado } from "@/lib/cronAuth";
 
 export const runtime = "nodejs";
@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   const accesoCron = esCronAutorizado(request);
 
   if (!accesoCron) {
-    const acceso = await exigirAdmin();
+    const acceso = await exigirAdminODirectivo();
 
     if (!acceso.autorizado) {
       return acceso.respuesta;

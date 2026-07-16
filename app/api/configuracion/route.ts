@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
-  exigirAdmin,
+  exigirAdminODirectivo,
   exigirAdminDirectivoODemo,
 } from "@/lib/auth";
-
 function horaValida(valor: unknown) {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(
     String(valor || "")
@@ -76,7 +75,7 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const acceso = await exigirAdmin();
+  const acceso = await exigirAdminODirectivo();
 
   if (!acceso.autorizado) {
     return acceso.respuesta;

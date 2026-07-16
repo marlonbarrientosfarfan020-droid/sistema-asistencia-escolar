@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { registrarAuditoria } from "@/lib/auditoria";
 import {
-  
-  exigirAdmin,
-  exigirAdminDemoOPersonal,
+  exigirAdminODirectivo,
+  exigirAdminDirectivoDemoOPersonal,
 } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -109,7 +108,8 @@ function validarDatosEstudiante(body: Record<string, unknown>) {
 }
 
 export async function GET() {
-  const acceso = await exigirAdminDemoOPersonal();
+ const acceso =
+  await exigirAdminDirectivoDemoOPersonal();
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
@@ -142,7 +142,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const acceso = await exigirAdmin();
+  const acceso = await exigirAdminODirectivo();
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
@@ -253,7 +253,7 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const acceso = await exigirAdmin();
+const acceso = await exigirAdminODirectivo();
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
@@ -401,7 +401,7 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const acceso = await exigirAdmin();
+  const acceso = await exigirAdminODirectivo();
 
   if (!acceso.autorizado) {
     return acceso.respuesta;

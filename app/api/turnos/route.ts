@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
-  exigirAdmin,
+  exigirAdminODirectivo,
   exigirAdminDirectivoDemoOPersonal,
 } from "@/lib/auth";
-
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -53,7 +52,7 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const acceso = await exigirAdmin();
+  const acceso = await exigirAdminODirectivo();
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
