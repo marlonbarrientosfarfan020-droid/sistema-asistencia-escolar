@@ -4,9 +4,13 @@ import { generarAnalisisIA } from "@/services/groqService";
 import { exigirAdminODirectivo } from "@/lib/auth";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const ZONA_HORARIA = "America/Lima";
 const DIAS_ANALISIS = 30;
+
+type NivelRiesgo = "BAJO" | "MEDIO" | "ALTO";
 
 type EventoCalendario = {
   fechaInicio: Date;
@@ -15,6 +19,12 @@ type EventoCalendario = {
   turnoId: number | null;
   tipo: string;
   descripcion: string;
+};
+
+type ResultadoRiesgo = {
+  nivel: NivelRiesgo;
+  porcentaje: number;
+  explicacion: string;
 };
 
 function fechaPeruString(fecha: Date) {
@@ -49,9 +59,6 @@ function sumarDias(fecha: string, dias: number) {
 
 function obtenerPeriodoAnalisis() {
   const hoy = fechaPeruString(new Date());
-
-  // Se analiza hasta ayer para no considerar el día actual como ausencia
-  // antes de que termine la jornada escolar.
   const fechaFin = sumarDias(hoy, -1);
   const fechaInicio = sumarDias(fechaFin, -(DIAS_ANALISIS - 1));
 
@@ -91,9 +98,7 @@ function existeEventoNoLectivo(
     const fechaInicio = fechaBDString(evento.fechaInicio);
     const fechaFin = fechaBDString(evento.fechaFin);
 
-    const aplicaFecha =
-      fecha >= fechaInicio &&
-      fecha <= fechaFin;
+    const aplicaFecha = fecha >= fechaInicio && fecha <= fechaFin;
 
     const aplicaTurno =
       evento.todosLosTurnos ||
@@ -119,24 +124,71 @@ function extraerJSON(texto: string) {
   return JSON.parse(textoLimpio.slice(inicio, fin + 1));
 }
 
-function normalizarNivel(valor: unknown) {
-  const nivel = String(valor || "").trim().toUpperCase();
-
-  if (nivel === "ALTO" || nivel === "MEDIO" || nivel === "BAJO") {
-    return nivel;
-  }
-
-  return "BAJO";
+function limitarPorcentaje(valor: number) {
+  return Math.min(100, Math.max(0, Math.round(valor)));
 }
 
-function normalizarPorcentaje(valor: unknown) {
-  const porcentaje = Number(valor);
-
-  if (!Number.isFinite(porcentaje)) {
-    return 0;
+function calcularRiesgoObjetivo({
+  tieneTurno,
+  diasLectivosEsperados,
+  ausencias,
+  tardanzas,
+  sinSalida,
+}: {
+  tieneTurno: boolean;
+  diasLectivosEsperados: number;
+  ausencias: number;
+  tardanzas: number;
+  sinSalida: number;
+}): ResultadoRiesgo {
+  if (!tieneTurno) {
+    return {
+      nivel: "BAJO",
+      porcentaje: 0,
+      explicacion:
+        "No se calculó riesgo porque el estudiante no tiene turno asignado.",
+    };
   }
 
-  return Math.min(100, Math.max(0, Math.round(porcentaje)));
+  if (diasLectivosEsperados <= 0) {
+    return {
+      nivel: "BAJO",
+      porcentaje: 0,
+      explicacion:
+        "Todavía no existen días lectivos suficientes desde el registro del estudiante.",
+    };
+  }
+
+  const porcentajeAusencias =
+    (ausencias / diasLectivosEsperados) * 100;
+
+  const porcentajeTardanzas =
+    (tardanzas / diasLectivosEsperados) * 100;
+
+  const porcentajeSinSalida =
+    (sinSalida / diasLectivosEsperados) * 100;
+
+  const riesgoCalculado =
+    porcentajeAusencias * 0.7 +
+    porcentajeTardanzas * 0.25 +
+    porcentajeSinSalida * 0.05;
+
+  const porcentaje = limitarPorcentaje(riesgoCalculado);
+
+  const nivel: NivelRiesgo =
+    porcentaje >= 60
+      ? "ALTO"
+      : porcentaje >= 25
+      ? "MEDIO"
+      : "BAJO";
+
+  return {
+    nivel,
+    porcentaje,
+    explicacion:
+      `Ausencias: ${ausencias}/${diasLectivosEsperados}; ` +
+      `tardanzas: ${tardanzas}; sin salida: ${sinSalida}.`,
+  };
 }
 
 export async function POST(request: Request) {
@@ -232,10 +284,21 @@ export async function POST(request: Request) {
         },
       });
 
-    const fechasPeriodo = generarFechasPeriodo(
-      periodo.fechaInicio,
-      periodo.fechaFin
-    );
+    const fechaRegistroEstudiante =
+      fechaPeruString(estudiante.createdAt);
+
+    const fechaInicioReal =
+      fechaRegistroEstudiante > periodo.fechaInicio
+        ? fechaRegistroEstudiante
+        : periodo.fechaInicio;
+
+    const fechasPeriodo =
+      fechaInicioReal <= periodo.fechaFin
+        ? generarFechasPeriodo(
+            fechaInicioReal,
+            periodo.fechaFin
+          )
+        : [];
 
     const fechasLectivas = estudiante.turno
       ? fechasPeriodo.filter((fecha) => {
@@ -255,7 +318,8 @@ export async function POST(request: Request) {
 
     const asistenciasLectivas = estudiante.asistencias.filter(
       (asistencia) => {
-        const fechaAsistencia = fechaPeruString(asistencia.fecha);
+        const fechaAsistencia =
+          fechaPeruString(asistencia.fecha);
 
         return conjuntoFechasLectivas.has(fechaAsistencia);
       }
@@ -314,16 +378,19 @@ export async function POST(request: Request) {
       .filter((asistencia) => asistencia.horaEntrada)
       .map((asistencia) => ({
         fecha: fechaPeruString(asistencia.fecha),
-        hora: asistencia.horaEntrada?.toLocaleTimeString("es-PE", {
-          hour: "2-digit",
-          minute: "2-digit",
-          timeZone: ZONA_HORARIA,
-        }),
+        hora: asistencia.horaEntrada?.toLocaleTimeString(
+          "es-PE",
+          {
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: ZONA_HORARIA,
+          }
+        ),
         estado: asistencia.estado,
       }));
 
-    const eventosNoLectivosExcluidos = eventosCalendario.map(
-      (evento) => ({
+    const eventosNoLectivosExcluidos =
+      eventosCalendario.map((evento) => ({
         tipo: evento.tipo,
         descripcion: evento.descripcion,
         desde: fechaBDString(evento.fechaInicio),
@@ -331,78 +398,72 @@ export async function POST(request: Request) {
         aplicacion: evento.todosLosTurnos
           ? "Todos los turnos"
           : estudiante.turno?.nombre || "Turno específico",
-      })
-    );
+      }));
+
+    const riesgoObjetivo = calcularRiesgoObjetivo({
+      tieneTurno: Boolean(estudiante.turno),
+      diasLectivosEsperados,
+      ausencias,
+      tardanzas,
+      sinSalida,
+    });
 
     const datos = {
-      estudiante: `${estudiante.nombres} ${estudiante.apellidos}`,
+      estudiante:
+        `${estudiante.nombres} ${estudiante.apellidos}`,
       dni: estudiante.dni,
       grado: estudiante.grado,
       seccion: estudiante.seccion,
-
+      fechaRegistro: fechaRegistroEstudiante,
       turno: estudiante.turno
         ? `${estudiante.turno.nombre} (${estudiante.turno.horaEntrada} - ${estudiante.turno.horaSalida})`
         : "Sin turno",
-
       tieneTurnoAsignado: Boolean(estudiante.turno),
-
       periodo: {
-        desde: periodo.fechaInicio,
+        desde: fechaInicioReal,
         hasta: periodo.fechaFin,
-        diasCalendarioAnalizados: DIAS_ANALISIS,
+        diasCalendarioMaximos: DIAS_ANALISIS,
       },
-
       diasLectivosEsperados,
       diasConAsistencia,
       ausencias,
       puntuales,
       tardanzas,
       sinSalida,
-
       porcentajeAsistencia,
       porcentajePuntualidad,
       porcentajeTardanzas,
-
+      riesgoCalculado: riesgoObjetivo,
       fechasAusencia,
       horariosEntrada,
-
       eventosNoLectivosExcluidos,
     };
 
     const prompt = `
-Eres un sistema experto en asistencia escolar y alerta temprana.
+Eres un asistente experto en asistencia escolar y alerta temprana.
 
-Analiza el riesgo del siguiente estudiante usando únicamente sus datos
-de asistencia de los últimos ${DIAS_ANALISIS} días completos.
+El sistema ya calculó matemáticamente el nivel y porcentaje de riesgo.
+NO debes modificarlos, reinterpretarlos ni proponer otros valores.
 
-IMPORTANTE:
-- Los sábados y domingos ya fueron excluidos.
-- Los feriados, vacaciones, suspensiones y días no lectivos ya fueron excluidos.
-- "diasLectivosEsperados" son los días reales en los que debía asistir.
-- "ausencias" representa días lectivos sin registro.
+Tu única tarea es redactar:
+1. Un resumen profesional y breve.
+2. Una recomendación preventiva y clara.
+
+Reglas:
+- Usa únicamente los datos proporcionados.
 - No inventes problemas familiares, médicos, psicológicos o económicos.
-- Las causas deben redactarse como hipótesis que necesitan verificación.
-- Si no tiene turno asignado o existen pocos datos, indícalo claramente.
-- No clasifiques con riesgo alto solo por tener pocos datos.
-- Basa el porcentaje en evidencias observables.
+- Las causas deben expresarse como hipótesis que requieren verificación.
+- Si hay pocos datos, indícalo claramente.
+- Si el riesgo es bajo, no uses lenguaje alarmista.
+- Si todavía no existen días lectivos desde el registro, explica que falta historial.
+- Responde SOLO con JSON válido, sin Markdown ni texto adicional.
 
-Debes responder SOLO con un JSON válido, sin Markdown ni texto adicional,
-con esta estructura exacta:
+Estructura exacta:
 
 {
-  "nivel": "BAJO" | "MEDIO" | "ALTO",
-  "porcentaje": 0,
   "resumen": "Resumen profesional y breve basado en los datos",
   "recomendacion": "Recomendación preventiva y clara para el padre, tutor o institución"
 }
-
-Criterios orientativos:
-- Riesgo BAJO: asistencia estable, pocas ausencias y pocas tardanzas.
-- Riesgo MEDIO: ausencias o tardanzas moderadas, registros sin salida o irregularidad creciente.
-- Riesgo ALTO: asistencia muy baja, ausencias repetidas, tardanzas frecuentes o patrón claramente deteriorado.
-- Considera el porcentaje de asistencia y la cantidad de días lectivos reales.
-- Si no existen días lectivos en el periodo, indica riesgo preventivo bajo y falta de información.
-- El porcentaje debe ser un número entero entre 0 y 100.
 
 Datos:
 ${JSON.stringify(datos, null, 2)}
@@ -411,8 +472,6 @@ ${JSON.stringify(datos, null, 2)}
     const respuestaIA = await generarAnalisisIA(prompt);
     const analisis = extraerJSON(respuestaIA);
 
-    const nivel = normalizarNivel(analisis.nivel);
-    const porcentaje = normalizarPorcentaje(analisis.porcentaje);
     const resumen = String(analisis.resumen || "").trim();
     const recomendacion = String(
       analisis.recomendacion || ""
@@ -424,29 +483,29 @@ ${JSON.stringify(datos, null, 2)}
       );
     }
 
-    const riesgo = await prisma.riesgoEstudianteIA.upsert({
-      where: {
-        estudianteId: estudiante.id,
-      },
-      update: {
-        nivel,
-        porcentaje,
-        resumen,
-        recomendacion,
-      },
-      create: {
-        estudianteId: estudiante.id,
-        nivel,
-        porcentaje,
-        resumen,
-        recomendacion,
-      },
-    });
+    const riesgo =
+      await prisma.riesgoEstudianteIA.upsert({
+        where: {
+          estudianteId: estudiante.id,
+        },
+        update: {
+          nivel: riesgoObjetivo.nivel,
+          porcentaje: riesgoObjetivo.porcentaje,
+          resumen,
+          recomendacion,
+        },
+        create: {
+          estudianteId: estudiante.id,
+          nivel: riesgoObjetivo.nivel,
+          porcentaje: riesgoObjetivo.porcentaje,
+          resumen,
+          recomendacion,
+        },
+      });
 
     return NextResponse.json({
       ok: true,
-      message: "Riesgo IA actualizado correctamente",
-
+      message: "Riesgo actualizado correctamente",
       estudiante: {
         id: estudiante.id,
         dni: estudiante.dni,
@@ -455,14 +514,13 @@ ${JSON.stringify(datos, null, 2)}
         grado: estudiante.grado,
         seccion: estudiante.seccion,
         turno: estudiante.turno?.nombre || null,
+        fechaRegistro: fechaRegistroEstudiante,
       },
-
       periodo: {
-        desde: periodo.fechaInicio,
+        desde: fechaInicioReal,
         hasta: periodo.fechaFin,
-        diasCalendario: DIAS_ANALISIS,
+        diasCalendarioMaximos: DIAS_ANALISIS,
       },
-
       indicadores: {
         diasLectivosEsperados,
         diasConAsistencia,
@@ -475,9 +533,8 @@ ${JSON.stringify(datos, null, 2)}
         porcentajeTardanzas,
         fechasAusencia,
       },
-
+      calculoRiesgo: riesgoObjetivo,
       eventosNoLectivosExcluidos,
-
       riesgo,
     });
   } catch (error: unknown) {

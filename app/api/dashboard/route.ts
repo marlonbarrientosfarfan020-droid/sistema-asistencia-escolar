@@ -2,14 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { exigirAdminDirectivoODemo } from "@/lib/auth";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 const ZONA_HORARIA = "America/Lima";
-
-
-
-function contarRiesgo(texto: string, palabra: string) {
-  const regex = new RegExp(palabra, "gi");
-  return (texto.match(regex) || []).length;
-}
 
 function fechaPeru() {
   return new Intl.DateTimeFormat("en-CA", {
@@ -31,32 +27,41 @@ export async function GET() {
     const hoy = fechaPeru();
 
     /*
-     * Para CalendarioEscolar, cuyas columnas son @db.Date.
-     * Se compara usando medianoche UTC para evitar que un evento
-     * del día anterior aparezca todavía activo en Perú.
+     * CalendarioEscolar utiliza columnas @db.Date.
+     * Se compara usando medianoche UTC.
      */
-    const fechaHoyBD = new Date(`${hoy}T00:00:00.000Z`);
+    const fechaHoyBD = new Date(
+      `${hoy}T00:00:00.000Z`
+    );
 
     /*
-     * Para Asistencia, que usa DateTime.
+     * Asistencia utiliza DateTime.
      * Se consulta el día completo en la zona horaria de Perú.
      */
-    const inicioDia = new Date(`${hoy}T00:00:00.000-05:00`);
-    const finDia = new Date(`${hoy}T23:59:59.999-05:00`);
+    const inicioDia = new Date(
+      `${hoy}T00:00:00.000-05:00`
+    );
 
-    const configuracion = await prisma.configuracion.findFirst();
+    const finDia = new Date(
+      `${hoy}T23:59:59.999-05:00`
+    );
 
-    const estudiantesActivos = await prisma.estudiante.findMany({
-      where: {
-        estado: true,
-      },
-      select: {
-        id: true,
-        turnoId: true,
-      },
-    });
+    const configuracion =
+      await prisma.configuracion.findFirst();
 
-    const totalEstudiantes = estudiantesActivos.length;
+    const estudiantesActivos =
+      await prisma.estudiante.findMany({
+        where: {
+          estado: true,
+        },
+        select: {
+          id: true,
+          turnoId: true,
+        },
+      });
+
+    const totalEstudiantes =
+      estudiantesActivos.length;
 
     const eventosNoLectivosHoy =
       await prisma.calendarioEscolar.findMany({
@@ -82,11 +87,14 @@ export async function GET() {
         ],
       });
 
-    const diaNoLectivoGeneral = eventosNoLectivosHoy.some(
-      (evento) => evento.todosLosTurnos
-    );
+    const diaNoLectivoGeneral =
+      eventosNoLectivosHoy.some(
+        (evento) => evento.todosLosTurnos
+      );
 
-    function turnoNoLectivo(turnoId: number | null) {
+    function turnoNoLectivo(
+      turnoId: number | null
+    ) {
       return eventosNoLectivosHoy.some(
         (evento) =>
           evento.todosLosTurnos ||
@@ -95,15 +103,20 @@ export async function GET() {
       );
     }
 
-    const estudiantesEsperadosHoy = estudiantesActivos.filter(
-      (estudiante) => !turnoNoLectivo(estudiante.turnoId)
-    );
+    const estudiantesEsperadosHoy =
+      estudiantesActivos.filter(
+        (estudiante) =>
+          !turnoNoLectivo(
+            estudiante.turnoId
+          )
+      );
 
-    const idsEstudiantesEsperados = new Set(
-      estudiantesEsperadosHoy.map(
-        (estudiante) => estudiante.id
-      )
-    );
+    const idsEstudiantesEsperados =
+      new Set(
+        estudiantesEsperadosHoy.map(
+          (estudiante) => estudiante.id
+        )
+      );
 
     const asistenciasRegistradasHoy =
       await prisma.asistencia.findMany({
@@ -123,15 +136,16 @@ export async function GET() {
       });
 
     /*
-     * Excluye registros accidentales de estudiantes cuyos turnos
-     * fueron declarados no lectivos.
+     * Excluye registros accidentales de estudiantes
+     * cuyos turnos fueron declarados no lectivos.
      */
-    const asistenciasHoy = asistenciasRegistradasHoy.filter(
-      (asistencia) =>
-        idsEstudiantesEsperados.has(
-          asistencia.estudianteId
-        )
-    );
+    const asistenciasHoy =
+      asistenciasRegistradasHoy.filter(
+        (asistencia) =>
+          idsEstudiantesEsperados.has(
+            asistencia.estudianteId
+          )
+      );
 
     const ultimasAsistencias =
       await prisma.asistencia.findMany({
@@ -148,14 +162,15 @@ export async function GET() {
         },
       });
 
-    const turnos = await prisma.turno.findMany({
-      where: {
-        estado: true,
-      },
-      orderBy: {
-        id: "asc",
-      },
-    });
+    const turnos =
+      await prisma.turno.findMany({
+        where: {
+          estado: true,
+        },
+        orderBy: {
+          id: "asc",
+        },
+      });
 
     const ultimoAnalisisIA =
       await prisma.analisisIA.findFirst({
@@ -164,12 +179,21 @@ export async function GET() {
         },
       });
 
+    /*
+     * Ranking actual de estudiantes según el riesgo
+     * calculado y guardado en RiesgoEstudianteIA.
+     */
     const topRiesgoIA =
       await prisma.riesgoEstudianteIA.findMany({
         take: 5,
-        orderBy: {
-          porcentaje: "desc",
-        },
+        orderBy: [
+          {
+            porcentaje: "desc",
+          },
+          {
+            updatedAt: "desc",
+          },
+        ],
         include: {
           estudiante: {
             include: {
@@ -179,129 +203,173 @@ export async function GET() {
         },
       });
 
-    const textoIA = ultimoAnalisisIA?.resultado || "";
+    /*
+     * Los contadores se calculan directamente desde
+     * los riesgos actuales de los estudiantes.
+     * Ya no se cuentan palabras dentro del análisis general.
+     */
+    const [
+      riesgoAlto,
+      riesgoMedio,
+      riesgoBajo,
+    ] = await Promise.all([
+      prisma.riesgoEstudianteIA.count({
+        where: {
+          nivel: "ALTO",
+        },
+      }),
 
-    const riesgoAlto = contarRiesgo(
-      textoIA,
-      "riesgo alto"
-    );
+      prisma.riesgoEstudianteIA.count({
+        where: {
+          nivel: "MEDIO",
+        },
+      }),
 
-    const riesgoMedio = contarRiesgo(
-      textoIA,
-      "riesgo medio"
-    );
+      prisma.riesgoEstudianteIA.count({
+        where: {
+          nivel: "BAJO",
+        },
+      }),
+    ]);
 
-    const riesgoBajo = contarRiesgo(
-      textoIA,
-      "riesgo bajo"
-    );
+    /*
+     * El último análisis general se conserva solamente
+     * para mostrar el resumen inteligente.
+     */
+    const textoIA =
+      ultimoAnalisisIA?.resultado || "";
 
     const resumenIA =
       textoIA.length > 0
         ? textoIA.slice(0, 450) +
-          (textoIA.length > 450 ? "..." : "")
+          (textoIA.length > 450
+            ? "..."
+            : "")
         : "La IA aún no ha generado un análisis. Ingrese al Centro de Inteligencia Escolar para ejecutar un análisis general o individual.";
 
     const totalEsperadosHoy =
       estudiantesEsperadosHoy.length;
 
-    const presentes = asistenciasHoy.length;
+    const presentes =
+      asistenciasHoy.length;
 
     const ausentes = Math.max(
       totalEsperadosHoy - presentes,
       0
     );
 
-    const entradas = asistenciasHoy.filter(
-      (asistencia) =>
-        asistencia.horaEntrada !== null
-    ).length;
+    const entradas =
+      asistenciasHoy.filter(
+        (asistencia) =>
+          asistencia.horaEntrada !== null
+      ).length;
 
-    const salidas = asistenciasHoy.filter(
-      (asistencia) =>
-        asistencia.horaSalida !== null
-    ).length;
+    const salidas =
+      asistenciasHoy.filter(
+        (asistencia) =>
+          asistencia.horaSalida !== null
+      ).length;
 
-    const sinSalida = asistenciasHoy.filter(
-      (asistencia) =>
-        asistencia.horaEntrada !== null &&
-        asistencia.horaSalida === null
-    ).length;
+    const sinSalida =
+      asistenciasHoy.filter(
+        (asistencia) =>
+          asistencia.horaEntrada !== null &&
+          asistencia.horaSalida === null
+      ).length;
 
-    const puntuales = asistenciasHoy.filter(
-      (asistencia) =>
-        asistencia.estado === "PUNTUAL"
-    ).length;
+    const puntuales =
+      asistenciasHoy.filter(
+        (asistencia) =>
+          asistencia.estado === "PUNTUAL"
+      ).length;
 
-    const tardanzas = asistenciasHoy.filter(
-      (asistencia) =>
-        asistencia.estado === "TARDE"
-    ).length;
+    const tardanzas =
+      asistenciasHoy.filter(
+        (asistencia) =>
+          asistencia.estado === "TARDE"
+      ).length;
 
-    const resumenTurnos = await Promise.all(
-      turnos.map(async (turno) => {
-        const total = await prisma.estudiante.count({
-          where: {
-            estado: true,
-            turnoId: turno.id,
-          },
-        });
+    const resumenTurnos =
+      await Promise.all(
+        turnos.map(async (turno) => {
+          const total =
+            await prisma.estudiante.count({
+              where: {
+                estado: true,
+                turnoId: turno.id,
+              },
+            });
 
-        const eventoNoLectivo =
-          eventosNoLectivosHoy.find(
-            (evento) =>
-              evento.todosLosTurnos ||
-              (!evento.todosLosTurnos &&
-                evento.turnoId === turno.id)
-          );
-
-        const asistenciasTurno = eventoNoLectivo
-          ? []
-          : asistenciasHoy.filter(
-              (asistencia) =>
-                asistencia.estudiante.turnoId ===
-                turno.id
+          const eventoNoLectivo =
+            eventosNoLectivosHoy.find(
+              (evento) =>
+                evento.todosLosTurnos ||
+                (!evento.todosLosTurnos &&
+                  evento.turnoId ===
+                    turno.id)
             );
 
-        return {
-          id: turno.id,
-          nombre: turno.nombre,
-          horaEntrada: turno.horaEntrada,
-          horaSalida: turno.horaSalida,
-          total,
+          const asistenciasTurno =
+            eventoNoLectivo
+              ? []
+              : asistenciasHoy.filter(
+                  (asistencia) =>
+                    asistencia.estudiante
+                      .turnoId === turno.id
+                );
 
-          noLectivo: Boolean(eventoNoLectivo),
+          return {
+            id: turno.id,
+            nombre: turno.nombre,
+            horaEntrada:
+              turno.horaEntrada,
+            horaSalida:
+              turno.horaSalida,
+            total,
 
-          motivoNoLectivo:
-            eventoNoLectivo?.descripcion || "",
+            noLectivo:
+              Boolean(eventoNoLectivo),
 
-          presentes: asistenciasTurno.length,
+            motivoNoLectivo:
+              eventoNoLectivo
+                ?.descripcion || "",
 
-          ausentes: eventoNoLectivo
-            ? 0
-            : Math.max(
-                total - asistenciasTurno.length,
-                0
-              ),
+            presentes:
+              asistenciasTurno.length,
 
-          puntuales: asistenciasTurno.filter(
-            (asistencia) =>
-              asistencia.estado === "PUNTUAL"
-          ).length,
+            ausentes: eventoNoLectivo
+              ? 0
+              : Math.max(
+                  total -
+                    asistenciasTurno.length,
+                  0
+                ),
 
-          tardanzas: asistenciasTurno.filter(
-            (asistencia) =>
-              asistencia.estado === "TARDE"
-          ).length,
+            puntuales:
+              asistenciasTurno.filter(
+                (asistencia) =>
+                  asistencia.estado ===
+                  "PUNTUAL"
+              ).length,
 
-          sinSalida: asistenciasTurno.filter(
-            (asistencia) =>
-              asistencia.horaEntrada !== null &&
-              asistencia.horaSalida === null
-          ).length,
-        };
-      })
-    );
+            tardanzas:
+              asistenciasTurno.filter(
+                (asistencia) =>
+                  asistencia.estado ===
+                  "TARDE"
+              ).length,
+
+            sinSalida:
+              asistenciasTurno.filter(
+                (asistencia) =>
+                  asistencia.horaEntrada !==
+                    null &&
+                  asistencia.horaSalida ===
+                    null
+              ).length,
+          };
+        })
+      );
 
     return NextResponse.json({
       totalEstudiantes,
@@ -320,28 +388,39 @@ export async function GET() {
       diaNoLectivoGeneral,
 
       eventosNoLectivosHoy:
-        eventosNoLectivosHoy.map((evento) => ({
-          id: evento.id,
-          tipo: evento.tipo,
-          descripcion: evento.descripcion,
-          fechaInicio: evento.fechaInicio,
-          fechaFin: evento.fechaFin,
-          todosLosTurnos:
-            evento.todosLosTurnos,
-          turnoId: evento.turnoId,
-          turno: evento.turno?.nombre || null,
-        })),
+        eventosNoLectivosHoy.map(
+          (evento) => ({
+            id: evento.id,
+            tipo: evento.tipo,
+            descripcion:
+              evento.descripcion,
+            fechaInicio:
+              evento.fechaInicio,
+            fechaFin:
+              evento.fechaFin,
+            todosLosTurnos:
+              evento.todosLosTurnos,
+            turnoId:
+              evento.turnoId,
+            turno:
+              evento.turno?.nombre ||
+              null,
+          })
+        ),
 
       horaReporteDiario:
-        configuracion?.horaReporteDiario ||
+        configuracion
+          ?.horaReporteDiario ||
         "21:00",
 
       ultimoReporteTelegramAt:
-        configuracion?.ultimoReporteTelegramAt ||
+        configuracion
+          ?.ultimoReporteTelegramAt ||
         null,
 
       ultimoReporteTelegramEstado:
-        configuracion?.ultimoReporteTelegramEstado ||
+        configuracion
+          ?.ultimoReporteTelegramEstado ||
         "",
 
       resumenTurnos,
