@@ -16,6 +16,25 @@ function fechaPeru() {
   }).format(new Date());
 }
 
+function fechaPeruDesdeDate(fecha: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: ZONA_HORARIA,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(fecha);
+}
+
+function nombreDiaCorto(fechaISO: string) {
+  return new Intl.DateTimeFormat("es-PE", {
+    weekday: "short",
+    timeZone: ZONA_HORARIA,
+  })
+    .format(new Date(`${fechaISO}T12:00:00.000-05:00`))
+    .replace(".", "")
+    .toUpperCase();
+}
+
 export async function GET() {
   const acceso = await exigirAdminDirectivoODemo();
 
@@ -371,6 +390,123 @@ export async function GET() {
         })
       );
 
+    /*
+     * Tendencia de los últimos 7 días para los gráficos tipo Power BI.
+     */
+    const fechaInicioTendencia = new Date(inicioDia);
+    fechaInicioTendencia.setDate(fechaInicioTendencia.getDate() - 6);
+
+    const asistenciasUltimos7Dias =
+      await prisma.asistencia.findMany({
+        where: {
+          fecha: {
+            gte: fechaInicioTendencia,
+            lte: finDia,
+          },
+        },
+        select: {
+          fecha: true,
+          estado: true,
+          estudianteId: true,
+          estudiante: {
+            select: {
+              turnoId: true,
+            },
+          },
+        },
+      });
+
+    const fechaInicioCalendario = new Date(
+      `${fechaPeruDesdeDate(fechaInicioTendencia)}T00:00:00.000Z`
+    );
+
+    const eventosUltimos7Dias =
+      await prisma.calendarioEscolar.findMany({
+        where: {
+          estado: true,
+          fechaInicio: {
+            lte: fechaHoyBD,
+          },
+          fechaFin: {
+            gte: fechaInicioCalendario,
+          },
+        },
+        select: {
+          fechaInicio: true,
+          fechaFin: true,
+          todosLosTurnos: true,
+          turnoId: true,
+        },
+      });
+
+    const tendenciaSemanal = Array.from(
+      { length: 7 },
+      (_, indice) => {
+        const fecha = new Date(fechaInicioTendencia);
+        fecha.setDate(fechaInicioTendencia.getDate() + indice);
+
+        const fechaISO = fechaPeruDesdeDate(fecha);
+        const fechaComparacion = new Date(
+          `${fechaISO}T00:00:00.000Z`
+        );
+
+        const eventosDelDia =
+          eventosUltimos7Dias.filter(
+            (evento) =>
+              evento.fechaInicio <= fechaComparacion &&
+              evento.fechaFin >= fechaComparacion
+          );
+
+        const esperado = estudiantesActivos.filter(
+          (estudiante) =>
+            !eventosDelDia.some(
+              (evento) =>
+                evento.todosLosTurnos ||
+                evento.turnoId === estudiante.turnoId
+            )
+        );
+
+        const idsEsperados = new Set(
+          esperado.map((estudiante) => estudiante.id)
+        );
+
+        const registros = asistenciasUltimos7Dias.filter(
+          (asistencia) =>
+            fechaPeruDesdeDate(asistencia.fecha) === fechaISO &&
+            idsEsperados.has(asistencia.estudianteId)
+        );
+
+        const presentesDia = new Set(
+          registros.map((asistencia) => asistencia.estudianteId)
+        ).size;
+
+        const puntualesDia = registros.filter(
+          (asistencia) => asistencia.estado === "PUNTUAL"
+        ).length;
+
+        const tardanzasDia = registros.filter(
+          (asistencia) => asistencia.estado === "TARDE"
+        ).length;
+
+        const totalDia = esperado.length;
+        const ausentesDia = Math.max(totalDia - presentesDia, 0);
+
+        return {
+          fecha: fechaISO,
+          dia: nombreDiaCorto(fechaISO),
+          total: totalDia,
+          presentes: presentesDia,
+          ausentes: ausentesDia,
+          puntuales: puntualesDia,
+          tardanzas: tardanzasDia,
+          porcentaje:
+            totalDia > 0
+              ? Math.round((presentesDia / totalDia) * 100)
+              : 0,
+        };
+      }
+    );
+
     return NextResponse.json({
       totalEstudiantes,
       totalEsperadosHoy,
@@ -431,6 +567,7 @@ export async function GET() {
       riesgoBajo,
       resumenIA,
       topRiesgoIA,
+      tendenciaSemanal,
     });
   } catch (error) {
     console.error(

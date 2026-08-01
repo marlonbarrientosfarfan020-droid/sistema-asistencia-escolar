@@ -9,6 +9,14 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
 } from "recharts";
 
 type TurnoResumen = {
@@ -67,6 +75,17 @@ type EventoNoLectivo = {
   turno: string | null;
 };
 
+type TendenciaSemanal = {
+  fecha: string;
+  dia: string;
+  total: number;
+  presentes: number;
+  ausentes: number;
+  puntuales: number;
+  tardanzas: number;
+  porcentaje: number;
+};
+
 type DashboardData = {
   totalEstudiantes: number;
   presentes: number;
@@ -94,6 +113,7 @@ type DashboardData = {
   diaNoLectivo?: boolean;
   diaNoLectivoGeneral?: boolean;
   eventosNoLectivosHoy?: EventoNoLectivo[];
+  tendenciaSemanal: TendenciaSemanal[];
 };
 
 type ColorTarjeta =
@@ -135,6 +155,7 @@ export default function Dashboard() {
     diaNoLectivo: false,
     diaNoLectivoGeneral: false,
     eventosNoLectivosHoy: [],
+    tendenciaSemanal: [],
   });
 
   async function cargarDashboard() {
@@ -193,6 +214,10 @@ export default function Dashboard() {
 
         eventosNoLectivosHoy: Array.isArray(data.eventosNoLectivosHoy)
           ? data.eventosNoLectivosHoy
+          : [],
+
+        tendenciaSemanal: Array.isArray(data.tendenciaSemanal)
+          ? data.tendenciaSemanal
           : [],
       });
 
@@ -259,11 +284,30 @@ export default function Dashboard() {
       ? Math.round((datos.presentes / datos.totalEstudiantes) * 100)
       : 0;
 
+  const coloresEstado = ["#22c55e", "#f97316", "#ef4444", "#06b6d4"];
+
   const datosGrafico = [
     { name: "Puntuales", value: datos.puntuales },
     { name: "Tardanzas", value: datos.tardanzas },
     { name: "Ausentes", value: datos.ausentes },
     { name: "Sin salida", value: datos.sinSalida },
+  ];
+
+  const datosRiesgo = [
+    { name: "Alto", value: datos.riesgoAlto || 0 },
+    { name: "Medio", value: datos.riesgoMedio || 0 },
+    { name: "Bajo", value: datos.riesgoBajo || 0 },
+  ];
+
+  const coloresRiesgo = ["#ef4444", "#f59e0b", "#22c55e"];
+
+  const datosEntradasSalidas = [
+    {
+      name: "Hoy",
+      Entradas: datos.entradas,
+      Salidas: datos.salidas,
+      "Sin salida": datos.sinSalida,
+    },
   ];
 
   return (
@@ -643,75 +687,291 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {/* GRÁFICO */}
-          <section
-            className={`dashboard-reveal dashboard-delay-4 ${cardClass} p-6 md:p-7`}
-          >
-            <div>
-              <h3 className="text-2xl font-black text-white">
-                📈 Gráfico de asistencia del día
-              </h3>
+          {/* ANALÍTICA TIPO POWER BI */}
+          <section className="dashboard-reveal dashboard-delay-4 grid gap-6 xl:grid-cols-12">
+            <div className={`${cardClass} p-6 md:p-7 xl:col-span-4`}>
+              <div>
+                <h3 className="text-2xl font-black text-white">
+                  🍩 Estado de asistencia
+                </h3>
+                <p className="mt-1 text-sm text-slate-400">
+                  Distribución general de la jornada
+                </p>
+              </div>
 
-              <p className="mt-1 text-sm text-slate-400">
-                Comparación de puntualidad, tardanzas y ausencias
-              </p>
+              <div className="relative mt-5 h-[330px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={datosGrafico}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="48%"
+                      innerRadius={78}
+                      outerRadius={118}
+                      paddingAngle={5}
+                      stroke="transparent"
+                    >
+                      {datosGrafico.map((item, index) => (
+                        <Cell
+                          key={item.name}
+                          fill={coloresEstado[index % coloresEstado.length]}
+                        />
+                      ))}
+                    </Pie>
+
+                    <Tooltip
+                      contentStyle={{
+                        background: "#071226",
+                        border: "1px solid #334155",
+                        borderRadius: "16px",
+                        color: "#fff",
+                      }}
+                    />
+
+                    <Legend
+                      verticalAlign="bottom"
+                      iconType="circle"
+                      wrapperStyle={{ color: "#cbd5e1", fontWeight: 700 }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center pb-10">
+                  <div className="text-center">
+                    <p className="text-4xl font-black text-white">
+                      {porcentajePresentes}%
+                    </p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      asistencia
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="mt-6 h-[340px] w-full rounded-3xl border border-blue-500/15 bg-gradient-to-br from-[#050d20] to-[#07152f] p-3 shadow-inner shadow-black/30">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={datosGrafico}
-                  margin={{
-                    top: 20,
-                    right: 20,
-                    left: -10,
-                    bottom: 10,
-                  }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="4 4"
-                    vertical={false}
-                    stroke="#24324f"
-                  />
+            <div className={`${cardClass} p-6 md:p-7 xl:col-span-8`}>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h3 className="text-2xl font-black text-white">
+                    📈 Tendencia de los últimos 7 días
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-400">
+                    Presentes, ausentes y porcentaje diario
+                  </p>
+                </div>
 
-                  <XAxis
-                    dataKey="name"
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{
-                      fill: "#94a3b8",
-                      fontWeight: 700,
-                      fontSize: 12,
-                    }}
-                  />
+                <div className="rounded-full border border-blue-400/25 bg-blue-500/10 px-4 py-2 text-sm font-black text-blue-300">
+                  Actualización automática
+                </div>
+              </div>
 
-                  <YAxis
-                    allowDecimals={false}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{
-                      fill: "#64748b",
-                      fontWeight: 600,
-                    }}
-                  />
+              <div className="mt-6 h-[330px] rounded-3xl border border-blue-500/15 bg-gradient-to-br from-[#050d20] to-[#07152f] p-3">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={datos.tendenciaSemanal}
+                    margin={{ top: 15, right: 20, left: -10, bottom: 5 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="4 4"
+                      vertical={false}
+                      stroke="#24324f"
+                    />
+                    <XAxis
+                      dataKey="dia"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#94a3b8", fontWeight: 700 }}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#64748b" }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#071226",
+                        border: "1px solid #334155",
+                        borderRadius: "16px",
+                        color: "#fff",
+                      }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="presentes"
+                      name="Presentes"
+                      stroke="#22c55e"
+                      strokeWidth={4}
+                      dot={{ r: 5, fill: "#22c55e" }}
+                      activeDot={{ r: 8 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="ausentes"
+                      name="Ausentes"
+                      stroke="#ef4444"
+                      strokeWidth={4}
+                      dot={{ r: 5, fill: "#ef4444" }}
+                      activeDot={{ r: 8 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
 
-                  <Tooltip
-                    cursor={{ fill: "rgba(59,130,246,0.08)" }}
-                    contentStyle={{
-                      borderRadius: "16px",
-                      border: "1px solid #e2e8f0",
-                      boxShadow: "0 15px 35px rgba(15,23,42,0.12)",
-                    }}
-                  />
+            <div className={`${cardClass} p-6 md:p-7 xl:col-span-7`}>
+              <div>
+                <h3 className="text-2xl font-black text-white">
+                  📊 Comparativo por turnos
+                </h3>
+                <p className="mt-1 text-sm text-slate-400">
+                  Presentes, puntuales, tardanzas y ausentes
+                </p>
+              </div>
 
-                  <Bar
-                    dataKey="value"
-                    fill="#3b82f6"
-                    radius={[14, 14, 4, 4]}
-                    barSize={72}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="mt-6 h-[340px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={datos.resumenTurnos}
+                    margin={{ top: 15, right: 20, left: -10, bottom: 5 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="4 4"
+                      vertical={false}
+                      stroke="#24324f"
+                    />
+                    <XAxis
+                      dataKey="nombre"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#94a3b8", fontWeight: 700 }}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#64748b" }}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "rgba(59,130,246,0.08)" }}
+                      contentStyle={{
+                        background: "#071226",
+                        border: "1px solid #334155",
+                        borderRadius: "16px",
+                        color: "#fff",
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="presentes" name="Presentes" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="puntuales" name="Puntuales" fill="#22c55e" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="tardanzas" name="Tardanzas" fill="#f97316" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="ausentes" name="Ausentes" fill="#ef4444" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className={`${cardClass} p-6 md:p-7 xl:col-span-5`}>
+              <div>
+                <h3 className="text-2xl font-black text-white">
+                  🧠 Riesgo preventivo IA
+                </h3>
+                <p className="mt-1 text-sm text-slate-400">
+                  Clasificación de estudiantes analizados
+                </p>
+              </div>
+
+              <div className="mt-5 h-[340px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={datosRiesgo}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="47%"
+                      innerRadius={65}
+                      outerRadius={112}
+                      paddingAngle={6}
+                      stroke="transparent"
+                    >
+                      {datosRiesgo.map((item, index) => (
+                        <Cell
+                          key={item.name}
+                          fill={coloresRiesgo[index % coloresRiesgo.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        background: "#071226",
+                        border: "1px solid #334155",
+                        borderRadius: "16px",
+                        color: "#fff",
+                      }}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      iconType="circle"
+                      wrapperStyle={{ color: "#cbd5e1", fontWeight: 700 }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className={`${cardClass} p-6 md:p-7 xl:col-span-12`}>
+              <div>
+                <h3 className="text-2xl font-black text-white">
+                  🚪 Flujo de entradas y salidas
+                </h3>
+                <p className="mt-1 text-sm text-slate-400">
+                  Comparación operativa de la jornada actual
+                </p>
+              </div>
+
+              <div className="mt-6 h-[300px] rounded-3xl border border-violet-500/15 bg-gradient-to-br from-[#09091f] to-[#11113d] p-3">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={datosEntradasSalidas}
+                    margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                  >
+                    <defs>
+                      <linearGradient id="colorEntradas" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.08} />
+                      </linearGradient>
+                      <linearGradient id="colorSalidas" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ec4899" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#ec4899" stopOpacity={0.08} />
+                      </linearGradient>
+                      <linearGradient id="colorSinSalida" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.08} />
+                      </linearGradient>
+                    </defs>
+
+                    <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#2a2a55" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#cbd5e1", fontWeight: 700 }} />
+                    <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: "#64748b" }} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#071226",
+                        border: "1px solid #334155",
+                        borderRadius: "16px",
+                        color: "#fff",
+                      }}
+                    />
+                    <Legend />
+                    <Area type="monotone" dataKey="Entradas" stroke="#8b5cf6" strokeWidth={4} fill="url(#colorEntradas)" />
+                    <Area type="monotone" dataKey="Salidas" stroke="#ec4899" strokeWidth={4} fill="url(#colorSalidas)" />
+                    <Area type="monotone" dataKey="Sin salida" stroke="#06b6d4" strokeWidth={4} fill="url(#colorSinSalida)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </section>
 
