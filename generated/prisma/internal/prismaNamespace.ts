@@ -1355,7 +1355,17 @@ export const ConfiguracionScalarFieldEnum = {
   diaMesReportePadres: 'diaMesReportePadres',
   horaReportePadres: 'horaReportePadres',
   incluirRiesgoIAReportePadres: 'incluirRiesgoIAReportePadres',
-  ultimoReportePadresAt: 'ultimoReportePadresAt'
+  ultimoReportePadresAt: 'ultimoReportePadresAt',
+  automatizacionesActivas: 'automatizacionesActivas',
+  alertaIngresoPendienteActiva: 'alertaIngresoPendienteActiva',
+  minutosAlertaInicial: 'minutosAlertaInicial',
+  alertaTardanzaActiva: 'alertaTardanzaActiva',
+  alertaAusenciaActiva: 'alertaAusenciaActiva',
+  modoPruebaAlertas: 'modoPruebaAlertas',
+  telegramPruebaChatId: 'telegramPruebaChatId',
+  frecuenciaRevisionMinutos: 'frecuenciaRevisionMinutos',
+  ultimaEjecucionAutomatizaciones: 'ultimaEjecucionAutomatizaciones',
+  ultimaEjecucionEstado: 'ultimaEjecucionEstado'
 } as const
 
 export type ConfiguracionScalarFieldEnum = (typeof ConfiguracionScalarFieldEnum)[keyof typeof ConfiguracionScalarFieldEnum]

@@ -32,6 +32,8 @@ export type ConfiguracionAvgAggregateOutputType = {
   diaMesReporteDirector: number | null
   diaReportePadres: number | null
   diaMesReportePadres: number | null
+  minutosAlertaInicial: number | null
+  frecuenciaRevisionMinutos: number | null
 }
 
 export type ConfiguracionSumAggregateOutputType = {
@@ -40,6 +42,8 @@ export type ConfiguracionSumAggregateOutputType = {
   diaMesReporteDirector: number | null
   diaReportePadres: number | null
   diaMesReportePadres: number | null
+  minutosAlertaInicial: number | null
+  frecuenciaRevisionMinutos: number | null
 }
 
 export type ConfiguracionMinAggregateOutputType = {
@@ -71,6 +75,16 @@ export type ConfiguracionMinAggregateOutputType = {
   horaReportePadres: string | null
   incluirRiesgoIAReportePadres: boolean | null
   ultimoReportePadresAt: Date | null
+  automatizacionesActivas: boolean | null
+  alertaIngresoPendienteActiva: boolean | null
+  minutosAlertaInicial: number | null
+  alertaTardanzaActiva: boolean | null
+  alertaAusenciaActiva: boolean | null
+  modoPruebaAlertas: boolean | null
+  telegramPruebaChatId: string | null
+  frecuenciaRevisionMinutos: number | null
+  ultimaEjecucionAutomatizaciones: Date | null
+  ultimaEjecucionEstado: string | null
 }
 
 export type ConfiguracionMaxAggregateOutputType = {
@@ -102,6 +116,16 @@ export type ConfiguracionMaxAggregateOutputType = {
   horaReportePadres: string | null
   incluirRiesgoIAReportePadres: boolean | null
   ultimoReportePadresAt: Date | null
+  automatizacionesActivas: boolean | null
+  alertaIngresoPendienteActiva: boolean | null
+  minutosAlertaInicial: number | null
+  alertaTardanzaActiva: boolean | null
+  alertaAusenciaActiva: boolean | null
+  modoPruebaAlertas: boolean | null
+  telegramPruebaChatId: string | null
+  frecuenciaRevisionMinutos: number | null
+  ultimaEjecucionAutomatizaciones: Date | null
+  ultimaEjecucionEstado: string | null
 }
 
 export type ConfiguracionCountAggregateOutputType = {
@@ -133,6 +157,16 @@ export type ConfiguracionCountAggregateOutputType = {
   horaReportePadres: number
   incluirRiesgoIAReportePadres: number
   ultimoReportePadresAt: number
+  automatizacionesActivas: number
+  alertaIngresoPendienteActiva: number
+  minutosAlertaInicial: number
+  alertaTardanzaActiva: number
+  alertaAusenciaActiva: number
+  modoPruebaAlertas: number
+  telegramPruebaChatId: number
+  frecuenciaRevisionMinutos: number
+  ultimaEjecucionAutomatizaciones: number
+  ultimaEjecucionEstado: number
   _all: number
 }
 
@@ -143,6 +177,8 @@ export type ConfiguracionAvgAggregateInputType = {
   diaMesReporteDirector?: true
   diaReportePadres?: true
   diaMesReportePadres?: true
+  minutosAlertaInicial?: true
+  frecuenciaRevisionMinutos?: true
 }
 
 export type ConfiguracionSumAggregateInputType = {
@@ -151,6 +187,8 @@ export type ConfiguracionSumAggregateInputType = {
   diaMesReporteDirector?: true
   diaReportePadres?: true
   diaMesReportePadres?: true
+  minutosAlertaInicial?: true
+  frecuenciaRevisionMinutos?: true
 }
 
 export type ConfiguracionMinAggregateInputType = {
@@ -182,6 +220,16 @@ export type ConfiguracionMinAggregateInputType = {
   horaReportePadres?: true
   incluirRiesgoIAReportePadres?: true
   ultimoReportePadresAt?: true
+  automatizacionesActivas?: true
+  alertaIngresoPendienteActiva?: true
+  minutosAlertaInicial?: true
+  alertaTardanzaActiva?: true
+  alertaAusenciaActiva?: true
+  modoPruebaAlertas?: true
+  telegramPruebaChatId?: true
+  frecuenciaRevisionMinutos?: true
+  ultimaEjecucionAutomatizaciones?: true
+  ultimaEjecucionEstado?: true
 }
 
 export type ConfiguracionMaxAggregateInputType = {
@@ -213,6 +261,16 @@ export type ConfiguracionMaxAggregateInputType = {
   horaReportePadres?: true
   incluirRiesgoIAReportePadres?: true
   ultimoReportePadresAt?: true
+  automatizacionesActivas?: true
+  alertaIngresoPendienteActiva?: true
+  minutosAlertaInicial?: true
+  alertaTardanzaActiva?: true
+  alertaAusenciaActiva?: true
+  modoPruebaAlertas?: true
+  telegramPruebaChatId?: true
+  frecuenciaRevisionMinutos?: true
+  ultimaEjecucionAutomatizaciones?: true
+  ultimaEjecucionEstado?: true
 }
 
 export type ConfiguracionCountAggregateInputType = {
@@ -244,6 +302,16 @@ export type ConfiguracionCountAggregateInputType = {
   horaReportePadres?: true
   incluirRiesgoIAReportePadres?: true
   ultimoReportePadresAt?: true
+  automatizacionesActivas?: true
+  alertaIngresoPendienteActiva?: true
+  minutosAlertaInicial?: true
+  alertaTardanzaActiva?: true
+  alertaAusenciaActiva?: true
+  modoPruebaAlertas?: true
+  telegramPruebaChatId?: true
+  frecuenciaRevisionMinutos?: true
+  ultimaEjecucionAutomatizaciones?: true
+  ultimaEjecucionEstado?: true
   _all?: true
 }
 
@@ -362,6 +430,16 @@ export type ConfiguracionGroupByOutputType = {
   horaReportePadres: string
   incluirRiesgoIAReportePadres: boolean
   ultimoReportePadresAt: Date | null
+  automatizacionesActivas: boolean
+  alertaIngresoPendienteActiva: boolean
+  minutosAlertaInicial: number
+  alertaTardanzaActiva: boolean
+  alertaAusenciaActiva: boolean
+  modoPruebaAlertas: boolean
+  telegramPruebaChatId: string
+  frecuenciaRevisionMinutos: number
+  ultimaEjecucionAutomatizaciones: Date | null
+  ultimaEjecucionEstado: string
   _count: ConfiguracionCountAggregateOutputType | null
   _avg: ConfiguracionAvgAggregateOutputType | null
   _sum: ConfiguracionSumAggregateOutputType | null
@@ -416,6 +494,16 @@ export type ConfiguracionWhereInput = {
   horaReportePadres?: Prisma.StringFilter<"Configuracion"> | string
   incluirRiesgoIAReportePadres?: Prisma.BoolFilter<"Configuracion"> | boolean
   ultimoReportePadresAt?: Prisma.DateTimeNullableFilter<"Configuracion"> | Date | string | null
+  automatizacionesActivas?: Prisma.BoolFilter<"Configuracion"> | boolean
+  alertaIngresoPendienteActiva?: Prisma.BoolFilter<"Configuracion"> | boolean
+  minutosAlertaInicial?: Prisma.IntFilter<"Configuracion"> | number
+  alertaTardanzaActiva?: Prisma.BoolFilter<"Configuracion"> | boolean
+  alertaAusenciaActiva?: Prisma.BoolFilter<"Configuracion"> | boolean
+  modoPruebaAlertas?: Prisma.BoolFilter<"Configuracion"> | boolean
+  telegramPruebaChatId?: Prisma.StringFilter<"Configuracion"> | string
+  frecuenciaRevisionMinutos?: Prisma.IntFilter<"Configuracion"> | number
+  ultimaEjecucionAutomatizaciones?: Prisma.DateTimeNullableFilter<"Configuracion"> | Date | string | null
+  ultimaEjecucionEstado?: Prisma.StringFilter<"Configuracion"> | string
 }
 
 export type ConfiguracionOrderByWithRelationInput = {
@@ -447,6 +535,16 @@ export type ConfiguracionOrderByWithRelationInput = {
   horaReportePadres?: Prisma.SortOrder
   incluirRiesgoIAReportePadres?: Prisma.SortOrder
   ultimoReportePadresAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  automatizacionesActivas?: Prisma.SortOrder
+  alertaIngresoPendienteActiva?: Prisma.SortOrder
+  minutosAlertaInicial?: Prisma.SortOrder
+  alertaTardanzaActiva?: Prisma.SortOrder
+  alertaAusenciaActiva?: Prisma.SortOrder
+  modoPruebaAlertas?: Prisma.SortOrder
+  telegramPruebaChatId?: Prisma.SortOrder
+  frecuenciaRevisionMinutos?: Prisma.SortOrder
+  ultimaEjecucionAutomatizaciones?: Prisma.SortOrderInput | Prisma.SortOrder
+  ultimaEjecucionEstado?: Prisma.SortOrder
 }
 
 export type ConfiguracionWhereUniqueInput = Prisma.AtLeast<{
@@ -481,6 +579,16 @@ export type ConfiguracionWhereUniqueInput = Prisma.AtLeast<{
   horaReportePadres?: Prisma.StringFilter<"Configuracion"> | string
   incluirRiesgoIAReportePadres?: Prisma.BoolFilter<"Configuracion"> | boolean
   ultimoReportePadresAt?: Prisma.DateTimeNullableFilter<"Configuracion"> | Date | string | null
+  automatizacionesActivas?: Prisma.BoolFilter<"Configuracion"> | boolean
+  alertaIngresoPendienteActiva?: Prisma.BoolFilter<"Configuracion"> | boolean
+  minutosAlertaInicial?: Prisma.IntFilter<"Configuracion"> | number
+  alertaTardanzaActiva?: Prisma.BoolFilter<"Configuracion"> | boolean
+  alertaAusenciaActiva?: Prisma.BoolFilter<"Configuracion"> | boolean
+  modoPruebaAlertas?: Prisma.BoolFilter<"Configuracion"> | boolean
+  telegramPruebaChatId?: Prisma.StringFilter<"Configuracion"> | string
+  frecuenciaRevisionMinutos?: Prisma.IntFilter<"Configuracion"> | number
+  ultimaEjecucionAutomatizaciones?: Prisma.DateTimeNullableFilter<"Configuracion"> | Date | string | null
+  ultimaEjecucionEstado?: Prisma.StringFilter<"Configuracion"> | string
 }, "id">
 
 export type ConfiguracionOrderByWithAggregationInput = {
@@ -512,6 +620,16 @@ export type ConfiguracionOrderByWithAggregationInput = {
   horaReportePadres?: Prisma.SortOrder
   incluirRiesgoIAReportePadres?: Prisma.SortOrder
   ultimoReportePadresAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  automatizacionesActivas?: Prisma.SortOrder
+  alertaIngresoPendienteActiva?: Prisma.SortOrder
+  minutosAlertaInicial?: Prisma.SortOrder
+  alertaTardanzaActiva?: Prisma.SortOrder
+  alertaAusenciaActiva?: Prisma.SortOrder
+  modoPruebaAlertas?: Prisma.SortOrder
+  telegramPruebaChatId?: Prisma.SortOrder
+  frecuenciaRevisionMinutos?: Prisma.SortOrder
+  ultimaEjecucionAutomatizaciones?: Prisma.SortOrderInput | Prisma.SortOrder
+  ultimaEjecucionEstado?: Prisma.SortOrder
   _count?: Prisma.ConfiguracionCountOrderByAggregateInput
   _avg?: Prisma.ConfiguracionAvgOrderByAggregateInput
   _max?: Prisma.ConfiguracionMaxOrderByAggregateInput
@@ -551,6 +669,16 @@ export type ConfiguracionScalarWhereWithAggregatesInput = {
   horaReportePadres?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
   incluirRiesgoIAReportePadres?: Prisma.BoolWithAggregatesFilter<"Configuracion"> | boolean
   ultimoReportePadresAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Configuracion"> | Date | string | null
+  automatizacionesActivas?: Prisma.BoolWithAggregatesFilter<"Configuracion"> | boolean
+  alertaIngresoPendienteActiva?: Prisma.BoolWithAggregatesFilter<"Configuracion"> | boolean
+  minutosAlertaInicial?: Prisma.IntWithAggregatesFilter<"Configuracion"> | number
+  alertaTardanzaActiva?: Prisma.BoolWithAggregatesFilter<"Configuracion"> | boolean
+  alertaAusenciaActiva?: Prisma.BoolWithAggregatesFilter<"Configuracion"> | boolean
+  modoPruebaAlertas?: Prisma.BoolWithAggregatesFilter<"Configuracion"> | boolean
+  telegramPruebaChatId?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
+  frecuenciaRevisionMinutos?: Prisma.IntWithAggregatesFilter<"Configuracion"> | number
+  ultimaEjecucionAutomatizaciones?: Prisma.DateTimeNullableWithAggregatesFilter<"Configuracion"> | Date | string | null
+  ultimaEjecucionEstado?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
 }
 
 export type ConfiguracionCreateInput = {
@@ -581,6 +709,16 @@ export type ConfiguracionCreateInput = {
   horaReportePadres?: string
   incluirRiesgoIAReportePadres?: boolean
   ultimoReportePadresAt?: Date | string | null
+  automatizacionesActivas?: boolean
+  alertaIngresoPendienteActiva?: boolean
+  minutosAlertaInicial?: number
+  alertaTardanzaActiva?: boolean
+  alertaAusenciaActiva?: boolean
+  modoPruebaAlertas?: boolean
+  telegramPruebaChatId?: string
+  frecuenciaRevisionMinutos?: number
+  ultimaEjecucionAutomatizaciones?: Date | string | null
+  ultimaEjecucionEstado?: string
 }
 
 export type ConfiguracionUncheckedCreateInput = {
@@ -612,6 +750,16 @@ export type ConfiguracionUncheckedCreateInput = {
   horaReportePadres?: string
   incluirRiesgoIAReportePadres?: boolean
   ultimoReportePadresAt?: Date | string | null
+  automatizacionesActivas?: boolean
+  alertaIngresoPendienteActiva?: boolean
+  minutosAlertaInicial?: number
+  alertaTardanzaActiva?: boolean
+  alertaAusenciaActiva?: boolean
+  modoPruebaAlertas?: boolean
+  telegramPruebaChatId?: string
+  frecuenciaRevisionMinutos?: number
+  ultimaEjecucionAutomatizaciones?: Date | string | null
+  ultimaEjecucionEstado?: string
 }
 
 export type ConfiguracionUpdateInput = {
@@ -642,6 +790,16 @@ export type ConfiguracionUpdateInput = {
   horaReportePadres?: Prisma.StringFieldUpdateOperationsInput | string
   incluirRiesgoIAReportePadres?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ultimoReportePadresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  automatizacionesActivas?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alertaIngresoPendienteActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  minutosAlertaInicial?: Prisma.IntFieldUpdateOperationsInput | number
+  alertaTardanzaActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alertaAusenciaActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  modoPruebaAlertas?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramPruebaChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  frecuenciaRevisionMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  ultimaEjecucionAutomatizaciones?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ultimaEjecucionEstado?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type ConfiguracionUncheckedUpdateInput = {
@@ -673,6 +831,16 @@ export type ConfiguracionUncheckedUpdateInput = {
   horaReportePadres?: Prisma.StringFieldUpdateOperationsInput | string
   incluirRiesgoIAReportePadres?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ultimoReportePadresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  automatizacionesActivas?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alertaIngresoPendienteActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  minutosAlertaInicial?: Prisma.IntFieldUpdateOperationsInput | number
+  alertaTardanzaActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alertaAusenciaActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  modoPruebaAlertas?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramPruebaChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  frecuenciaRevisionMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  ultimaEjecucionAutomatizaciones?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ultimaEjecucionEstado?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type ConfiguracionCreateManyInput = {
@@ -704,6 +872,16 @@ export type ConfiguracionCreateManyInput = {
   horaReportePadres?: string
   incluirRiesgoIAReportePadres?: boolean
   ultimoReportePadresAt?: Date | string | null
+  automatizacionesActivas?: boolean
+  alertaIngresoPendienteActiva?: boolean
+  minutosAlertaInicial?: number
+  alertaTardanzaActiva?: boolean
+  alertaAusenciaActiva?: boolean
+  modoPruebaAlertas?: boolean
+  telegramPruebaChatId?: string
+  frecuenciaRevisionMinutos?: number
+  ultimaEjecucionAutomatizaciones?: Date | string | null
+  ultimaEjecucionEstado?: string
 }
 
 export type ConfiguracionUpdateManyMutationInput = {
@@ -734,6 +912,16 @@ export type ConfiguracionUpdateManyMutationInput = {
   horaReportePadres?: Prisma.StringFieldUpdateOperationsInput | string
   incluirRiesgoIAReportePadres?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ultimoReportePadresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  automatizacionesActivas?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alertaIngresoPendienteActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  minutosAlertaInicial?: Prisma.IntFieldUpdateOperationsInput | number
+  alertaTardanzaActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alertaAusenciaActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  modoPruebaAlertas?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramPruebaChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  frecuenciaRevisionMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  ultimaEjecucionAutomatizaciones?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ultimaEjecucionEstado?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type ConfiguracionUncheckedUpdateManyInput = {
@@ -765,6 +953,16 @@ export type ConfiguracionUncheckedUpdateManyInput = {
   horaReportePadres?: Prisma.StringFieldUpdateOperationsInput | string
   incluirRiesgoIAReportePadres?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ultimoReportePadresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  automatizacionesActivas?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alertaIngresoPendienteActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  minutosAlertaInicial?: Prisma.IntFieldUpdateOperationsInput | number
+  alertaTardanzaActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alertaAusenciaActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  modoPruebaAlertas?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramPruebaChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  frecuenciaRevisionMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  ultimaEjecucionAutomatizaciones?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ultimaEjecucionEstado?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type ConfiguracionCountOrderByAggregateInput = {
@@ -796,6 +994,16 @@ export type ConfiguracionCountOrderByAggregateInput = {
   horaReportePadres?: Prisma.SortOrder
   incluirRiesgoIAReportePadres?: Prisma.SortOrder
   ultimoReportePadresAt?: Prisma.SortOrder
+  automatizacionesActivas?: Prisma.SortOrder
+  alertaIngresoPendienteActiva?: Prisma.SortOrder
+  minutosAlertaInicial?: Prisma.SortOrder
+  alertaTardanzaActiva?: Prisma.SortOrder
+  alertaAusenciaActiva?: Prisma.SortOrder
+  modoPruebaAlertas?: Prisma.SortOrder
+  telegramPruebaChatId?: Prisma.SortOrder
+  frecuenciaRevisionMinutos?: Prisma.SortOrder
+  ultimaEjecucionAutomatizaciones?: Prisma.SortOrder
+  ultimaEjecucionEstado?: Prisma.SortOrder
 }
 
 export type ConfiguracionAvgOrderByAggregateInput = {
@@ -804,6 +1012,8 @@ export type ConfiguracionAvgOrderByAggregateInput = {
   diaMesReporteDirector?: Prisma.SortOrder
   diaReportePadres?: Prisma.SortOrder
   diaMesReportePadres?: Prisma.SortOrder
+  minutosAlertaInicial?: Prisma.SortOrder
+  frecuenciaRevisionMinutos?: Prisma.SortOrder
 }
 
 export type ConfiguracionMaxOrderByAggregateInput = {
@@ -835,6 +1045,16 @@ export type ConfiguracionMaxOrderByAggregateInput = {
   horaReportePadres?: Prisma.SortOrder
   incluirRiesgoIAReportePadres?: Prisma.SortOrder
   ultimoReportePadresAt?: Prisma.SortOrder
+  automatizacionesActivas?: Prisma.SortOrder
+  alertaIngresoPendienteActiva?: Prisma.SortOrder
+  minutosAlertaInicial?: Prisma.SortOrder
+  alertaTardanzaActiva?: Prisma.SortOrder
+  alertaAusenciaActiva?: Prisma.SortOrder
+  modoPruebaAlertas?: Prisma.SortOrder
+  telegramPruebaChatId?: Prisma.SortOrder
+  frecuenciaRevisionMinutos?: Prisma.SortOrder
+  ultimaEjecucionAutomatizaciones?: Prisma.SortOrder
+  ultimaEjecucionEstado?: Prisma.SortOrder
 }
 
 export type ConfiguracionMinOrderByAggregateInput = {
@@ -866,6 +1086,16 @@ export type ConfiguracionMinOrderByAggregateInput = {
   horaReportePadres?: Prisma.SortOrder
   incluirRiesgoIAReportePadres?: Prisma.SortOrder
   ultimoReportePadresAt?: Prisma.SortOrder
+  automatizacionesActivas?: Prisma.SortOrder
+  alertaIngresoPendienteActiva?: Prisma.SortOrder
+  minutosAlertaInicial?: Prisma.SortOrder
+  alertaTardanzaActiva?: Prisma.SortOrder
+  alertaAusenciaActiva?: Prisma.SortOrder
+  modoPruebaAlertas?: Prisma.SortOrder
+  telegramPruebaChatId?: Prisma.SortOrder
+  frecuenciaRevisionMinutos?: Prisma.SortOrder
+  ultimaEjecucionAutomatizaciones?: Prisma.SortOrder
+  ultimaEjecucionEstado?: Prisma.SortOrder
 }
 
 export type ConfiguracionSumOrderByAggregateInput = {
@@ -874,6 +1104,8 @@ export type ConfiguracionSumOrderByAggregateInput = {
   diaMesReporteDirector?: Prisma.SortOrder
   diaReportePadres?: Prisma.SortOrder
   diaMesReportePadres?: Prisma.SortOrder
+  minutosAlertaInicial?: Prisma.SortOrder
+  frecuenciaRevisionMinutos?: Prisma.SortOrder
 }
 
 
@@ -907,6 +1139,16 @@ export type ConfiguracionSelect<ExtArgs extends runtime.Types.Extensions.Interna
   horaReportePadres?: boolean
   incluirRiesgoIAReportePadres?: boolean
   ultimoReportePadresAt?: boolean
+  automatizacionesActivas?: boolean
+  alertaIngresoPendienteActiva?: boolean
+  minutosAlertaInicial?: boolean
+  alertaTardanzaActiva?: boolean
+  alertaAusenciaActiva?: boolean
+  modoPruebaAlertas?: boolean
+  telegramPruebaChatId?: boolean
+  frecuenciaRevisionMinutos?: boolean
+  ultimaEjecucionAutomatizaciones?: boolean
+  ultimaEjecucionEstado?: boolean
 }, ExtArgs["result"]["configuracion"]>
 
 export type ConfiguracionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -938,6 +1180,16 @@ export type ConfiguracionSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   horaReportePadres?: boolean
   incluirRiesgoIAReportePadres?: boolean
   ultimoReportePadresAt?: boolean
+  automatizacionesActivas?: boolean
+  alertaIngresoPendienteActiva?: boolean
+  minutosAlertaInicial?: boolean
+  alertaTardanzaActiva?: boolean
+  alertaAusenciaActiva?: boolean
+  modoPruebaAlertas?: boolean
+  telegramPruebaChatId?: boolean
+  frecuenciaRevisionMinutos?: boolean
+  ultimaEjecucionAutomatizaciones?: boolean
+  ultimaEjecucionEstado?: boolean
 }, ExtArgs["result"]["configuracion"]>
 
 export type ConfiguracionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -969,6 +1221,16 @@ export type ConfiguracionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   horaReportePadres?: boolean
   incluirRiesgoIAReportePadres?: boolean
   ultimoReportePadresAt?: boolean
+  automatizacionesActivas?: boolean
+  alertaIngresoPendienteActiva?: boolean
+  minutosAlertaInicial?: boolean
+  alertaTardanzaActiva?: boolean
+  alertaAusenciaActiva?: boolean
+  modoPruebaAlertas?: boolean
+  telegramPruebaChatId?: boolean
+  frecuenciaRevisionMinutos?: boolean
+  ultimaEjecucionAutomatizaciones?: boolean
+  ultimaEjecucionEstado?: boolean
 }, ExtArgs["result"]["configuracion"]>
 
 export type ConfiguracionSelectScalar = {
@@ -1000,9 +1262,19 @@ export type ConfiguracionSelectScalar = {
   horaReportePadres?: boolean
   incluirRiesgoIAReportePadres?: boolean
   ultimoReportePadresAt?: boolean
+  automatizacionesActivas?: boolean
+  alertaIngresoPendienteActiva?: boolean
+  minutosAlertaInicial?: boolean
+  alertaTardanzaActiva?: boolean
+  alertaAusenciaActiva?: boolean
+  modoPruebaAlertas?: boolean
+  telegramPruebaChatId?: boolean
+  frecuenciaRevisionMinutos?: boolean
+  ultimaEjecucionAutomatizaciones?: boolean
+  ultimaEjecucionEstado?: boolean
 }
 
-export type ConfiguracionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nombreColegio" | "logoUrl" | "direccion" | "telefono" | "correo" | "director" | "createdAt" | "reporteTelegramActivo" | "horaReporteDiario" | "telegramDirectorChatId" | "enviarReporteExcel" | "enviarReportePdf" | "ultimoReporteTelegramAt" | "ultimoReporteTelegramEstado" | "reporteDirectorActivo" | "frecuenciaReporteDirector" | "diaReporteDirector" | "diaMesReporteDirector" | "horaReporteDirector" | "ultimoReporteDirectorAt" | "reportePadresActivo" | "frecuenciaReportePadres" | "diaReportePadres" | "diaMesReportePadres" | "horaReportePadres" | "incluirRiesgoIAReportePadres" | "ultimoReportePadresAt", ExtArgs["result"]["configuracion"]>
+export type ConfiguracionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nombreColegio" | "logoUrl" | "direccion" | "telefono" | "correo" | "director" | "createdAt" | "reporteTelegramActivo" | "horaReporteDiario" | "telegramDirectorChatId" | "enviarReporteExcel" | "enviarReportePdf" | "ultimoReporteTelegramAt" | "ultimoReporteTelegramEstado" | "reporteDirectorActivo" | "frecuenciaReporteDirector" | "diaReporteDirector" | "diaMesReporteDirector" | "horaReporteDirector" | "ultimoReporteDirectorAt" | "reportePadresActivo" | "frecuenciaReportePadres" | "diaReportePadres" | "diaMesReportePadres" | "horaReportePadres" | "incluirRiesgoIAReportePadres" | "ultimoReportePadresAt" | "automatizacionesActivas" | "alertaIngresoPendienteActiva" | "minutosAlertaInicial" | "alertaTardanzaActiva" | "alertaAusenciaActiva" | "modoPruebaAlertas" | "telegramPruebaChatId" | "frecuenciaRevisionMinutos" | "ultimaEjecucionAutomatizaciones" | "ultimaEjecucionEstado", ExtArgs["result"]["configuracion"]>
 
 export type $ConfiguracionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Configuracion"
@@ -1036,6 +1308,16 @@ export type $ConfiguracionPayload<ExtArgs extends runtime.Types.Extensions.Inter
     horaReportePadres: string
     incluirRiesgoIAReportePadres: boolean
     ultimoReportePadresAt: Date | null
+    automatizacionesActivas: boolean
+    alertaIngresoPendienteActiva: boolean
+    minutosAlertaInicial: number
+    alertaTardanzaActiva: boolean
+    alertaAusenciaActiva: boolean
+    modoPruebaAlertas: boolean
+    telegramPruebaChatId: string
+    frecuenciaRevisionMinutos: number
+    ultimaEjecucionAutomatizaciones: Date | null
+    ultimaEjecucionEstado: string
   }, ExtArgs["result"]["configuracion"]>
   composites: {}
 }
@@ -1487,6 +1769,16 @@ export interface ConfiguracionFieldRefs {
   readonly horaReportePadres: Prisma.FieldRef<"Configuracion", 'String'>
   readonly incluirRiesgoIAReportePadres: Prisma.FieldRef<"Configuracion", 'Boolean'>
   readonly ultimoReportePadresAt: Prisma.FieldRef<"Configuracion", 'DateTime'>
+  readonly automatizacionesActivas: Prisma.FieldRef<"Configuracion", 'Boolean'>
+  readonly alertaIngresoPendienteActiva: Prisma.FieldRef<"Configuracion", 'Boolean'>
+  readonly minutosAlertaInicial: Prisma.FieldRef<"Configuracion", 'Int'>
+  readonly alertaTardanzaActiva: Prisma.FieldRef<"Configuracion", 'Boolean'>
+  readonly alertaAusenciaActiva: Prisma.FieldRef<"Configuracion", 'Boolean'>
+  readonly modoPruebaAlertas: Prisma.FieldRef<"Configuracion", 'Boolean'>
+  readonly telegramPruebaChatId: Prisma.FieldRef<"Configuracion", 'String'>
+  readonly frecuenciaRevisionMinutos: Prisma.FieldRef<"Configuracion", 'Int'>
+  readonly ultimaEjecucionAutomatizaciones: Prisma.FieldRef<"Configuracion", 'DateTime'>
+  readonly ultimaEjecucionEstado: Prisma.FieldRef<"Configuracion", 'String'>
 }
     
 

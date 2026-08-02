@@ -22,9 +22,10 @@ function obtenerFechaPeru(fecha: Date) {
   }).format(fecha);
 }
 
-function minutosEntreHoras(
+function calcularMinutosTardanza(
   horaEntradaReal: Date | null,
-  horaProgramada: string
+  horaProgramada: string,
+  margenAlertaMinutos: number
 ) {
   if (!horaEntradaReal) return 0;
 
@@ -35,13 +36,18 @@ function minutosEntreHoras(
       ? horaProgramada
       : "00:00";
 
-  const entradaProgramada = new Date(
+  const limitePuntualidad = new Date(
     `${fechaPeru}T${horaNormalizada}:00-05:00`
+  );
+
+  limitePuntualidad.setMinutes(
+    limitePuntualidad.getMinutes() +
+      Math.max(margenAlertaMinutos, 0)
   );
 
   const diferencia =
     horaEntradaReal.getTime() -
-    entradaProgramada.getTime();
+    limitePuntualidad.getTime();
 
   return Math.max(
     Math.floor(diferencia / 60000),
@@ -121,11 +127,11 @@ export async function GET(request: Request) {
               ?.nombre || "Sin turno",
         },
         minutosTardanza:
-          minutosEntreHoras(
-            registro.horaEntrada,
-            registro.estudiante.turno
-              ?.horaEntrada || "00:00"
-          ),
+  calcularMinutosTardanza(
+    registro.horaEntrada,
+    registro.estudiante.turno?.horaEntrada || "00:00",
+    registro.estudiante.turno?.margenAlertaMinutos || 0
+  ),
       })
     );
 

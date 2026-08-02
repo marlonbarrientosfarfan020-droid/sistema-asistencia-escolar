@@ -102,7 +102,25 @@ diaMesReportePadres            Int      @default(28)
 horaReportePadres              String   @default("19:00")
 incluirRiesgoIAReportePadres   Boolean  @default(true)
 ultimoReportePadresAt          DateTime?
+ // Automatizaciones
+  automatizacionesActivas          Boolean  @default(false)
+
+  alertaIngresoPendienteActiva     Boolean  @default(true)
+  minutosAlertaInicial             Int      @default(5)
+
+  alertaTardanzaActiva             Boolean  @default(true)
+  alertaAusenciaActiva             Boolean  @default(true)
+
+  modoPruebaAlertas                Boolean  @default(true)
+  telegramPruebaChatId             String   @default("")
+
+  frecuenciaRevisionMinutos        Int      @default(5)
+
+  ultimaEjecucionAutomatizaciones  DateTime?
+  ultimaEjecucionEstado            String   @default("")
+
 }
+
 model Auditoria {
   id        Int      @id @default(autoincrement())
   usuario   String

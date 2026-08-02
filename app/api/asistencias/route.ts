@@ -145,19 +145,28 @@ function horaTurnoPermitida(horaSalida: string) {
   );
 }
 
-function horaEntradaPermitida(horaEntrada: string) {
+function obtenerLimitePuntualidad(
+  horaEntrada: string,
+  margenMinutos: number
+) {
   const [hora, minuto] = horaEntrada
     .split(":")
     .map(Number);
 
   const fechaActual = fechaPeru();
 
-  return new Date(
+  const limite = new Date(
     `${fechaActual}T${String(hora).padStart(
       2,
       "0"
     )}:${String(minuto).padStart(2, "0")}:00-05:00`
   );
+
+  limite.setMinutes(
+    limite.getMinutes() + Math.max(margenMinutos, 0)
+  );
+
+  return limite;
 }
 
 async function descargarFotoComoBuffer(
@@ -413,16 +422,16 @@ export async function POST(request: Request) {
     const ahora = new Date();
     const horaActual = formatoHora(ahora);
 
-    const horaPermitida =
-      horaEntradaPermitida(
-        estudiante.turno.horaEntrada
-      );
+  const limitePuntualidad =
+  obtenerLimitePuntualidad(
+    estudiante.turno.horaEntrada,
+    estudiante.turno.margenAlertaMinutos
+  );
 
-    const estadoAsistencia =
-      ahora <= horaPermitida
-        ? "PUNTUAL"
-        : "TARDE";
-
+const estadoAsistencia =
+  ahora <= limitePuntualidad
+    ? "PUNTUAL"
+    : "TARDE";
     /*
      * REGISTRO DE ENTRADA
      */

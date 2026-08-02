@@ -17,8 +17,8 @@ export function iniciarSchedulerLocal() {
       const resultado = await revisarAusentes();
 
       console.log(
-        `✅ ${resultado.message} | Alertas enviadas: ${resultado.alertasEnviadas}`
-      );
+  `✅ ${resultado.message} | Estudiantes: ${resultado.resumen.totalEstudiantes} | Iniciales: ${resultado.resumen.alertasInicialesEnviadas} | Tardanzas: ${resultado.resumen.alertasTardanzaEnviadas} | Ausencias: ${resultado.resumen.ausenciasConfirmadasEnviadas} | Errores: ${resultado.resumen.erroresEnvio}`
+);
     } catch (error) {
       console.error("❌ Error en scheduler local:", error);
     }

@@ -208,6 +208,12 @@ export default function DashboardLayout({
               >
                 🟠 Tardanzas
               </Link>
+              <Link
+  href="/dashboard/ausentes"
+  className={linkClass("/dashboard/ausentes")}
+>
+  ❌ Ausentes
+</Link>
 
               <Link
                 href="/dashboard/reportes-mensuales"
@@ -291,6 +297,14 @@ export default function DashboardLayout({
     >
       ⏰ Turnos
     </Link>
+    <Link
+  href="/dashboard/automatizaciones"
+  className={linkClass(
+    "/dashboard/automatizaciones"
+  )}
+>
+  ⚙️ Automatizaciones
+</Link>
 
     <Link
       href="/dashboard/configuracion"
