@@ -1292,6 +1292,7 @@ export const TurnoScalarFieldEnum = {
   horaEntrada: 'horaEntrada',
   horaSalida: 'horaSalida',
   estado: 'estado',
+  minutosAlertaInicial: 'minutosAlertaInicial',
   margenAlertaMinutos: 'margenAlertaMinutos',
   createdAt: 'createdAt'
 } as const

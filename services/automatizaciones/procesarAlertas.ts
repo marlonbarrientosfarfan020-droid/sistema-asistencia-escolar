@@ -138,14 +138,15 @@ async function enviarYGuardarAlerta({
     };
   }
 
-  const enviado =
-    await enviarTelegram(chatId, mensaje);
+  const enviado = await enviarTelegram(
+    chatId,
+    mensaje
+  );
 
   if (!enviado) {
     return {
       enviada: false,
-      estado:
-        "No se pudo enviar Telegram",
+      estado: "No se pudo enviar Telegram",
     };
   }
 
@@ -175,6 +176,13 @@ export async function procesarAlertasAsistencia() {
     erroresEnvio: 0,
   };
 
+  /*
+   * INTERRUPTOR PRINCIPAL
+   *
+   * El cron puede seguir llamando a la API,
+   * pero no se procesará ninguna alerta si
+   * el motor está apagado.
+   */
   if (
     !configuracion.automatizacionesActivas
   ) {
@@ -197,6 +205,9 @@ export async function procesarAlertasAsistencia() {
     };
   }
 
+  /*
+   * VALIDACIÓN DEL MODO PRUEBA
+   */
   if (
     configuracion.modoPruebaAlertas &&
     !configuracion.telegramPruebaChatId.trim()
@@ -277,6 +288,9 @@ export async function procesarAlertasAsistencia() {
     const nombreCompleto =
       `${estudiante.nombres} ${estudiante.apellidos}`;
 
+    /*
+     * ESTUDIANTE SIN TURNO
+     */
     if (!estudiante.turno) {
       detalle.push({
         estudiante: nombreCompleto,
@@ -290,6 +304,26 @@ export async function procesarAlertasAsistencia() {
 
     const turno = estudiante.turno;
 
+    /*
+     * TURNO INACTIVO
+     *
+     * Aunque el estudiante esté activo, no se
+     * envían alertas si su turno está desactivado.
+     */
+    if (!turno.estado) {
+      detalle.push({
+        estudiante: nombreCompleto,
+        turno: turno.nombre,
+        tipo: "NINGUNA",
+        estado: "Turno inactivo",
+      });
+
+      continue;
+    }
+
+    /*
+     * DÍA NO LECTIVO
+     */
     const eventoNoLectivo =
       await obtenerEventoNoLectivo(
         estudiante.turnoId
@@ -308,6 +342,10 @@ export async function procesarAlertasAsistencia() {
       continue;
     }
 
+    /*
+     * SI YA MARCÓ ENTRADA, NO DEBE RECIBIR
+     * NINGUNA ALERTA PENDIENTE.
+     */
     const yaMarcoEntrada =
       estudiante.asistencias.some(
         (asistencia) =>
@@ -325,6 +363,15 @@ export async function procesarAlertasAsistencia() {
       continue;
     }
 
+    /*
+     * DESTINO DEL MENSAJE
+     *
+     * Modo prueba:
+     *   Telegram del administrador.
+     *
+     * Modo real:
+     *   Telegram del tutor del estudiante.
+     */
     const chatIdDestino =
       configuracion.modoPruebaAlertas
         ? configuracion.telegramPruebaChatId.trim()
@@ -343,6 +390,12 @@ export async function procesarAlertasAsistencia() {
       continue;
     }
 
+    /*
+     * PROTECCIÓN DEL MODO PRUEBA
+     *
+     * Se envían como máximo cinco mensajes
+     * nuevos por cada ejecución manual o del cron.
+     */
     if (
       configuracion.modoPruebaAlertas &&
       alertasModoPrueba >=
@@ -360,6 +413,9 @@ export async function procesarAlertasAsistencia() {
       continue;
     }
 
+    /*
+     * HORARIOS DEL TURNO
+     */
     const horaEntrada =
       fechaHoraTurno(
         turno.horaEntrada
@@ -370,12 +426,20 @@ export async function procesarAlertasAsistencia() {
         turno.horaSalida
       );
 
+    /*
+     * ALERTA 1:
+     * Hora de entrada + aviso inicial del turno.
+     */
     const limiteInicial =
       sumarMinutos(
         horaEntrada,
-        configuracion.minutosAlertaInicial
+        turno.minutosAlertaInicial
       );
 
+    /*
+     * ALERTA 2:
+     * Hora de entrada + margen de tardanza.
+     */
     const limiteTardanza =
       sumarMinutos(
         horaEntrada,
@@ -385,59 +449,113 @@ export async function procesarAlertasAsistencia() {
     let tipo: TipoAlerta | null = null;
     let mensaje = "";
     let tiposEquivalentes: string[] = [];
+    let etapaActual = "";
 
-    if (
-      ahora >= horaSalida &&
-      configuracion.alertaAusenciaActiva
-    ) {
-      tipo = "AUSENCIA_CONFIRMADA";
+    /*
+     * ETAPA 3: AUSENCIA CONFIRMADA
+     *
+     * Tiene prioridad cuando ya finalizó el turno.
+     * Si esta alerta está desactivada, no se debe
+     * retroceder y mandar una tardanza.
+     */
+    if (ahora >= horaSalida) {
+      etapaActual = "AUSENCIA_CONFIRMADA";
 
-      mensaje =
-        mensajeAusenciaConfirmada({
-          ...estudiante,
-          turno,
-        });
-    } else if (
-      ahora >= limiteTardanza &&
-      configuracion.alertaTardanzaActiva
-    ) {
-      tipo = "ALERTA_TARDANZA";
+      if (
+        configuracion.alertaAusenciaActiva
+      ) {
+        tipo = "AUSENCIA_CONFIRMADA";
 
-      tiposEquivalentes = [
-        "AUSENCIA_ENTRADA",
-      ];
-
-      mensaje = mensajeTardanza({
-        ...estudiante,
-        turno,
-      });
-    } else if (
-      ahora >= limiteInicial &&
-      configuracion
-        .alertaIngresoPendienteActiva
-    ) {
-      tipo = "INGRESO_PENDIENTE";
-
-      mensaje =
-        mensajeIngresoPendiente({
-          ...estudiante,
-          turno,
-        });
+        mensaje =
+          mensajeAusenciaConfirmada({
+            ...estudiante,
+            turno,
+          });
+      }
     }
 
+    /*
+     * ETAPA 2: ALERTA DE TARDANZA
+     *
+     * Solamente se evalúa antes de finalizar
+     * el turno.
+     */
+    else if (ahora >= limiteTardanza) {
+      etapaActual = "ALERTA_TARDANZA";
+
+      if (
+        configuracion.alertaTardanzaActiva
+      ) {
+        tipo = "ALERTA_TARDANZA";
+
+        tiposEquivalentes = [
+          "AUSENCIA_ENTRADA",
+        ];
+
+        mensaje = mensajeTardanza({
+          ...estudiante,
+          turno,
+        });
+      }
+    }
+
+    /*
+     * ETAPA 1: INGRESO PENDIENTE
+     *
+     * Se ejecuta después de los minutos de aviso
+     * inicial y antes del margen de tardanza.
+     */
+    else if (ahora >= limiteInicial) {
+      etapaActual = "INGRESO_PENDIENTE";
+
+      if (
+        configuracion
+          .alertaIngresoPendienteActiva
+      ) {
+        tipo = "INGRESO_PENDIENTE";
+
+        mensaje =
+          mensajeIngresoPendiente({
+            ...estudiante,
+            turno,
+          });
+      }
+    }
+
+    /*
+     * TODAVÍA NO LLEGÓ EL MOMENTO DEL
+     * AVISO INICIAL.
+     */
+    else {
+      etapaActual =
+        "ANTES_DEL_AVISO_INICIAL";
+    }
+
+    /*
+     * SI LA ETAPA CORRESPONDE, PERO ESA ALERTA
+     * ESTÁ DESACTIVADA, NO SE ENVÍA OTRA ALERTA
+     * ANTERIOR.
+     */
     if (!tipo) {
+      const estado =
+        etapaActual ===
+        "ANTES_DEL_AVISO_INICIAL"
+          ? "Aún no corresponde enviar alerta"
+          : `La alerta ${etapaActual} está desactivada`;
+
       detalle.push({
         estudiante: nombreCompleto,
         turno: turno.nombre,
-        tipo: "NINGUNA",
-
-        estado:
-          "Aún no corresponde enviar alerta",
+        tipo: etapaActual,
+        estado,
       });
 
       continue;
     }
 
+    /*
+     * ENVÍO Y REGISTRO
+     */
     const resultado =
       await enviarYGuardarAlerta({
         estudianteId: estudiante.id,
@@ -504,6 +622,9 @@ export async function procesarAlertasAsistencia() {
     `Ausencias: ${ausenciasConfirmadasEnviadas} | ` +
     `Errores: ${erroresEnvio}`;
 
+  /*
+   * GUARDAR ESTADO DE LA EJECUCIÓN
+   */
   await prisma.configuracion.update({
     where: {
       id: configuracion.id,

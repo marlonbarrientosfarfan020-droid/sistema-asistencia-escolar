@@ -28,11 +28,13 @@ export type AggregateTurno = {
 
 export type TurnoAvgAggregateOutputType = {
   id: number | null
+  minutosAlertaInicial: number | null
   margenAlertaMinutos: number | null
 }
 
 export type TurnoSumAggregateOutputType = {
   id: number | null
+  minutosAlertaInicial: number | null
   margenAlertaMinutos: number | null
 }
 
@@ -42,6 +44,7 @@ export type TurnoMinAggregateOutputType = {
   horaEntrada: string | null
   horaSalida: string | null
   estado: boolean | null
+  minutosAlertaInicial: number | null
   margenAlertaMinutos: number | null
   createdAt: Date | null
 }
@@ -52,6 +55,7 @@ export type TurnoMaxAggregateOutputType = {
   horaEntrada: string | null
   horaSalida: string | null
   estado: boolean | null
+  minutosAlertaInicial: number | null
   margenAlertaMinutos: number | null
   createdAt: Date | null
 }
@@ -62,6 +66,7 @@ export type TurnoCountAggregateOutputType = {
   horaEntrada: number
   horaSalida: number
   estado: number
+  minutosAlertaInicial: number
   margenAlertaMinutos: number
   createdAt: number
   _all: number
@@ -70,11 +75,13 @@ export type TurnoCountAggregateOutputType = {
 
 export type TurnoAvgAggregateInputType = {
   id?: true
+  minutosAlertaInicial?: true
   margenAlertaMinutos?: true
 }
 
 export type TurnoSumAggregateInputType = {
   id?: true
+  minutosAlertaInicial?: true
   margenAlertaMinutos?: true
 }
 
@@ -84,6 +91,7 @@ export type TurnoMinAggregateInputType = {
   horaEntrada?: true
   horaSalida?: true
   estado?: true
+  minutosAlertaInicial?: true
   margenAlertaMinutos?: true
   createdAt?: true
 }
@@ -94,6 +102,7 @@ export type TurnoMaxAggregateInputType = {
   horaEntrada?: true
   horaSalida?: true
   estado?: true
+  minutosAlertaInicial?: true
   margenAlertaMinutos?: true
   createdAt?: true
 }
@@ -104,6 +113,7 @@ export type TurnoCountAggregateInputType = {
   horaEntrada?: true
   horaSalida?: true
   estado?: true
+  minutosAlertaInicial?: true
   margenAlertaMinutos?: true
   createdAt?: true
   _all?: true
@@ -201,6 +211,7 @@ export type TurnoGroupByOutputType = {
   horaEntrada: string
   horaSalida: string
   estado: boolean
+  minutosAlertaInicial: number
   margenAlertaMinutos: number
   createdAt: Date
   _count: TurnoCountAggregateOutputType | null
@@ -234,6 +245,7 @@ export type TurnoWhereInput = {
   horaEntrada?: Prisma.StringFilter<"Turno"> | string
   horaSalida?: Prisma.StringFilter<"Turno"> | string
   estado?: Prisma.BoolFilter<"Turno"> | boolean
+  minutosAlertaInicial?: Prisma.IntFilter<"Turno"> | number
   margenAlertaMinutos?: Prisma.IntFilter<"Turno"> | number
   createdAt?: Prisma.DateTimeFilter<"Turno"> | Date | string
   estudiantes?: Prisma.EstudianteListRelationFilter
@@ -246,6 +258,7 @@ export type TurnoOrderByWithRelationInput = {
   horaEntrada?: Prisma.SortOrder
   horaSalida?: Prisma.SortOrder
   estado?: Prisma.SortOrder
+  minutosAlertaInicial?: Prisma.SortOrder
   margenAlertaMinutos?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   estudiantes?: Prisma.EstudianteOrderByRelationAggregateInput
@@ -261,6 +274,7 @@ export type TurnoWhereUniqueInput = Prisma.AtLeast<{
   horaEntrada?: Prisma.StringFilter<"Turno"> | string
   horaSalida?: Prisma.StringFilter<"Turno"> | string
   estado?: Prisma.BoolFilter<"Turno"> | boolean
+  minutosAlertaInicial?: Prisma.IntFilter<"Turno"> | number
   margenAlertaMinutos?: Prisma.IntFilter<"Turno"> | number
   createdAt?: Prisma.DateTimeFilter<"Turno"> | Date | string
   estudiantes?: Prisma.EstudianteListRelationFilter
@@ -273,6 +287,7 @@ export type TurnoOrderByWithAggregationInput = {
   horaEntrada?: Prisma.SortOrder
   horaSalida?: Prisma.SortOrder
   estado?: Prisma.SortOrder
+  minutosAlertaInicial?: Prisma.SortOrder
   margenAlertaMinutos?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.TurnoCountOrderByAggregateInput
@@ -291,6 +306,7 @@ export type TurnoScalarWhereWithAggregatesInput = {
   horaEntrada?: Prisma.StringWithAggregatesFilter<"Turno"> | string
   horaSalida?: Prisma.StringWithAggregatesFilter<"Turno"> | string
   estado?: Prisma.BoolWithAggregatesFilter<"Turno"> | boolean
+  minutosAlertaInicial?: Prisma.IntWithAggregatesFilter<"Turno"> | number
   margenAlertaMinutos?: Prisma.IntWithAggregatesFilter<"Turno"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Turno"> | Date | string
 }
@@ -300,6 +316,7 @@ export type TurnoCreateInput = {
   horaEntrada: string
   horaSalida: string
   estado?: boolean
+  minutosAlertaInicial?: number
   margenAlertaMinutos?: number
   createdAt?: Date | string
   estudiantes?: Prisma.EstudianteCreateNestedManyWithoutTurnoInput
@@ -312,6 +329,7 @@ export type TurnoUncheckedCreateInput = {
   horaEntrada: string
   horaSalida: string
   estado?: boolean
+  minutosAlertaInicial?: number
   margenAlertaMinutos?: number
   createdAt?: Date | string
   estudiantes?: Prisma.EstudianteUncheckedCreateNestedManyWithoutTurnoInput
@@ -323,6 +341,7 @@ export type TurnoUpdateInput = {
   horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
   horaSalida?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  minutosAlertaInicial?: Prisma.IntFieldUpdateOperationsInput | number
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   estudiantes?: Prisma.EstudianteUpdateManyWithoutTurnoNestedInput
@@ -335,6 +354,7 @@ export type TurnoUncheckedUpdateInput = {
   horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
   horaSalida?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  minutosAlertaInicial?: Prisma.IntFieldUpdateOperationsInput | number
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   estudiantes?: Prisma.EstudianteUncheckedUpdateManyWithoutTurnoNestedInput
@@ -347,6 +367,7 @@ export type TurnoCreateManyInput = {
   horaEntrada: string
   horaSalida: string
   estado?: boolean
+  minutosAlertaInicial?: number
   margenAlertaMinutos?: number
   createdAt?: Date | string
 }
@@ -356,6 +377,7 @@ export type TurnoUpdateManyMutationInput = {
   horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
   horaSalida?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  minutosAlertaInicial?: Prisma.IntFieldUpdateOperationsInput | number
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -366,6 +388,7 @@ export type TurnoUncheckedUpdateManyInput = {
   horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
   horaSalida?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  minutosAlertaInicial?: Prisma.IntFieldUpdateOperationsInput | number
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -381,12 +404,14 @@ export type TurnoCountOrderByAggregateInput = {
   horaEntrada?: Prisma.SortOrder
   horaSalida?: Prisma.SortOrder
   estado?: Prisma.SortOrder
+  minutosAlertaInicial?: Prisma.SortOrder
   margenAlertaMinutos?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type TurnoAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  minutosAlertaInicial?: Prisma.SortOrder
   margenAlertaMinutos?: Prisma.SortOrder
 }
 
@@ -396,6 +421,7 @@ export type TurnoMaxOrderByAggregateInput = {
   horaEntrada?: Prisma.SortOrder
   horaSalida?: Prisma.SortOrder
   estado?: Prisma.SortOrder
+  minutosAlertaInicial?: Prisma.SortOrder
   margenAlertaMinutos?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -406,12 +432,14 @@ export type TurnoMinOrderByAggregateInput = {
   horaEntrada?: Prisma.SortOrder
   horaSalida?: Prisma.SortOrder
   estado?: Prisma.SortOrder
+  minutosAlertaInicial?: Prisma.SortOrder
   margenAlertaMinutos?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type TurnoSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  minutosAlertaInicial?: Prisma.SortOrder
   margenAlertaMinutos?: Prisma.SortOrder
 }
 
@@ -452,6 +480,7 @@ export type TurnoCreateWithoutEstudiantesInput = {
   horaEntrada: string
   horaSalida: string
   estado?: boolean
+  minutosAlertaInicial?: number
   margenAlertaMinutos?: number
   createdAt?: Date | string
   calendarioEscolar?: Prisma.CalendarioEscolarCreateNestedManyWithoutTurnoInput
@@ -463,6 +492,7 @@ export type TurnoUncheckedCreateWithoutEstudiantesInput = {
   horaEntrada: string
   horaSalida: string
   estado?: boolean
+  minutosAlertaInicial?: number
   margenAlertaMinutos?: number
   createdAt?: Date | string
   calendarioEscolar?: Prisma.CalendarioEscolarUncheckedCreateNestedManyWithoutTurnoInput
@@ -489,6 +519,7 @@ export type TurnoUpdateWithoutEstudiantesInput = {
   horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
   horaSalida?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  minutosAlertaInicial?: Prisma.IntFieldUpdateOperationsInput | number
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   calendarioEscolar?: Prisma.CalendarioEscolarUpdateManyWithoutTurnoNestedInput
@@ -500,6 +531,7 @@ export type TurnoUncheckedUpdateWithoutEstudiantesInput = {
   horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
   horaSalida?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  minutosAlertaInicial?: Prisma.IntFieldUpdateOperationsInput | number
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   calendarioEscolar?: Prisma.CalendarioEscolarUncheckedUpdateManyWithoutTurnoNestedInput
@@ -510,6 +542,7 @@ export type TurnoCreateWithoutCalendarioEscolarInput = {
   horaEntrada: string
   horaSalida: string
   estado?: boolean
+  minutosAlertaInicial?: number
   margenAlertaMinutos?: number
   createdAt?: Date | string
   estudiantes?: Prisma.EstudianteCreateNestedManyWithoutTurnoInput
@@ -521,6 +554,7 @@ export type TurnoUncheckedCreateWithoutCalendarioEscolarInput = {
   horaEntrada: string
   horaSalida: string
   estado?: boolean
+  minutosAlertaInicial?: number
   margenAlertaMinutos?: number
   createdAt?: Date | string
   estudiantes?: Prisma.EstudianteUncheckedCreateNestedManyWithoutTurnoInput
@@ -547,6 +581,7 @@ export type TurnoUpdateWithoutCalendarioEscolarInput = {
   horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
   horaSalida?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  minutosAlertaInicial?: Prisma.IntFieldUpdateOperationsInput | number
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   estudiantes?: Prisma.EstudianteUpdateManyWithoutTurnoNestedInput
@@ -558,6 +593,7 @@ export type TurnoUncheckedUpdateWithoutCalendarioEscolarInput = {
   horaEntrada?: Prisma.StringFieldUpdateOperationsInput | string
   horaSalida?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  minutosAlertaInicial?: Prisma.IntFieldUpdateOperationsInput | number
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   estudiantes?: Prisma.EstudianteUncheckedUpdateManyWithoutTurnoNestedInput
@@ -609,6 +645,7 @@ export type TurnoSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   horaEntrada?: boolean
   horaSalida?: boolean
   estado?: boolean
+  minutosAlertaInicial?: boolean
   margenAlertaMinutos?: boolean
   createdAt?: boolean
   estudiantes?: boolean | Prisma.Turno$estudiantesArgs<ExtArgs>
@@ -622,6 +659,7 @@ export type TurnoSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   horaEntrada?: boolean
   horaSalida?: boolean
   estado?: boolean
+  minutosAlertaInicial?: boolean
   margenAlertaMinutos?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["turno"]>
@@ -632,6 +670,7 @@ export type TurnoSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   horaEntrada?: boolean
   horaSalida?: boolean
   estado?: boolean
+  minutosAlertaInicial?: boolean
   margenAlertaMinutos?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["turno"]>
@@ -642,11 +681,12 @@ export type TurnoSelectScalar = {
   horaEntrada?: boolean
   horaSalida?: boolean
   estado?: boolean
+  minutosAlertaInicial?: boolean
   margenAlertaMinutos?: boolean
   createdAt?: boolean
 }
 
-export type TurnoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nombre" | "horaEntrada" | "horaSalida" | "estado" | "margenAlertaMinutos" | "createdAt", ExtArgs["result"]["turno"]>
+export type TurnoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nombre" | "horaEntrada" | "horaSalida" | "estado" | "minutosAlertaInicial" | "margenAlertaMinutos" | "createdAt", ExtArgs["result"]["turno"]>
 export type TurnoInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   estudiantes?: boolean | Prisma.Turno$estudiantesArgs<ExtArgs>
   calendarioEscolar?: boolean | Prisma.Turno$calendarioEscolarArgs<ExtArgs>
@@ -667,6 +707,7 @@ export type $TurnoPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     horaEntrada: string
     horaSalida: string
     estado: boolean
+    minutosAlertaInicial: number
     margenAlertaMinutos: number
     createdAt: Date
   }, ExtArgs["result"]["turno"]>
@@ -1099,6 +1140,7 @@ export interface TurnoFieldRefs {
   readonly horaEntrada: Prisma.FieldRef<"Turno", 'String'>
   readonly horaSalida: Prisma.FieldRef<"Turno", 'String'>
   readonly estado: Prisma.FieldRef<"Turno", 'Boolean'>
+  readonly minutosAlertaInicial: Prisma.FieldRef<"Turno", 'Int'>
   readonly margenAlertaMinutos: Prisma.FieldRef<"Turno", 'Int'>
   readonly createdAt: Prisma.FieldRef<"Turno", 'DateTime'>
 }

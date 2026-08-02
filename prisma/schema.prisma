@@ -31,16 +31,22 @@ model Estudiante {
 }
 
 model Turno {
-  id                   Int      @id @default(autoincrement())
-  nombre               String   @unique
-  horaEntrada          String
-  horaSalida           String
-  estado               Boolean  @default(true)
-  margenAlertaMinutos  Int      @default(120)
-  createdAt            DateTime @default(now())
+  id                      Int      @id @default(autoincrement())
+  nombre                  String   @unique
+  horaEntrada             String
+  horaSalida              String
+  estado                  Boolean  @default(true)
 
-  estudiantes          Estudiante[]
-  calendarioEscolar    CalendarioEscolar[]
+  // Primera alerta: todavía está dentro del margen
+  minutosAlertaInicial    Int      @default(5)
+
+  // Segunda alerta y límite para considerarlo puntual
+  margenAlertaMinutos     Int      @default(15)
+
+  createdAt               DateTime @default(now())
+
+  estudiantes             Estudiante[]
+  calendarioEscolar       CalendarioEscolar[]
 }
 
 model Asistencia {
