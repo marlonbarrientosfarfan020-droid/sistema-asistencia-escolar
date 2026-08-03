@@ -17,11 +17,15 @@ function fechaActualPeru() {
 }
 
 function fechaInicioPeru(fecha: string) {
-  return new Date(`${fecha}T00:00:00.000-05:00`);
+  return new Date(
+    `${fecha}T00:00:00.000-05:00`
+  );
 }
 
 function fechaFinPeru(fecha: string) {
-  return new Date(`${fecha}T23:59:59.999-05:00`);
+  return new Date(
+    `${fecha}T23:59:59.999-05:00`
+  );
 }
 
 function fechaCalendarioBD(fecha: string) {
@@ -29,7 +33,9 @@ function fechaCalendarioBD(fecha: string) {
    * CalendarioEscolar utiliza @db.Date.
    * Por eso se compara usando medianoche UTC.
    */
-  return new Date(`${fecha}T00:00:00.000Z`);
+  return new Date(
+    `${fecha}T00:00:00.000Z`
+  );
 }
 
 function fechaHoraTurno(
@@ -37,7 +43,9 @@ function fechaHoraTurno(
   hora: string
 ) {
   const horaNormalizada =
-    /^\d{2}:\d{2}$/.test(hora)
+    /^([01]\d|2[0-3]):[0-5]\d$/.test(
+      hora
+    )
       ? hora
       : "00:00";
 
@@ -47,33 +55,51 @@ function fechaHoraTurno(
 }
 
 function ahoraPeru() {
-  const partes = new Intl.DateTimeFormat("en-CA", {
-    timeZone: ZONA_HORARIA,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).formatToParts(new Date());
+  const partes =
+    new Intl.DateTimeFormat(
+      "en-CA",
+      {
+        timeZone: ZONA_HORARIA,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      }
+    ).formatToParts(new Date());
 
   const obtener = (
     tipo: Intl.DateTimeFormatPartTypes
   ) =>
-    partes.find((parte) => parte.type === tipo)
-      ?.value || "00";
+    partes.find(
+      (parte) =>
+        parte.type === tipo
+    )?.value || "00";
 
   return new Date(
-    `${obtener("year")}-${obtener("month")}-${obtener(
-      "day"
-    )}T${obtener("hour")}:${obtener(
+    `${obtener("year")}-${obtener(
+      "month"
+    )}-${obtener("day")}T${obtener(
+      "hour"
+    )}:${obtener(
       "minute"
     )}:${obtener("second")}-05:00`
   );
 }
 
-export async function GET(request: Request) {
+function fechaValida(
+  valor: string
+) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(
+    valor
+  );
+}
+
+export async function GET(
+  request: Request
+) {
   const acceso =
     await exigirAdminDemoOPersonal();
 
@@ -82,9 +108,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { searchParams } = new URL(
-      request.url
-    );
+    const { searchParams } =
+      new URL(request.url);
 
     const fecha =
       searchParams.get("fecha") ||
@@ -104,11 +129,27 @@ export async function GET(request: Request) {
 
     const seccion = String(
       searchParams.get("seccion") || ""
-    ).trim();
+    )
+      .trim()
+      .toUpperCase();
 
-    const turnoId = turnoIdTexto
-      ? Number(turnoIdTexto)
-      : undefined;
+    if (!fechaValida(fecha)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "La fecha seleccionada no es válida",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const turnoId =
+      turnoIdTexto
+        ? Number(turnoIdTexto)
+        : undefined;
 
     if (
       turnoIdTexto &&
@@ -118,7 +159,8 @@ export async function GET(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          message: "El turno seleccionado no es válido",
+          message:
+            "El turno seleccionado no es válido",
         },
         {
           status: 400,
@@ -135,38 +177,44 @@ export async function GET(request: Request) {
     const fechaBD =
       fechaCalendarioBD(fecha);
 
-    const hoy = fechaActualPeru();
-    const ahora = ahoraPeru();
+    const hoy =
+      fechaActualPeru();
+
+    const ahora =
+      ahoraPeru();
 
     /*
      * Eventos no lectivos correspondientes
      * a la fecha consultada.
      */
     const eventosNoLectivos =
-      await prisma.calendarioEscolar.findMany({
-        where: {
-          estado: true,
+      await prisma.calendarioEscolar.findMany(
+        {
+          where: {
+            estado: true,
 
-          fechaInicio: {
-            lte: fechaBD,
+            fechaInicio: {
+              lte: fechaBD,
+            },
+
+            fechaFin: {
+              gte: fechaBD,
+            },
           },
 
-          fechaFin: {
-            gte: fechaBD,
+          select: {
+            id: true,
+            descripcion: true,
+            todosLosTurnos: true,
+            turnoId: true,
           },
-        },
-
-        select: {
-          id: true,
-          descripcion: true,
-          todosLosTurnos: true,
-          turnoId: true,
-        },
-      });
+        }
+      );
 
     const diaNoLectivoGeneral =
       eventosNoLectivos.some(
-        (evento) => evento.todosLosTurnos
+        (evento) =>
+          evento.todosLosTurnos
       );
 
     function turnoEsNoLectivo(
@@ -176,235 +224,300 @@ export async function GET(request: Request) {
         (evento) =>
           evento.todosLosTurnos ||
           (!evento.todosLosTurnos &&
-            evento.turnoId === idTurno)
+            evento.turnoId ===
+              idTurno)
       );
     }
 
     /*
-     * Obtiene los estudiantes activos
-     * aplicando los filtros seleccionados.
+     * Obtiene únicamente estudiantes activos.
+     *
+     * La comprobación definitiva del estado
+     * del turno se realiza también en el filtro
+     * para impedir falsos ausentes.
      */
     const estudiantes =
-      await prisma.estudiante.findMany({
-        where: {
-          estado: true,
+      await prisma.estudiante.findMany(
+        {
+          where: {
+            estado: true,
 
-          dni: dni
-            ? {
-                contains: dni,
-              }
-            : undefined,
+            dni: dni
+              ? {
+                  contains: dni,
+                }
+              : undefined,
 
-          turnoId,
+            turnoId,
 
-          grado: grado || undefined,
+            grado:
+              grado || undefined,
 
-          seccion: seccion || undefined,
-        },
+            seccion:
+              seccion || undefined,
+          },
 
-        include: {
-          turno: true,
+          include: {
+            turno: true,
 
-          asistencias: {
-            where: {
-              fecha: {
-                gte: inicioDia,
-                lte: finDia,
+            asistencias: {
+              where: {
+                fecha: {
+                  gte: inicioDia,
+                  lte: finDia,
+                },
+              },
+
+              select: {
+                id: true,
+                horaEntrada: true,
+                estado: true,
               },
             },
 
-            select: {
-              id: true,
-              horaEntrada: true,
-              estado: true,
+            alertasAsistencia: {
+              where: {
+                fecha,
+                tipo:
+                  "AUSENCIA_CONFIRMADA",
+              },
+
+              select: {
+                id: true,
+                createdAt: true,
+                tipo: true,
+              },
             },
           },
 
-          alertasAsistencia: {
-            where: {
-              fecha,
-              tipo: "AUSENCIA_CONFIRMADA",
+          orderBy: [
+            {
+              turnoId: "asc",
             },
-
-            select: {
-              id: true,
-              createdAt: true,
-              tipo: true,
+            {
+              grado: "asc",
             },
-          },
-        },
-
-        orderBy: [
-          {
-            turnoId: "asc",
-          },
-          {
-            grado: "asc",
-          },
-          {
-            seccion: "asc",
-          },
-          {
-            apellidos: "asc",
-          },
-          {
-            nombres: "asc",
-          },
-        ],
-      });
-
-    const ausentes = estudiantes
-      .filter((estudiante) => {
-        /*
-         * Un estudiante sin turno no puede
-         * evaluarse automáticamente.
-         */
-        if (!estudiante.turno) {
-          return false;
+            {
+              seccion: "asc",
+            },
+            {
+              apellidos: "asc",
+            },
+            {
+              nombres: "asc",
+            },
+          ],
         }
+      );
 
-        /*
-         * No se consideran ausencias durante
-         * días no lectivos.
-         */
-        if (
-          turnoEsNoLectivo(
-            estudiante.turnoId
-          )
-        ) {
-          return false;
-        }
+    const ausentes =
+      estudiantes
+        .filter(
+          (estudiante) => {
+            /*
+             * Un estudiante sin turno no puede
+             * evaluarse automáticamente.
+             */
+            if (
+              !estudiante.turno
+            ) {
+              return false;
+            }
 
-        /*
-         * Si registró una entrada, no está ausente.
-         */
-        const registroEntrada =
-          estudiante.asistencias.some(
-            (asistencia) =>
-              asistencia.horaEntrada !== null
-          );
+            /*
+             * CORRECCIÓN PRINCIPAL:
+             *
+             * Los estudiantes de turnos
+             * desactivados nunca deben aparecer
+             * como ausentes ni generar alertas.
+             */
+            if (
+              !estudiante.turno
+                .estado
+            ) {
+              return false;
+            }
 
-        if (registroEntrada) {
-          return false;
-        }
+            /*
+             * No se consideran ausencias durante
+             * días no lectivos.
+             */
+            if (
+              turnoEsNoLectivo(
+                estudiante.turnoId
+              )
+            ) {
+              return false;
+            }
 
-        /*
-         * Para fechas anteriores, si no marcó,
-         * ya se considera ausente.
-         */
-        if (fecha < hoy) {
-          return true;
-        }
+            /*
+             * Si registró entrada,
+             * no está ausente.
+             */
+            const registroEntrada =
+              estudiante.asistencias.some(
+                (asistencia) =>
+                  asistencia.horaEntrada !==
+                  null
+              );
 
-        /*
-         * No se permite consultar fechas futuras
-         * como ausencias confirmadas.
-         */
-        if (fecha > hoy) {
-          return false;
-        }
+            if (registroEntrada) {
+              return false;
+            }
 
-        /*
-         * Si la consulta corresponde a hoy,
-         * solamente aparece como ausente cuando
-         * terminó su turno.
-         */
-        const horaFinTurno =
-          fechaHoraTurno(
-            fecha,
-            estudiante.turno.horaSalida
-          );
+            /*
+             * Fechas futuras nunca pueden
+             * considerarse ausencias.
+             */
+            if (fecha > hoy) {
+              return false;
+            }
 
-        return ahora >= horaFinTurno;
-      })
-      .map((estudiante) => {
-        const alerta =
-          estudiante.alertasAsistencia[0] ||
-          null;
+            /*
+             * Para fechas anteriores:
+             * si el turno estaba habilitado y
+             * no existe entrada, se considera
+             * ausente.
+             */
+            if (fecha < hoy) {
+              return true;
+            }
 
-        return {
-          id: estudiante.id,
-          codigo: estudiante.codigo,
-          dni: estudiante.dni,
-          nombres: estudiante.nombres,
-          apellidos: estudiante.apellidos,
-          grado: estudiante.grado,
-          seccion: estudiante.seccion,
+            /*
+             * Para hoy, solamente se confirma
+             * la ausencia después de finalizar
+             * el turno activo.
+             */
+            const horaFinTurno =
+              fechaHoraTurno(
+                fecha,
+                estudiante.turno
+                  .horaSalida
+              );
 
-          nombreTutor:
-            estudiante.nombreTutor,
+            return (
+              ahora >=
+              horaFinTurno
+            );
+          }
+        )
+        .map(
+          (estudiante) => {
+            const alerta =
+              estudiante
+                .alertasAsistencia[0] ||
+              null;
 
-          whatsapp:
-            estudiante.whatsapp,
+            return {
+              id: estudiante.id,
+              codigo:
+                estudiante.codigo,
+              dni: estudiante.dni,
+              nombres:
+                estudiante.nombres,
+              apellidos:
+                estudiante.apellidos,
+              grado:
+                estudiante.grado,
+              seccion:
+                estudiante.seccion,
 
-          telegramChatId:
-            estudiante.telegramChatId,
+              nombreTutor:
+                estudiante.nombreTutor,
 
-          turno: estudiante.turno
-            ? {
-                id: estudiante.turno.id,
+              whatsapp:
+                estudiante.whatsapp,
+
+              telegramChatId:
+                estudiante.telegramChatId,
+
+              turno: {
+                id:
+                  estudiante.turno!.id,
+
                 nombre:
-                  estudiante.turno.nombre,
+                  estudiante.turno!
+                    .nombre,
+
                 horaEntrada:
-                  estudiante.turno
+                  estudiante.turno!
                     .horaEntrada,
+
                 horaSalida:
-                  estudiante.turno
+                  estudiante.turno!
                     .horaSalida,
-              }
-            : null,
 
-          estado: "AUSENTE",
+                activo:
+                  estudiante.turno!
+                    .estado,
+              },
 
-          motivo:
-            "No registró ingreso durante todo el turno",
+              estado: "AUSENTE",
 
-          alertaEnviada:
-            Boolean(alerta),
+              motivo:
+                "No registró ingreso durante todo el turno activo",
 
-          fechaAlerta:
-            alerta?.createdAt || null,
-        };
-      });
+              alertaEnviada:
+                Boolean(alerta),
 
+              fechaAlerta:
+                alerta?.createdAt ||
+                null,
+            };
+          }
+        );
+
+    /*
+     * Los filtros solamente deben mostrar
+     * turnos que se encuentren activos.
+     */
     const turnos =
-      await prisma.turno.findMany({
-        where: {
-          estado: true,
-        },
+      await prisma.turno.findMany(
+        {
+          where: {
+            estado: true,
+          },
 
-        select: {
-          id: true,
-          nombre: true,
-          horaEntrada: true,
-          horaSalida: true,
-        },
+          select: {
+            id: true,
+            nombre: true,
+            horaEntrada: true,
+            horaSalida: true,
+            estado: true,
+          },
 
-        orderBy: {
-          id: "asc",
-        },
-      });
+          orderBy: {
+            id: "asc",
+          },
+        }
+      );
 
     return NextResponse.json({
       ok: true,
       fecha,
 
       diaNoLectivo:
-        eventosNoLectivos.length > 0,
+        eventosNoLectivos.length >
+        0,
 
       diaNoLectivoGeneral,
 
-      total: ausentes.length,
+      total:
+        ausentes.length,
 
-      alertasEnviadas: ausentes.filter(
-        (estudiante) =>
-          estudiante.alertaEnviada
-      ).length,
+      alertasEnviadas:
+        ausentes.filter(
+          (estudiante) =>
+            estudiante
+              .alertaEnviada
+        ).length,
 
-      alertasPendientes: ausentes.filter(
-        (estudiante) =>
-          !estudiante.alertaEnviada
-      ).length,
+      alertasPendientes:
+        ausentes.filter(
+          (estudiante) =>
+            !estudiante
+              .alertaEnviada
+        ).length,
 
       turnos,
       ausentes,
