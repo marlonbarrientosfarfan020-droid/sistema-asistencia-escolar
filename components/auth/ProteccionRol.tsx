@@ -1,7 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  usePathname,
+  useRouter,
+} from "next/navigation";
 
 type RolUsuario =
   | "ADMIN"
@@ -14,6 +21,16 @@ type Props = {
   children: React.ReactNode;
 };
 
+type RespuestaSesion = {
+  autenticado?: boolean;
+  usuario?: {
+    id?: number;
+    nombre?: string;
+    rol?: string;
+  } | null;
+  message?: string;
+};
+
 export default function ProteccionRol({
   rolesPermitidos,
   children,
@@ -21,13 +38,39 @@ export default function ProteccionRol({
   const router = useRouter();
   const pathname = usePathname();
 
-  const [verificando, setVerificando] = useState(true);
-  const [autorizado, setAutorizado] = useState(false);
+  const [verificando, setVerificando] =
+    useState(true);
+
+  const [autorizado, setAutorizado] =
+    useState(false);
+
+  /*
+   * Evita ejecutar el efecto infinitamente cuando
+   * el componente padre envía un arreglo literal:
+   *
+   * rolesPermitidos={[
+   *   "ADMIN",
+   *   "DIRECTIVO",
+   *   "DEMO"
+   * ]}
+   */
+  const claveRoles = useMemo(
+    () =>
+      [...rolesPermitidos]
+        .sort()
+        .join("|"),
+    [rolesPermitidos]
+  );
 
   useEffect(() => {
     let componenteActivo = true;
 
     async function verificarPermiso() {
+      if (componenteActivo) {
+        setVerificando(true);
+        setAutorizado(false);
+      }
+
       try {
         const respuesta = await fetch(
           "/api/auth/sesion",
@@ -35,28 +78,85 @@ export default function ProteccionRol({
             method: "GET",
             credentials: "include",
             cache: "no-store",
+            headers: {
+              Accept: "application/json",
+              "Cache-Control": "no-cache",
+            },
           }
         );
 
-        if (respuesta.status === 401) {
-          router.replace(
-            `/login?retorno=${encodeURIComponent(pathname)}`
+        const tipoContenido =
+          respuesta.headers.get(
+            "content-type"
+          ) || "";
+
+        if (
+          !tipoContenido.includes(
+            "application/json"
+          )
+        ) {
+          const contenido =
+            await respuesta.text();
+
+          console.error(
+            "La API de sesión no devolvió JSON:",
+            {
+              status: respuesta.status,
+              contenido:
+                contenido.slice(0, 200),
+            }
           );
+
+          throw new Error(
+            "La ruta /api/auth/sesion no está disponible correctamente"
+          );
+        }
+
+        const data =
+          (await respuesta.json()) as RespuestaSesion;
+
+        if (
+          respuesta.status === 401 ||
+          !data.autenticado
+        ) {
+          if (componenteActivo) {
+            router.replace(
+              `/login?retorno=${encodeURIComponent(
+                pathname
+              )}`
+            );
+          }
+
           return;
         }
 
-        const data = await respuesta.json();
+        if (!respuesta.ok) {
+          throw new Error(
+            data.message ||
+              "No se pudo comprobar la sesión"
+          );
+        }
 
         const rol = String(
-          data?.usuario?.rol || ""
+          data.usuario?.rol || ""
         ).toUpperCase() as RolUsuario;
 
-        if (!rolesPermitidos.includes(rol)) {
-          router.replace(
-            `/dashboard/acceso-denegado?desde=${encodeURIComponent(
-              pathname
-            )}`
-          );
+        const listaPermitida =
+          claveRoles.split(
+            "|"
+          ) as RolUsuario[];
+
+        if (
+          !listaPermitida.includes(rol)
+        ) {
+          if (componenteActivo) {
+            router.replace(
+              `/dashboard/acceso-denegado?desde=${encodeURIComponent(
+                pathname
+              )}`
+            );
+          }
+
           return;
         }
 
@@ -69,7 +169,13 @@ export default function ProteccionRol({
           error
         );
 
-        router.replace("/login");
+        if (componenteActivo) {
+          router.replace(
+            `/login?retorno=${encodeURIComponent(
+              pathname
+            )}`
+          );
+        }
       } finally {
         if (componenteActivo) {
           setVerificando(false);
@@ -82,19 +188,25 @@ export default function ProteccionRol({
     return () => {
       componenteActivo = false;
     };
-  }, [pathname, rolesPermitidos, router]);
+  }, [
+    pathname,
+    router,
+    claveRoles,
+  ]);
 
   if (verificando) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center p-6">
-        <div className="rounded-3xl border border-blue-200 bg-white px-8 py-7 text-center shadow-lg">
-          <div className="text-4xl">🔐</div>
+      <div className="flex min-h-[70vh] items-center justify-center bg-slate-950 p-6">
+        <div className="rounded-3xl border border-blue-500/30 bg-slate-900 px-8 py-7 text-center shadow-2xl">
+          <div className="text-4xl">
+            🔐
+          </div>
 
-          <p className="mt-4 text-lg font-black text-slate-900">
+          <p className="mt-4 text-lg font-black text-white">
             Verificando permisos
           </p>
 
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-400">
             Espere un momento...
           </p>
         </div>

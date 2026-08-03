@@ -26,14 +26,73 @@ export default function LoginPage() {
   const [modalOlvido, setModalOlvido] = useState(false);
   const [cargando, setCargando] = useState(false);
 
-  useEffect(() => {
-    const logueado = localStorage.getItem("logueado");
-    const rol = localStorage.getItem("rol");
+ useEffect(() => {
+  let activo = true;
 
-    if (logueado === "true") {
-      router.replace(rol === "PERSONAL" ? "/marcar" : "/dashboard");
+  async function comprobarSesion() {
+    try {
+      const respuesta = await fetch(
+        "/api/auth/sesion",
+        {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        }
+      );
+
+      const data = await respuesta.json();
+
+      if (
+        activo &&
+        respuesta.ok &&
+        data.autenticado &&
+        data.usuario
+      ) {
+        const rol = String(
+          data.usuario.rol || ""
+        ).toUpperCase();
+
+        localStorage.setItem(
+          "logueado",
+          "true"
+        );
+
+        localStorage.setItem(
+          "usuario",
+          data.usuario.nombre || ""
+        );
+
+        localStorage.setItem("rol", rol);
+
+        router.replace(
+          rol === "PERSONAL"
+            ? "/marcar"
+            : "/dashboard"
+        );
+
+        return;
+      }
+
+      /*
+       * Si la cookie no es válida, elimina el estado
+       * antiguo del navegador y permite iniciar sesión.
+       */
+      localStorage.removeItem("logueado");
+      localStorage.removeItem("usuario");
+      localStorage.removeItem("rol");
+    } catch {
+      localStorage.removeItem("logueado");
+      localStorage.removeItem("usuario");
+      localStorage.removeItem("rol");
     }
-  }, [router]);
+  }
+
+  comprobarSesion();
+
+  return () => {
+    activo = false;
+  };
+}, [router]);
 
   async function ingresar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -71,19 +130,55 @@ export default function LoginPage() {
         return;
       }
 
-      const rol = String(data.usuario.rol || "").toUpperCase();
+     const rol = String(
+  data.usuario.rol || ""
+).toUpperCase();
 
-      localStorage.setItem("logueado", "true");
-      localStorage.setItem("usuario", data.usuario.nombre);
-      localStorage.setItem("rol", rol);
+/*
+ * Confirmamos que el servidor ya reconoce
+ * la cookie antes de entrar al sistema.
+ */
+const respuestaSesion = await fetch(
+  "/api/auth/sesion",
+  {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+  }
+);
 
-      if (rol === "PERSONAL") {
-        router.replace("/marcar");
-      } else {
-        router.replace("/dashboard");
-      }
+const sesion = await respuestaSesion.json();
 
-      router.refresh();
+if (
+  !respuestaSesion.ok ||
+  !sesion.autenticado
+) {
+  setError(
+    "El usuario fue validado, pero no se pudo crear la sesión. Revise AUTH_SECRET."
+  );
+
+  return;
+}
+
+localStorage.setItem(
+  "logueado",
+  "true"
+);
+
+localStorage.setItem(
+  "usuario",
+  data.usuario.nombre
+);
+
+localStorage.setItem("rol", rol);
+
+router.replace(
+  rol === "PERSONAL"
+    ? "/marcar"
+    : "/dashboard"
+);
+
+router.refresh();
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
       setError("No se pudo conectar con el servidor");

@@ -1,37 +1,60 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  BarChart,
   Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
+  BarChart,
   CartesianGrid,
-  PieChart,
-  Pie,
   Cell,
   Legend,
-  LineChart,
   Line,
-  AreaChart,
-  Area,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  RadialBar,
+  RadialBarChart,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
+import ProteccionRol from "@/components/auth/ProteccionRol";
 
-type TurnoResumen = {
+type ResumenEstado = {
+  total: number;
+  presentes: number;
+  puntuales: number;
+  tardanzas: number;
+  pendientesInicio: number;
+  esperandoIngreso: number;
+  ingresoPendiente: number;
+  tardanzaSinIngreso: number;
+  ausentesConfirmados: number;
+  sinSalida: number;
+  alertasIngresoPendiente: number;
+  alertasTardanza: number;
+  alertasAusencia: number;
+  alertasEnviadas: number;
+};
+
+type SeccionResumen = ResumenEstado & {
+  grado: string;
+  seccion: string;
+  ausentes: number;
+};
+
+type TurnoResumen = ResumenEstado & {
   id: number;
   nombre: string;
   horaEntrada: string;
   horaSalida: string;
-  total: number;
-  presentes: number;
-  ausentes: number;
-  puntuales: number;
-  tardanzas: number;
-  sinSalida: number;
+  minutosAlertaInicial: number;
+  margenAlertaMinutos: number;
+  activo: boolean;
   noLectivo?: boolean;
   motivoNoLectivo?: string;
+  ausentes: number;
+  secciones: SeccionResumen[];
 };
 
 type Asistencia = {
@@ -86,136 +109,240 @@ type TendenciaSemanal = {
   porcentaje: number;
 };
 
+type AlertaReciente = {
+  id: number;
+  tipo: string;
+  fecha: string;
+  createdAt: string;
+  estudiante: {
+    id: number;
+    codigo: string;
+    dni: string;
+    nombres: string;
+    apellidos: string;
+    grado: string;
+    seccion: string;
+    tutor: string;
+    telegramChatId: string;
+    turno: {
+      id: number;
+      nombre: string;
+    } | null;
+  };
+};
+
+type ResumenAlertas = {
+  ingresoPendiente: number;
+  tardanza: number;
+  ausencia: number;
+  total: number;
+};
+
+type EstadoAutomatizaciones = {
+  activas: boolean;
+  modoPrueba: boolean;
+  ultimaEjecucion: string | null;
+  ultimoEstado: string;
+  frecuenciaMinutos: number;
+};
+
 type DashboardData = {
+  fecha?: string;
+  actualizadoEn?: string;
   totalEstudiantes: number;
+  totalEsperadosHoy: number;
   presentes: number;
+  puntuales: number;
+  tardanzas: number;
   ausentes: number;
   entradas: number;
   salidas: number;
-  puntuales: number;
-  tardanzas: number;
   sinSalida: number;
-
+  pendientesInicio: number;
+  esperandoIngreso: number;
+  ingresoPendiente: number;
+  tardanzaSinIngreso: number;
+  ausentesConfirmados: number;
+  sinIngreso: number;
+  alertas: ResumenAlertas;
+  automatizaciones: EstadoAutomatizaciones;
   horaReporteDiario?: string;
   ultimoReporteTelegramAt?: string | null;
   ultimoReporteTelegramEstado?: string;
-
   resumenTurnos: TurnoResumen[];
+  resumenGrados: ResumenGrado[];
   ultimasAsistencias: Asistencia[];
-
+  ultimasAlertas: AlertaReciente[];
   riesgoAlto?: number;
   riesgoMedio?: number;
   riesgoBajo?: number;
   resumenIA?: string;
   topRiesgoIA: RiesgoIA[];
-
-  totalEsperadosHoy?: number;
   diaNoLectivo?: boolean;
   diaNoLectivoGeneral?: boolean;
   eventosNoLectivosHoy?: EventoNoLectivo[];
   tendenciaSemanal: TendenciaSemanal[];
 };
 
-type ColorTarjeta =
-  "slate" | "green" | "emerald" | "orange" | "red" | "blue" | "purple" | "cyan";
+type ResumenGrado = {
+  grado: string;
+  turnos: string[];
+  secciones: string[];
+  total: number;
+  presentes: number;
+  puntuales: number;
+  tardanzas: number;
+  sinIngreso: number;
+  tardanzaSinIngreso: number;
+  ausentesConfirmados: number;
+  alertasEnviadas: number;
+  porcentaje: number;
+};
 
-const cardClass =
-  "relative overflow-hidden rounded-[28px] border border-slate-700/70 bg-[#081226]/90 shadow-[0_18px_60px_rgba(0,0,0,0.38)] backdrop-blur-2xl transition-all duration-500 hover:-translate-y-1 hover:border-blue-500/40 hover:shadow-[0_24px_80px_rgba(37,99,235,0.18)]";
+type Filtro = {
+  turno: string;
+  grado: string;
+  seccion: string;
+};
 
-import ProteccionRol from "@/components/auth/ProteccionRol";
+const ESTADO_INICIAL: DashboardData = {
+  totalEstudiantes: 0,
+  totalEsperadosHoy: 0,
+  presentes: 0,
+  puntuales: 0,
+  tardanzas: 0,
+  ausentes: 0,
+  entradas: 0,
+  salidas: 0,
+  sinSalida: 0,
+  pendientesInicio: 0,
+  esperandoIngreso: 0,
+  ingresoPendiente: 0,
+  tardanzaSinIngreso: 0,
+  ausentesConfirmados: 0,
+  sinIngreso: 0,
+  alertas: {
+    ingresoPendiente: 0,
+    tardanza: 0,
+    ausencia: 0,
+    total: 0,
+  },
+  automatizaciones: {
+    activas: false,
+    modoPrueba: true,
+    ultimaEjecucion: null,
+    ultimoEstado: "",
+    frecuenciaMinutos: 5,
+  },
+  horaReporteDiario: "21:00",
+  ultimoReporteTelegramAt: null,
+  ultimoReporteTelegramEstado: "",
+  resumenTurnos: [],
+  resumenGrados: [],
+  ultimasAsistencias: [],
+  ultimasAlertas: [],
+  riesgoAlto: 0,
+  riesgoMedio: 0,
+  riesgoBajo: 0,
+  resumenIA: "La IA aún no ha generado un resumen ejecutivo.",
+  topRiesgoIA: [],
+  diaNoLectivo: false,
+  diaNoLectivoGeneral: false,
+  eventosNoLectivosHoy: [],
+  tendenciaSemanal: [],
+};
+
+const PANEL =
+  "rounded-[26px] border border-slate-800/90 bg-[#07111f]/95 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl";
+
+function numero(valor: unknown) {
+  return Number(valor) || 0;
+}
 
 export default function Dashboard() {
-  const [horaActual, setHoraActual] = useState("");
+  const [datos, setDatos] = useState<DashboardData>(ESTADO_INICIAL);
   const [mensaje, setMensaje] = useState("");
-
-  const [datos, setDatos] = useState<DashboardData>({
-    totalEstudiantes: 0,
-    presentes: 0,
-    ausentes: 0,
-    entradas: 0,
-    salidas: 0,
-    puntuales: 0,
-    tardanzas: 0,
-    sinSalida: 0,
-
-    horaReporteDiario: "21:00",
-    ultimoReporteTelegramAt: null,
-    ultimoReporteTelegramEstado: "",
-
-    resumenTurnos: [],
-    ultimasAsistencias: [],
-
-    riesgoAlto: 0,
-    riesgoMedio: 0,
-    riesgoBajo: 0,
-    resumenIA: "La IA aún no ha generado un resumen ejecutivo.",
-    topRiesgoIA: [],
-
-    totalEsperadosHoy: 0,
-    diaNoLectivo: false,
-    diaNoLectivoGeneral: false,
-    eventosNoLectivosHoy: [],
-    tendenciaSemanal: [],
+  const [horaActual, setHoraActual] = useState("");
+  const [cargando, setCargando] = useState(true);
+  const [filtros, setFiltros] = useState<Filtro>({
+    turno: "TODOS",
+    grado: "TODOS",
+    seccion: "TODAS",
   });
 
   async function cargarDashboard() {
     try {
-      const res = await fetch("/api/dashboard", {
+      const respuesta = await fetch("/api/dashboard", {
         headers: {
           "x-user-role": localStorage.getItem("rol") || "",
         },
         cache: "no-store",
       });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
+      const data = await respuesta.json().catch(() => ({}));
 
+      if (!respuesta.ok) {
         setMensaje(`❌ ${data.message || "No se pudo cargar el dashboard"}`);
-
         return;
       }
 
-      const data = await res.json();
-
       setDatos({
-        totalEstudiantes: data.totalEstudiantes || 0,
-        presentes: data.presentes || 0,
-        ausentes: data.ausentes || 0,
-        entradas: data.entradas || 0,
-        salidas: data.salidas || 0,
-        puntuales: data.puntuales || 0,
-        tardanzas: data.tardanzas || 0,
-        sinSalida: data.sinSalida || 0,
-
+        fecha: data.fecha,
+        actualizadoEn: data.actualizadoEn,
+        totalEstudiantes: numero(data.totalEstudiantes),
+        totalEsperadosHoy: numero(data.totalEsperadosHoy),
+        presentes: numero(data.presentes),
+        puntuales: numero(data.puntuales),
+        tardanzas: numero(data.tardanzas),
+        ausentes: numero(data.ausentes),
+        entradas: numero(data.entradas),
+        salidas: numero(data.salidas),
+        sinSalida: numero(data.sinSalida),
+        pendientesInicio: numero(data.pendientesInicio),
+        esperandoIngreso: numero(data.esperandoIngreso),
+        ingresoPendiente: numero(data.ingresoPendiente),
+        tardanzaSinIngreso: numero(data.tardanzaSinIngreso),
+        ausentesConfirmados: numero(data.ausentesConfirmados),
+        sinIngreso: numero(data.sinIngreso),
+        alertas: {
+          ingresoPendiente: numero(data.alertas?.ingresoPendiente),
+          tardanza: numero(data.alertas?.tardanza),
+          ausencia: numero(data.alertas?.ausencia),
+          total: numero(data.alertas?.total),
+        },
+        automatizaciones: {
+          activas: Boolean(data.automatizaciones?.activas),
+          modoPrueba: data.automatizaciones?.modoPrueba ?? true,
+          ultimaEjecucion: data.automatizaciones?.ultimaEjecucion || null,
+          ultimoEstado: data.automatizaciones?.ultimoEstado || "",
+          frecuenciaMinutos: numero(data.automatizaciones?.frecuenciaMinutos) || 5,
+        },
         horaReporteDiario: data.horaReporteDiario || "21:00",
         ultimoReporteTelegramAt: data.ultimoReporteTelegramAt || null,
         ultimoReporteTelegramEstado: data.ultimoReporteTelegramEstado || "",
-
         resumenTurnos: Array.isArray(data.resumenTurnos)
           ? data.resumenTurnos
           : [],
-
+        resumenGrados: Array.isArray(data.resumenGrados)
+          ? data.resumenGrados
+          : [],
         ultimasAsistencias: Array.isArray(data.ultimasAsistencias)
           ? data.ultimasAsistencias
           : [],
-
-        riesgoAlto: data.riesgoAlto || 0,
-        riesgoMedio: data.riesgoMedio || 0,
-        riesgoBajo: data.riesgoBajo || 0,
-
+        ultimasAlertas: Array.isArray(data.ultimasAlertas)
+          ? data.ultimasAlertas
+          : [],
+        riesgoAlto: numero(data.riesgoAlto),
+        riesgoMedio: numero(data.riesgoMedio),
+        riesgoBajo: numero(data.riesgoBajo),
         resumenIA:
           data.resumenIA || "La IA aún no ha generado un resumen ejecutivo.",
-
         topRiesgoIA: Array.isArray(data.topRiesgoIA) ? data.topRiesgoIA : [],
-
-        totalEsperadosHoy: data.totalEsperadosHoy || 0,
         diaNoLectivo: Boolean(data.diaNoLectivo),
         diaNoLectivoGeneral: Boolean(data.diaNoLectivoGeneral),
-
         eventosNoLectivosHoy: Array.isArray(data.eventosNoLectivosHoy)
           ? data.eventosNoLectivosHoy
           : [],
-
         tendenciaSemanal: Array.isArray(data.tendenciaSemanal)
           ? data.tendenciaSemanal
           : [],
@@ -224,17 +351,17 @@ export default function Dashboard() {
       setMensaje("");
     } catch (error) {
       console.error("Error cargando dashboard:", error);
-
       setMensaje("⚠️ No se pudo conectar temporalmente con el servidor.");
+    } finally {
+      setCargando(false);
     }
   }
 
   useEffect(() => {
     cargarDashboard();
 
-    const intervaloDatos = setInterval(cargarDashboard, 5000);
-
-    const actualizarHora = () => {
+    const datosIntervalo = setInterval(cargarDashboard, 5000);
+    const relojIntervalo = setInterval(() => {
       setHoraActual(
         new Date().toLocaleTimeString("es-PE", {
           hour: "2-digit",
@@ -243,19 +370,141 @@ export default function Dashboard() {
           timeZone: "America/Lima",
         }),
       );
-    };
+    }, 1000);
 
-    actualizarHora();
-
-    const intervaloHora = setInterval(actualizarHora, 1000);
+    setHoraActual(
+      new Date().toLocaleTimeString("es-PE", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        timeZone: "America/Lima",
+      }),
+    );
 
     return () => {
-      clearInterval(intervaloDatos);
-      clearInterval(intervaloHora);
+      clearInterval(datosIntervalo);
+      clearInterval(relojIntervalo);
     };
   }, []);
 
-  function hora(fecha: string | null) {
+  const turnosFiltrados = useMemo(() => {
+    return datos.resumenTurnos.filter(
+      (turno) => filtros.turno === "TODOS" || turno.nombre === filtros.turno,
+    );
+  }, [datos.resumenTurnos, filtros.turno]);
+
+  const seccionesFiltradas = useMemo(() => {
+    return turnosFiltrados.flatMap((turno) =>
+      turno.secciones
+        .filter(
+          (item) => filtros.grado === "TODOS" || item.grado === filtros.grado,
+        )
+        .filter(
+          (item) =>
+            filtros.seccion === "TODAS" || item.seccion === filtros.seccion,
+        )
+        .map((item) => ({
+          ...item,
+          turno: turno.nombre,
+          etiqueta: `${turno.nombre} · ${item.grado}° ${item.seccion}`,
+          incidencias:
+            item.tardanzaSinIngreso +
+            item.ausentesConfirmados +
+            item.tardanzas,
+        })),
+    );
+  }, [turnosFiltrados, filtros.grado, filtros.seccion]);
+
+  const grados = useMemo(
+    () =>
+      Array.from(
+        new Set(datos.resumenTurnos.flatMap((turno) => turno.secciones.map((s) => s.grado))),
+      ).sort((a, b) => a.localeCompare(b, "es", { numeric: true })),
+    [datos.resumenTurnos],
+  );
+
+  const secciones = useMemo(
+    () =>
+      Array.from(
+        new Set(datos.resumenTurnos.flatMap((turno) => turno.secciones.map((s) => s.seccion))),
+      ).sort((a, b) => a.localeCompare(b, "es")),
+    [datos.resumenTurnos],
+  );
+
+  const turnosGrafico = useMemo(
+    () =>
+      turnosFiltrados.map((turno) => ({
+        ...turno,
+        sinIngreso:
+          turno.esperandoIngreso +
+          turno.ingresoPendiente +
+          turno.tardanzaSinIngreso,
+      })),
+    [turnosFiltrados],
+  );
+
+  const porcentajeAsistencia =
+    datos.totalEsperadosHoy > 0
+      ? Math.round((datos.presentes / datos.totalEsperadosHoy) * 100)
+      : 0;
+
+  const graficoEstado = [
+    { name: "Puntuales", value: datos.puntuales, color: "#10b981" },
+    { name: "Tardes", value: datos.tardanzas, color: "#f97316" },
+    {
+      name: "Sin ingreso",
+      value: datos.sinIngreso,
+      color: "#facc15",
+    },
+    {
+      name: "Ausentes",
+      value: datos.ausentesConfirmados,
+      color: "#f43f5e",
+    },
+  ];
+
+  const graficoAlertas = [
+    {
+      name: "Avisos",
+      value: datos.alertas.ingresoPendiente,
+      color: "#facc15",
+    },
+    {
+      name: "Tardanzas",
+      value: datos.alertas.tardanza,
+      color: "#f97316",
+    },
+    {
+      name: "Ausencias",
+      value: datos.alertas.ausencia,
+      color: "#f43f5e",
+    },
+  ];
+
+  const gradosGrafico = useMemo(() => {
+    return datos.resumenGrados
+      .filter(
+        (item) =>
+          filtros.grado ===
+            "TODOS" ||
+          item.grado ===
+            filtros.grado
+      )
+      .map((item) => ({
+        ...item,
+        etiqueta:
+          `${item.grado}°`,
+      }));
+  }, [
+    datos.resumenGrados,
+    filtros.grado,
+  ]);
+
+  const topSecciones = [...seccionesFiltradas]
+    .sort((a, b) => b.incidencias - a.incidencias)
+    .slice(0, 8);
+
+  function hora(fecha: string | null | undefined) {
     if (!fecha) return "-";
 
     return new Date(fecha).toLocaleTimeString("es-PE", {
@@ -275,475 +524,145 @@ export default function Dashboard() {
     });
   }
 
-  function tipo(asistencia: Asistencia) {
-    return asistencia.horaSalida ? "SALIDA" : "ENTRADA";
-  }
-
-  const porcentajePresentes =
-    datos.totalEstudiantes > 0
-      ? Math.round((datos.presentes / datos.totalEstudiantes) * 100)
-      : 0;
-
-  const coloresEstado = ["#22c55e", "#f97316", "#ef4444", "#06b6d4"];
-
-  const datosGrafico = [
-    { name: "Puntuales", value: datos.puntuales },
-    { name: "Tardanzas", value: datos.tardanzas },
-    { name: "Ausentes", value: datos.ausentes },
-    { name: "Sin salida", value: datos.sinSalida },
-  ];
-
-  const datosRiesgo = [
-    { name: "Alto", value: datos.riesgoAlto || 0 },
-    { name: "Medio", value: datos.riesgoMedio || 0 },
-    { name: "Bajo", value: datos.riesgoBajo || 0 },
-  ];
-
-  const coloresRiesgo = ["#ef4444", "#f59e0b", "#22c55e"];
-
-  const datosEntradasSalidas = [
-    {
-      name: "Hoy",
-      Entradas: datos.entradas,
-      Salidas: datos.salidas,
-      "Sin salida": datos.sinSalida,
-    },
-  ];
-
   return (
     <ProteccionRol rolesPermitidos={["ADMIN", "DIRECTIVO", "DEMO"]}>
-      <main className="relative min-h-screen overflow-hidden bg-[#020617] px-4 py-6 text-slate-100 md:px-7 lg:px-8">
-        <div className="pointer-events-none fixed inset-0">
-          <div className="absolute -left-48 -top-48 h-[620px] w-[620px] rounded-full bg-blue-700/20 blur-[150px]" />
-          <div className="absolute right-[-220px] top-[12%] h-[620px] w-[620px] rounded-full bg-violet-700/15 blur-[160px]" />
-          <div className="absolute bottom-[-260px] left-[26%] h-[680px] w-[680px] rounded-full bg-cyan-600/10 blur-[170px]" />
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.045)_1px,transparent_1px)] bg-[size:34px_34px] [mask-image:linear-gradient(to_bottom,black,transparent_88%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(30,64,175,0.16),transparent_38%)]" />
-        </div>
+      <main className="min-h-screen bg-[#020806] text-slate-100">
+        <div className="mx-auto max-w-[1920px] px-3 py-3 sm:px-5 lg:px-6">
+          <header className={`${PANEL} overflow-hidden`}>
+            <div className="grid gap-4 border-b border-slate-800 px-5 py-5 lg:grid-cols-[1.4fr_auto] lg:items-center">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-emerald-400">
+                  Centro de control en tiempo real
+                </p>
+                <h1 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl xl:text-4xl">
+                  🏫 Centro de Monitoreo Escolar Inteligente
+                </h1>
+                <p className="mt-2 max-w-4xl text-sm font-medium text-slate-400">
+                  Seguimiento operativo de asistencias, alertas automáticas,
+                  turnos, grados, secciones e inteligencia escolar.
+                </p>
+              </div>
 
-        <div className="relative mx-auto max-w-[1700px] space-y-7">
+              <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+                <EstadoChip
+                  activo={datos.automatizaciones.activas}
+                  textoActivo="Motor activo"
+                  textoInactivo="Motor apagado"
+                />
+                <div className="rounded-2xl border border-slate-800 bg-slate-950/80 px-4 py-3 text-right">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Hora Perú
+                  </p>
+                  <p className="mt-1 text-2xl font-black tabular-nums text-white">
+                    {horaActual}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3 px-5 py-4 md:grid-cols-4">
+              <FiltroSelect
+                label="Turno"
+                value={filtros.turno}
+                onChange={(value) => setFiltros((f) => ({ ...f, turno: value }))}
+                options={[
+                  { value: "TODOS", label: "Todos los turnos" },
+                  ...datos.resumenTurnos.map((t) => ({
+                    value: t.nombre,
+                    label: t.nombre,
+                  })),
+                ]}
+              />
+
+              <FiltroSelect
+                label="Grado"
+                value={filtros.grado}
+                onChange={(value) => setFiltros((f) => ({ ...f, grado: value }))}
+                options={[
+                  { value: "TODOS", label: "Todos los grados" },
+                  ...grados.map((g) => ({ value: g, label: `${g}°` })),
+                ]}
+              />
+
+              <FiltroSelect
+                label="Sección"
+                value={filtros.seccion}
+                onChange={(value) => setFiltros((f) => ({ ...f, seccion: value }))}
+                options={[
+                  { value: "TODAS", label: "Todas las secciones" },
+                  ...secciones.map((s) => ({ value: s, label: `Sección ${s}` })),
+                ]}
+              />
+
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  Última actualización
+                </p>
+                <p className="mt-2 text-sm font-black text-emerald-300">
+                  {fechaHora(datos.actualizadoEn)}
+                </p>
+              </div>
+            </div>
+          </header>
+
           {mensaje && (
-            <div className="dashboard-reveal rounded-2xl border border-red-500/30 bg-red-950/70 px-5 py-4 font-bold text-red-200 shadow-lg shadow-red-950/50 backdrop-blur-xl">
+            <div className="mt-4 rounded-2xl border border-red-500/30 bg-red-950/40 px-5 py-4 font-bold text-red-200">
               {mensaje}
             </div>
           )}
 
-          {/* CABECERA */}
-          <section className="dashboard-reveal group relative overflow-hidden rounded-[34px] border border-blue-500/20 bg-gradient-to-r from-[#040b1d] via-[#07142d] to-[#0d1740] p-6 text-white shadow-[0_25px_80px_rgba(0,0,0,0.48)] transition-all duration-700 hover:border-blue-400/35 hover:shadow-[0_32px_95px_rgba(37,99,235,0.22)] md:p-8">
-            <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" />
-            <div className="absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-indigo-400/20 blur-3xl" />
-
-            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-sm font-bold uppercase tracking-[0.25em] text-blue-200">
-                  Panel general
-                </p>
-
-                <div className="mt-4">
-  <h1 className="text-3xl font-black tracking-tight md:text-4xl">
-    Santa Rita de Cassia
-  </h1>
-
-  <p className="mt-2 text-sm font-medium text-slate-300 md:text-base">
-    Sistema Inteligente de Control de Asistencia Escolar
-  </p>
-</div>
-              </div>
-
-              <div className="rounded-3xl border border-blue-400/20 bg-blue-500/10 px-6 py-4 text-left shadow-inner shadow-blue-400/5 backdrop-blur-xl lg:text-right">
-                <p className="text-xs font-bold uppercase tracking-widest text-slate-300">
-                  Hora actual
-                </p>
-
-                <h2 className="mt-2 text-3xl font-black tabular-nums md:text-4xl">
-                  {horaActual}
-                </h2>
-
-                <p className="mt-1 text-sm text-blue-200">Hora local de Perú</p>
-              </div>
-            </div>
-          </section>
-
-          {/* DÍA NO LECTIVO */}
           {datos.diaNoLectivo && (
-            <section className="dashboard-reveal dashboard-delay-1 rounded-[28px] border border-red-200/80 bg-gradient-to-r from-red-50/95 to-orange-50/95 p-6 shadow-[0_16px_45px_rgba(239,68,68,0.12)] backdrop-blur-xl">
-              <div className="flex flex-col gap-4 md:flex-row md:items-start">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-red-600 text-3xl text-white shadow-lg shadow-red-200">
-                  📅
-                </div>
-
-                <div className="flex-1">
-                  <h2 className="text-2xl font-black text-red-700 md:text-3xl">
-                    Hoy es día no lectivo
-                  </h2>
-
-                  <p className="mt-2 font-semibold text-red-600">
-                    La marcación y las alertas automáticas de ausencia están
-                    suspendidas para los turnos correspondientes.
-                  </p>
-
-                  <div className="mt-5 grid gap-4 md:grid-cols-2">
-                    {datos.eventosNoLectivosHoy?.map((evento) => (
-                      <div
-                        key={evento.id}
-                        className="rounded-2xl border border-red-200 bg-white/90 p-4 shadow-sm"
-                      >
-                        <p className="font-black text-red-700">
-                          {evento.tipo.replaceAll("_", " ")}
-                        </p>
-
-                        <p className="mt-1 text-slate-800">
-                          {evento.descripcion}
-                        </p>
-
-                        <p className="mt-3 text-sm font-semibold text-slate-500">
-                          Aplicación:{" "}
-                          {evento.todosLosTurnos
-                            ? "Todos los turnos"
-                            : evento.turno || "Turno específico"}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </section>
+            <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 text-amber-200">
+              <p className="font-black">📅 Día no lectivo configurado</p>
+              <p className="mt-1 text-sm text-amber-100/80">
+                Los turnos afectados no generan alertas automáticas.
+              </p>
+            </div>
           )}
 
-          {/* CENTRO IA */}
-          <section className="dashboard-reveal dashboard-delay-1 group relative overflow-hidden rounded-[32px] border border-violet-500/30 bg-gradient-to-r from-[#11184a] via-[#321275] to-[#7a0fb6] p-4 text-white shadow-[0_22px_70px_rgba(88,28,135,0.38)] transition-all duration-700 hover:-translate-y-1 hover:border-fuchsia-400/45 hover:shadow-[0_30px_95px_rgba(168,85,247,0.30)] sm:p-5 md:p-7">
-            <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-fuchsia-400/20 blur-3xl" />
-            <div className="absolute -bottom-20 left-1/4 h-64 w-64 rounded-full bg-blue-400/20 blur-3xl" />
+          <section className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+            <KpiCard title="Estudiantes" value={datos.totalEstudiantes} icon="👨‍🎓" tone="violet" />
+            <KpiCard title="Presentes" value={datos.presentes} icon="✅" tone="green" />
+            <KpiCard title="Puntuales" value={datos.puntuales} icon="🟢" tone="emerald" />
+            <KpiCard title="Sin ingreso" value={datos.sinIngreso} icon="🟡" tone="yellow" />
+            <KpiCard title="Tardanza crítica" value={datos.tardanzaSinIngreso} icon="🟠" tone="orange" />
+            <KpiCard title="Ausentes" value={datos.ausentesConfirmados} icon="🔴" tone="red" />
+          </section>
 
-            <div className="relative">
-              <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <h2 className="text-xl font-black sm:text-2xl md:text-3xl">
-                    🧠 Centro de Inteligencia Escolar
-                  </h2>
-
-                  <p className="mt-1 hidden text-sm text-indigo-100 sm:block">
-                    Monitoreo preventivo y análisis inteligente de asistencia
-                  </p>
-                </div>
-
-                <button
-                  onClick={() =>
-                    (window.location.href = "/dashboard/inteligencia")
-                  }
-                  className="rounded-2xl bg-gradient-to-r from-white to-violet-100 px-3 py-2 text-xs font-black text-violet-800 shadow-xl shadow-violet-950/30 transition-all duration-300 hover:-translate-y-1 hover:scale-[1.03] hover:from-violet-50 hover:to-fuchsia-100 active:scale-95 sm:px-5 sm:py-3 sm:text-base"
-                >
-                  Ver análisis IA
-                </button>
-              </div>
-            </div>
-            <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-4">
-              <RiskCard
-                titulo="Riesgo alto"
-                valor={datos.riesgoAlto || 0}
-                icono="🔴"
-                clase="border-red-300/20 bg-red-500/20"
+          <section className="mt-4 grid gap-4 xl:grid-cols-12">
+            <div className={`${PANEL} p-5 xl:col-span-5`}>
+              <SectionTitle
+                title="Asistencia general"
+                subtitle="Distribución real de la jornada"
+                badge={`${porcentajeAsistencia}% asistencia`}
               />
 
-              <RiskCard
-                titulo="Riesgo medio"
-                valor={datos.riesgoMedio || 0}
-                icono="🟠"
-                clase="border-orange-300/20 bg-orange-500/20"
-              />
-
-              <RiskCard
-                titulo="Riesgo bajo"
-                valor={datos.riesgoBajo || 0}
-                icono="🟢"
-                clase="border-green-300/20 bg-green-500/20"
-              />
-            </div>
-
-            <details className="mt-4 rounded-2xl border border-violet-300/20 bg-black/15 backdrop-blur-xl">
-              <summary className="cursor-pointer list-none px-4 py-3 font-black">
-                📈 Ver resumen inteligente
-              </summary>
-
-              <div className="border-t border-white/10 px-4 py-4">
-                <p className="whitespace-pre-line text-sm leading-6 text-indigo-50">
-                  {datos.resumenIA}
-                </p>
-              </div>
-            </details>
-          </section>
-
-          {/* RANKING IA */}
-          <section
-            className={`dashboard-reveal dashboard-delay-2 ${cardClass} p-6 md:p-7`}
-          >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="text-2xl font-black text-white">
-                  🔥 Top Riesgo IA
-                </h3>
-
-                <p className="mt-1 text-sm text-slate-400">
-                  Estudiantes con mayor nivel preventivo detectado
-                </p>
-              </div>
-
-              <button
-                onClick={() =>
-                  (window.location.href = "/dashboard/inteligencia/ranking")
-                }
-                className="rounded-2xl bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 px-5 py-3 font-black text-white shadow-lg shadow-rose-950/50 transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_14px_38px_rgba(244,63,94,0.35)] active:scale-95"
-              >
-                Ver ranking completo
-              </button>
-            </div>
-
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-              {datos.topRiesgoIA.map((item, index) => (
-                <div
-                  key={item.id}
-                  className="group relative overflow-hidden rounded-3xl border border-indigo-500/35 bg-gradient-to-br from-[#111b42] via-[#0b1531] to-[#081226] p-5 shadow-[0_16px_45px_rgba(0,0,0,0.35)] transition duration-300 hover:-translate-y-1 hover:border-violet-400/55 hover:shadow-[0_20px_60px_rgba(99,102,241,0.22)]"
-                >
-                  <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-violet-500/15 blur-xl" />
-
-                  <div className="relative">
-                    <div className="flex items-center justify-between">
-                      <span className="text-3xl font-black text-violet-300">
-                        #{index + 1}
-                      </span>
-
-                      <span className="text-2xl">
-                        {index === 0
-                          ? "🥇"
-                          : index === 1
-                            ? "🥈"
-                            : index === 2
-                              ? "🥉"
-                              : "🎯"}
-                      </span>
-                    </div>
-
-                    <h4 className="mt-4 min-h-[48px] font-black text-white">
-                      {item.estudiante.nombres} {item.estudiante.apellidos}
-                    </h4>
-
-                    <p className="mt-1 text-sm font-semibold text-slate-500">
-                      {item.estudiante.grado} - {item.estudiante.seccion}
-                    </p>
-
-                    <p className="mt-4 text-4xl font-black text-white">
-                      {item.porcentaje}%
-                    </p>
-
-                    <span
-                      className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-black ${
-                        item.nivel === "ALTO"
-                          ? "bg-red-100 text-red-700"
-                          : item.nivel === "MEDIO"
-                            ? "bg-orange-100 text-orange-700"
-                            : "bg-green-100 text-green-700"
-                      }`}
-                    >
-                      {item.nivel}
-                    </span>
-                  </div>
-                </div>
-              ))}
-
-              {datos.topRiesgoIA.length === 0 && (
-                <div className="col-span-full rounded-3xl border border-slate-700 bg-slate-900/70 py-10 text-center font-semibold text-slate-400">
-                  Aún no hay estudiantes con riesgo IA analizado.
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* INDICADORES */}
-          <section className="dashboard-reveal dashboard-delay-3 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            <CardDashboard
-              titulo="👨‍🎓 Estudiantes"
-              valor={datos.totalEstudiantes}
-            />
-
-            <CardDashboard
-              titulo="✅ Presentes"
-              valor={datos.presentes}
-              color="green"
-            />
-
-            <CardDashboard
-              titulo="🟢 Puntuales"
-              valor={datos.puntuales}
-              color="emerald"
-            />
-
-            <CardDashboard
-              titulo="🟠 Tardanzas"
-              valor={datos.tardanzas}
-              color="orange"
-            />
-
-            <CardDashboard
-              titulo="❌ Ausentes"
-              valor={datos.ausentes}
-              color="red"
-            />
-
-            <CardDashboard
-              titulo="🚪 Entradas"
-              valor={datos.entradas}
-              color="blue"
-            />
-
-            <CardDashboard
-              titulo="🏠 Salidas"
-              valor={datos.salidas}
-              color="purple"
-            />
-
-            <CardDashboard
-              titulo="🔵 Sin salida"
-              valor={datos.sinSalida}
-              color="cyan"
-            />
-          </section>
-
-          {/* REPORTES Y ALERTAS */}
-          <section className="dashboard-reveal dashboard-delay-4 grid gap-6 xl:grid-cols-2">
-            <div className={`${cardClass} p-6 md:p-7`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-2xl font-black text-white">
-                    Reporte automático
-                  </h3>
-
-                  <p className="mt-1 text-sm text-slate-400">
-                    Estado y programación del último envío
-                  </p>
-                </div>
-
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-blue-400/25 bg-blue-500/10 text-2xl shadow-[0_0_28px_rgba(59,130,246,0.15)]">
-                  📤
-                </div>
-              </div>
-
-              <div className="mt-6 grid gap-4 sm:grid-cols-3">
-                <InfoBox
-                  titulo="Próximo horario"
-                  valor={datos.horaReporteDiario || "21:00"}
-                  clase="border border-blue-500/25 bg-blue-500/10 text-blue-300"
-                />
-
-                <InfoBox
-                  titulo="Último envío"
-                  valor={fechaHora(datos.ultimoReporteTelegramAt)}
-                  clase="border border-slate-600/50 bg-slate-800/70 text-slate-200"
-                />
-
-                <InfoBox
-                  titulo="Estado"
-                  valor={datos.ultimoReporteTelegramEstado || "Aún no enviado"}
-                  clase="border border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
-                />
-              </div>
-            </div>
-
-            <div className={`${cardClass} p-6 md:p-7`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-2xl font-black text-white">
-                    Alertas del día
-                  </h3>
-
-                  <p className="mt-1 text-sm text-slate-400">
-                    Incidencias detectadas durante la jornada
-                  </p>
-                </div>
-
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-400/25 bg-amber-500/10 text-2xl shadow-[0_0_28px_rgba(245,158,11,0.15)]">
-                  ⚠️
-                </div>
-              </div>
-
-              <div className="mt-6 space-y-3">
-                <AlertBox
-                  texto={`${datos.ausentes} estudiantes ausentes`}
-                  icono="❌"
-                  clase="border-red-500/30 bg-red-500/10 text-red-300"
-                />
-
-                <AlertBox
-                  texto={`${datos.tardanzas} tardanzas registradas`}
-                  icono="🟠"
-                  clase="border-orange-500/30 bg-orange-500/10 text-orange-300"
-                />
-
-                <AlertBox
-                  texto={`${datos.sinSalida} estudiantes sin salida`}
-                  icono="🔵"
-                  clase="border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* ANALÍTICA TIPO POWER BI */}
-          <section className="dashboard-reveal dashboard-delay-4 grid gap-6 xl:grid-cols-12">
-            <div className={`${cardClass} p-6 md:p-7 xl:col-span-4`}>
-              <div>
-                <h3 className="text-2xl font-black text-white">
-                  🍩 Estado de asistencia
-                </h3>
-                <p className="mt-1 text-sm text-slate-400">
-                  Distribución general de la jornada
-                </p>
-              </div>
-
-              <div className="relative mt-5 h-[330px]">
+              <div className="relative mt-3 h-[310px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={datosGrafico}
+                      data={graficoEstado}
                       dataKey="value"
                       nameKey="name"
-                      cx="50%"
-                      cy="48%"
-                      innerRadius={78}
-                      outerRadius={118}
-                      paddingAngle={5}
+                      innerRadius={75}
+                      outerRadius={115}
+                      paddingAngle={4}
                       stroke="transparent"
                     >
-                      {datosGrafico.map((item, index) => (
-                        <Cell
-                          key={item.name}
-                          fill={coloresEstado[index % coloresEstado.length]}
-                        />
+                      {graficoEstado.map((item) => (
+                        <Cell key={item.name} fill={item.color} />
                       ))}
                     </Pie>
-
-                    <Tooltip
-                      contentStyle={{
-                        background: "#071226",
-                        border: "1px solid #334155",
-                        borderRadius: "16px",
-                        color: "#fff",
-                      }}
-                    />
-
-                    <Legend
-                      verticalAlign="bottom"
-                      iconType="circle"
-                      wrapperStyle={{ color: "#cbd5e1", fontWeight: 700 }}
-                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend verticalAlign="bottom" iconType="circle" />
                   </PieChart>
                 </ResponsiveContainer>
-
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center pb-10">
                   <div className="text-center">
                     <p className="text-4xl font-black text-white">
-                      {porcentajePresentes}%
+                      {porcentajeAsistencia}%
                     </p>
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    <p className="text-xs font-black uppercase tracking-wider text-slate-500">
                       asistencia
                     </p>
                   </div>
@@ -751,770 +670,960 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className={`${cardClass} p-6 md:p-7 xl:col-span-8`}>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <h3 className="text-2xl font-black text-white">
-                    📈 Tendencia de los últimos 7 días
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-400">
-                    Presentes, ausentes y porcentaje diario
-                  </p>
-                </div>
-
-                <div className="rounded-full border border-blue-400/25 bg-blue-500/10 px-4 py-2 text-sm font-black text-blue-300">
-                  Actualización automática
-                </div>
-              </div>
-
-              <div className="mt-6 h-[330px] rounded-3xl border border-blue-500/15 bg-gradient-to-br from-[#050d20] to-[#07152f] p-3">
+            <div className={`${PANEL} p-5 xl:col-span-7`}>
+              <SectionTitle
+                title="Comparativo por turnos"
+                subtitle="Presentes, pendientes, tardanzas y ausentes"
+              />
+              <div className="mt-4 h-[310px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={datos.tendenciaSemanal}
-                    margin={{ top: 15, right: 20, left: -10, bottom: 5 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="4 4"
-                      vertical={false}
-                      stroke="#24324f"
-                    />
-                    <XAxis
-                      dataKey="dia"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "#94a3b8", fontWeight: 700 }}
-                    />
-                    <YAxis
-                      allowDecimals={false}
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "#64748b" }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: "#071226",
-                        border: "1px solid #334155",
-                        borderRadius: "16px",
-                        color: "#fff",
-                      }}
-                    />
+                  <BarChart data={turnosGrafico}>
+                    <CartesianGrid stroke="#17312b" strokeDasharray="4 4" vertical={false} />
+                    <XAxis dataKey="nombre" tick={{ fill: "#94a3b8", fontWeight: 700 }} />
+                    <YAxis allowDecimals={false} tick={{ fill: "#64748b" }} />
+                    <Tooltip content={<CustomTooltip />} />
                     <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="presentes"
-                      name="Presentes"
-                      stroke="#22c55e"
-                      strokeWidth={4}
-                      dot={{ r: 5, fill: "#22c55e" }}
-                      activeDot={{ r: 8 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="ausentes"
-                      name="Ausentes"
-                      stroke="#ef4444"
-                      strokeWidth={4}
-                      dot={{ r: 5, fill: "#ef4444" }}
-                      activeDot={{ r: 8 }}
-                    />
+                    <Bar dataKey="presentes" name="Presentes" fill="#22c55e" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="sinIngreso" name="Sin ingreso" fill="#eab308" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="tardanzaSinIngreso" name="Tardanza" fill="#f97316" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="ausentesConfirmados" name="Ausentes" fill="#f43f5e" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </section>
+
+          <section className="mt-4 grid gap-4 xl:grid-cols-12">
+            <div className={`${PANEL} p-5 xl:col-span-8`}>
+              <SectionTitle
+                title="Tendencia de los últimos 7 días"
+                subtitle="Presentes, ausentes y tardanzas"
+                badge="Actualización automática"
+              />
+              <div className="mt-4 h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={datos.tendenciaSemanal}>
+                    <CartesianGrid stroke="#17312b" strokeDasharray="4 4" vertical={false} />
+                    <XAxis dataKey="dia" tick={{ fill: "#94a3b8", fontWeight: 700 }} />
+                    <YAxis allowDecimals={false} tick={{ fill: "#64748b" }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend />
+                    <Line type="monotone" dataKey="presentes" name="Presentes" stroke="#22c55e" strokeWidth={3} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="ausentes" name="Ausentes" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="tardanzas" name="Tardanzas" stroke="#f97316" strokeWidth={3} dot={{ r: 4 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            <div className={`${cardClass} p-6 md:p-7 xl:col-span-7`}>
-              <div>
-                <h3 className="text-2xl font-black text-white">
-                  📊 Comparativo por turnos
-                </h3>
-                <p className="mt-1 text-sm text-slate-400">
-                  Presentes, puntuales, tardanzas y ausentes
-                </p>
-              </div>
-
-              <div className="mt-6 h-[340px]">
+            <div className={`${PANEL} p-5 xl:col-span-4`}>
+              <SectionTitle
+                title="Alertas enviadas"
+                subtitle="Telegram a padres y tutores"
+                badge={`${datos.alertas.total} mensajes`}
+              />
+              <div className="mt-4 h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={datos.resumenTurnos}
-                    margin={{ top: 15, right: 20, left: -10, bottom: 5 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="4 4"
-                      vertical={false}
-                      stroke="#24324f"
-                    />
-                    <XAxis
-                      dataKey="nombre"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "#94a3b8", fontWeight: 700 }}
-                    />
+                  <PieChart>
+                    <Pie
+                      data={graficoAlertas}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={55}
+                      outerRadius={100}
+                      paddingAngle={5}
+                      stroke="transparent"
+                    >
+                      {graficoAlertas.map((item) => (
+                        <Cell key={item.name} fill={item.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend verticalAlign="bottom" iconType="circle" />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </section>
+
+          <section className="mt-4 grid gap-4 xl:grid-cols-12">
+            <div className={`${PANEL} p-5 xl:col-span-7`}>
+              <SectionTitle
+                title="Secciones con mayor incidencia"
+                subtitle="Tardanzas y ausencias confirmadas"
+              />
+              <div className="mt-4 h-[320px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={topSecciones} layout="vertical" margin={{ left: 20 }}>
+                    <CartesianGrid stroke="#17312b" strokeDasharray="4 4" horizontal={false} />
+                    <XAxis type="number" allowDecimals={false} tick={{ fill: "#64748b" }} />
                     <YAxis
-                      allowDecimals={false}
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "#64748b" }}
+                      type="category"
+                      dataKey="etiqueta"
+                      width={120}
+                      tick={{ fill: "#cbd5e1", fontSize: 11, fontWeight: 700 }}
                     />
-                    <Tooltip
-                      cursor={{ fill: "rgba(59,130,246,0.08)" }}
-                      contentStyle={{
-                        background: "#071226",
-                        border: "1px solid #334155",
-                        borderRadius: "16px",
-                        color: "#fff",
-                      }}
-                    />
+                    <Tooltip content={<CustomTooltip />} />
                     <Legend />
-                    <Bar dataKey="presentes" name="Presentes" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="puntuales" name="Puntuales" fill="#22c55e" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="tardanzas" name="Tardanzas" fill="#f97316" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="ausentes" name="Ausentes" fill="#ef4444" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="tardanzaSinIngreso" name="Tardanza sin ingreso" fill="#f97316" radius={[0, 8, 8, 0]} />
+                    <Bar dataKey="ausentesConfirmados" name="Ausentes" fill="#f43f5e" radius={[0, 8, 8, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            <div className={`${cardClass} p-6 md:p-7 xl:col-span-5`}>
-              <div>
-                <h3 className="text-2xl font-black text-white">
-                  🧠 Riesgo preventivo IA
-                </h3>
-                <p className="mt-1 text-sm text-slate-400">
-                  Clasificación de estudiantes analizados
+            <div className={`${PANEL} p-5 xl:col-span-5`}>
+              <SectionTitle
+                title="Estado del motor automático"
+                subtitle="Control de cron y procesamiento"
+              />
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <MiniStatus label="Motor" value={datos.automatizaciones.activas ? "ACTIVO" : "APAGADO"} tone={datos.automatizaciones.activas ? "green" : "red"} />
+                <MiniStatus label="Modo" value={datos.automatizaciones.modoPrueba ? "PRUEBA" : "PADRES"} tone="blue" />
+                <MiniStatus label="Frecuencia" value={`${datos.automatizaciones.frecuenciaMinutos} min`} tone="violet" />
+                <MiniStatus label="Última ejecución" value={fechaHora(datos.automatizaciones.ultimaEjecucion)} tone="slate" />
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  Resultado más reciente
                 </p>
-              </div>
-
-              <div className="mt-5 h-[340px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={datosRiesgo}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="47%"
-                      innerRadius={65}
-                      outerRadius={112}
-                      paddingAngle={6}
-                      stroke="transparent"
-                    >
-                      {datosRiesgo.map((item, index) => (
-                        <Cell
-                          key={item.name}
-                          fill={coloresRiesgo[index % coloresRiesgo.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        background: "#071226",
-                        border: "1px solid #334155",
-                        borderRadius: "16px",
-                        color: "#fff",
-                      }}
-                    />
-                    <Legend
-                      verticalAlign="bottom"
-                      iconType="circle"
-                      wrapperStyle={{ color: "#cbd5e1", fontWeight: 700 }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className={`${cardClass} p-6 md:p-7 xl:col-span-12`}>
-              <div>
-                <h3 className="text-2xl font-black text-white">
-                  🚪 Flujo de entradas y salidas
-                </h3>
-                <p className="mt-1 text-sm text-slate-400">
-                  Comparación operativa de la jornada actual
+                <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
+                  {datos.automatizaciones.ultimoEstado || "Sin información todavía."}
                 </p>
-              </div>
-
-              <div className="mt-6 h-[300px] rounded-3xl border border-violet-500/15 bg-gradient-to-br from-[#09091f] to-[#11113d] p-3">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={datosEntradasSalidas}
-                    margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-                  >
-                    <defs>
-                      <linearGradient id="colorEntradas" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.08} />
-                      </linearGradient>
-                      <linearGradient id="colorSalidas" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ec4899" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#ec4899" stopOpacity={0.08} />
-                      </linearGradient>
-                      <linearGradient id="colorSinSalida" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.08} />
-                      </linearGradient>
-                    </defs>
-
-                    <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#2a2a55" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#cbd5e1", fontWeight: 700 }} />
-                    <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: "#64748b" }} />
-                    <Tooltip
-                      contentStyle={{
-                        background: "#071226",
-                        border: "1px solid #334155",
-                        borderRadius: "16px",
-                        color: "#fff",
-                      }}
-                    />
-                    <Legend />
-                    <Area type="monotone" dataKey="Entradas" stroke="#8b5cf6" strokeWidth={4} fill="url(#colorEntradas)" />
-                    <Area type="monotone" dataKey="Salidas" stroke="#ec4899" strokeWidth={4} fill="url(#colorSalidas)" />
-                    <Area type="monotone" dataKey="Sin salida" stroke="#06b6d4" strokeWidth={4} fill="url(#colorSinSalida)" />
-                  </AreaChart>
-                </ResponsiveContainer>
               </div>
             </div>
           </section>
 
-          {/* TURNOS */}
-          <section
-            className={`dashboard-reveal dashboard-delay-5 ${cardClass} p-6 md:p-7`}
-          >
-            <div>
-              <h3 className="text-2xl font-black text-white">
-                ⏰ Resumen por turnos
-              </h3>
-
-              <p className="mt-1 text-sm text-slate-400">
-                Indicadores de asistencia separados por horario
-              </p>
+          <section className="mt-4 grid gap-4 xl:grid-cols-12">
+            <div className={`${PANEL} p-5 xl:col-span-7`}>
+              <SectionTitle
+                title="Actividad reciente de alertas"
+                subtitle="Últimos estudiantes notificados"
+              />
+              <div className="mt-4 max-h-[440px] space-y-2 overflow-y-auto pr-1">
+                {datos.ultimasAlertas.map((alerta) => (
+                  <ActividadAlerta key={alerta.id} alerta={alerta} hora={hora} />
+                ))}
+                {datos.ultimasAlertas.length === 0 && <Vacio texto="Todavía no se enviaron alertas hoy." />}
+              </div>
             </div>
 
-            <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {datos.resumenTurnos.map((turno) => (
-                <div
-                  key={turno.id}
-                  className={`rounded-3xl border p-6 shadow-sm transition-all duration-500 hover:-translate-y-1 hover:shadow-xl ${
-                    turno.noLectivo
-                      ? "border-red-500/35 bg-red-950/30"
-                      : "border-slate-700/70 bg-gradient-to-br from-[#0b1730] to-[#071226]"
-                  }`}
+            <div className={`${PANEL} p-5 xl:col-span-5`}>
+              <SectionTitle
+                title="Últimas asistencias"
+                subtitle="Entradas y salidas registradas"
+              />
+              <div className="mt-4 max-h-[440px] space-y-2 overflow-y-auto pr-1">
+                {datos.ultimasAsistencias.map((asistencia) => (
+                  <ActividadAsistencia key={asistencia.id} asistencia={asistencia} hora={hora} />
+                ))}
+                {datos.ultimasAsistencias.length === 0 && <Vacio texto="Aún no hay asistencias registradas hoy." />}
+              </div>
+            </div>
+          </section>
+
+          <section className="mt-4 grid gap-4 xl:grid-cols-3">
+            {turnosFiltrados.map((turno) => (
+              <TurnoCard key={turno.id} turno={turno} />
+            ))}
+          </section>
+          <section className="mt-4 grid gap-4 xl:grid-cols-12">
+            <div className={`${PANEL} p-5 xl:col-span-8`}>
+              <SectionTitle
+                title="Rendimiento dinámico por grado"
+                subtitle="Se genera automáticamente desde todos los grados y secciones activos"
+                badge={`${gradosGrafico.length} grados`}
+              />
+
+              <div className="mt-4 h-[330px]">
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%"
                 >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="text-2xl font-black text-white">
-                        ⏰ {turno.nombre}
-                      </h4>
-
-                      <p className="mt-1 font-semibold text-slate-500">
-                        {turno.horaEntrada} - {turno.horaSalida}
-                      </p>
-                    </div>
-
-                    {turno.noLectivo && (
-                      <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-700">
-                        NO LECTIVO
-                      </span>
-                    )}
-                  </div>
-
-                  {turno.noLectivo && (
-                    <div className="mt-4 rounded-2xl border border-red-500/30 bg-red-950/35 p-3 text-sm font-semibold text-red-300">
-                      {turno.motivoNoLectivo ||
-                        "Turno suspendido por calendario escolar"}
-                    </div>
-                  )}
-
-                  <div className="mt-5 grid grid-cols-2 gap-3">
-                    <TurnoDato
-                      titulo="Total"
-                      valor={turno.total}
-                      clase="border border-slate-600/50 bg-slate-800/70 text-slate-200"
+                  <BarChart
+                    data={gradosGrafico}
+                    margin={{
+                      top: 10,
+                      right: 10,
+                      left: 0,
+                      bottom: 5,
+                    }}
+                  >
+                    <CartesianGrid
+                      stroke="#17312b"
+                      strokeDasharray="4 4"
+                      vertical={false}
                     />
 
-                    <TurnoDato
-                      titulo="Presentes"
-                      valor={turno.presentes}
-                      clase="border border-green-500/25 bg-green-500/10 text-green-300"
+                    <XAxis
+                      dataKey="etiqueta"
+                      tick={{
+                        fill: "#cbd5e1",
+                        fontWeight: 800,
+                      }}
                     />
 
-                    <TurnoDato
-                      titulo="Ausentes"
-                      valor={turno.ausentes}
-                      clase="border border-red-500/25 bg-red-500/10 text-red-300"
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{
+                        fill: "#64748b",
+                      }}
                     />
 
-                    <TurnoDato
-                      titulo="Puntuales"
-                      valor={turno.puntuales}
-                      clase="border border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+                    <Tooltip
+                      content={
+                        <CustomTooltip />
+                      }
                     />
 
-                    <TurnoDato
-                      titulo="Tardanzas"
-                      valor={turno.tardanzas}
-                      clase="border border-orange-500/25 bg-orange-500/10 text-orange-300"
+                    <Legend />
+
+                    <Bar
+                      dataKey="presentes"
+                      name="Presentes"
+                      fill="#22c55e"
+                      radius={[
+                        8,
+                        8,
+                        0,
+                        0,
+                      ]}
                     />
 
-                    <TurnoDato
-                      titulo="Sin salida"
-                      valor={turno.sinSalida}
-                      clase="border border-cyan-500/25 bg-cyan-500/10 text-cyan-300"
+                    <Bar
+                      dataKey="sinIngreso"
+                      name="Sin ingreso"
+                      fill="#eab308"
+                      radius={[
+                        8,
+                        8,
+                        0,
+                        0,
+                      ]}
                     />
-                  </div>
-                </div>
-              ))}
 
-              {datos.resumenTurnos.length === 0 && (
-                <div className="col-span-full rounded-3xl border border-slate-700 bg-slate-900/70 py-10 text-center font-semibold text-slate-400">
-                  No hay turnos disponibles.
-                </div>
-              )}
+                    <Bar
+                      dataKey="ausentesConfirmados"
+                      name="Ausentes"
+                      fill="#f43f5e"
+                      radius={[
+                        8,
+                        8,
+                        0,
+                        0,
+                      ]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </section>
 
-          {/* ASISTENCIA Y TABLA */}
-          <section className="dashboard-reveal dashboard-delay-5 grid gap-6 xl:grid-cols-3">
-            <div className={`${cardClass} p-6 md:p-7`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-2xl font-black text-white">
-                    Asistencia de hoy
-                  </h3>
+            <div className={`${PANEL} p-5 xl:col-span-4`}>
+              <SectionTitle
+                title="Cobertura académica"
+                subtitle="Estructura detectada automáticamente"
+                badge={`${seccionesFiltradas.length} secciones visibles`}
+              />
 
-                  <p className="mt-1 text-sm text-slate-400">
-                    Porcentaje general de estudiantes presentes
-                  </p>
-                </div>
+              <div className="mt-5 space-y-3">
+                <CoberturaDato
+                  icono="🎓"
+                  titulo="Grados detectados"
+                  valor={grados.length}
+                  detalle={
+                    grados.length > 0
+                      ? grados
+                          .map(
+                            (grado) =>
+                              `${grado}°`
+                          )
+                          .join(", ")
+                      : "Sin grados registrados"
+                  }
+                />
 
-                <div className="rounded-2xl border border-green-400/25 bg-green-500/10 p-3 text-2xl">📌</div>
-              </div>
+                <CoberturaDato
+                  icono="🏫"
+                  titulo="Secciones detectadas"
+                  valor={secciones.length}
+                  detalle={
+                    secciones.length > 0
+                      ? secciones.join(
+                          ", "
+                        )
+                      : "Sin secciones registradas"
+                  }
+                />
 
-              <div className="mt-8 text-center">
-                <div className="mx-auto flex h-44 w-44 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-emerald-600 p-3 shadow-[0_0_55px_rgba(34,197,94,0.25)]">
-                  <div className="flex h-full w-full flex-col items-center justify-center rounded-full border border-green-400/20 bg-[#071226]">
-                    <span className="text-4xl font-black text-white">
-                      {porcentajePresentes}%
-                    </span>
-
-                    <span className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400">
-                      presentes
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-7 h-3 overflow-hidden rounded-full bg-slate-800">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-600 transition-all duration-700"
-                  style={{
-                    width: `${porcentajePresentes}%`,
-                  }}
+                <CoberturaDato
+                  icono="⏰"
+                  titulo="Turnos activos"
+                  valor={
+                    datos.resumenTurnos
+                      .filter(
+                        (turno) =>
+                          turno.activo
+                      ).length
+                  }
+                  detalle={datos.resumenTurnos
+                    .map(
+                      (turno) =>
+                        turno.nombre
+                    )
+                    .join(", ") || "Sin turnos"}
                 />
               </div>
-
-              <p className="mt-5 text-center font-semibold text-slate-500">
-                {datos.presentes} de {datos.totalEstudiantes} estudiantes
-                marcaron asistencia hoy.
-              </p>
             </div>
+          </section>
 
-            <div className={`${cardClass} p-6 md:col-span-2 md:p-7`}>
+<section className="mt-4">
+  <div className={`${PANEL} p-5`}>
+    <SectionTitle
+      title="Mapa inteligente por grado y sección"
+      subtitle="Lectura visual de asistencia, incidencias y alertas"
+      badge={`${seccionesFiltradas.length} secciones`}
+    />
+
+    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      {seccionesFiltradas.map((item) => {
+        const presentes = numero(item.presentes);
+        const total = numero(item.total);
+
+        const tardanzas =
+          numero(item.tardanzas) +
+          numero(item.tardanzaSinIngreso);
+
+        const ausentes = numero(
+          item.ausentesConfirmados
+        );
+
+        const porcentaje =
+          total > 0
+            ? Math.round(
+                (presentes / total) * 100
+              )
+            : 0;
+
+        const incidencias =
+          tardanzas + ausentes;
+
+        const nivel =
+          ausentes > 0
+            ? "Crítico"
+            : tardanzas > 0
+              ? "Atención"
+              : presentes > 0
+                ? "Estable"
+                : "Sin actividad";
+
+        return (
+          <div
+            key={`${item.turno}-${item.grado}-${item.seccion}`}
+            className="group rounded-3xl border border-slate-800 bg-gradient-to-br from-[#07111f] to-[#03100d] p-4 transition hover:-translate-y-1 hover:border-emerald-500/35"
+          >
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-2xl font-black text-white">
-                  🕒 Últimas asistencias
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
+                  {item.turno}
+                </p>
+
+                <h3 className="mt-1 text-xl font-black text-white">
+                  {item.grado}° · Sección{" "}
+                  {item.seccion}
                 </h3>
 
-                <p className="mt-1 text-sm text-slate-400">
-                  Registros recientes de entrada y salida
+                <p className="mt-1 text-xs font-semibold text-slate-500">
+                  {total} estudiantes ·{" "}
+                  {numero(
+                    item.alertasEnviadas
+                  )}{" "}
+                  alertas
                 </p>
               </div>
 
-              <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-700 bg-[#071226]">
-                <table className="w-full min-w-[850px] text-left">
-                  <thead className="bg-[#030817] text-white">
-                    <tr>
-                      <th className="px-4 py-4 text-sm">Hora</th>
-                      <th className="px-4 py-4 text-sm">Estudiante</th>
-                      <th className="px-4 py-4 text-sm">Turno</th>
-                      <th className="px-4 py-4 text-sm">Estado</th>
-                      <th className="px-4 py-4 text-sm">Tipo</th>
-                      <th className="px-4 py-4 text-sm">Método</th>
-                    </tr>
-                  </thead>
+              <span
+                className={`rounded-full border px-2.5 py-1 text-[10px] font-black ${
+                  nivel === "Crítico"
+                    ? "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                    : nivel === "Atención"
+                      ? "border-orange-500/30 bg-orange-500/10 text-orange-300"
+                      : nivel === "Estable"
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                        : "border-slate-700 bg-slate-800/50 text-slate-400"
+                }`}
+              >
+                {nivel}
+              </span>
+            </div>
 
-                  <tbody className="divide-y divide-slate-800">
-                    {datos.ultimasAsistencias.map((asistencia, index) => (
-                      <tr
-  key={asistencia.id}
-  className={`transition duration-300 hover:bg-blue-500/10 ${
-    index % 2 === 0
-      ? "bg-[#081226]"
-      : "bg-[#0b1730]"
-  }`}
->
-                        <td className="px-4 py-4 font-bold text-slate-200">
-                          {hora(
-                            asistencia.horaSalida || asistencia.horaEntrada,
-                          )}
-                        </td>
+            <div className="mt-4 grid grid-cols-[92px_1fr] items-center gap-4">
+              <div className="relative h-[92px]">
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%"
+                >
+                  <RadialBarChart
+                    innerRadius="72%"
+                    outerRadius="100%"
+                    data={[
+                      {
+                        value: porcentaje,
+                        fill:
+                          porcentaje >= 80
+                            ? "#22c55e"
+                            : porcentaje >= 50
+                              ? "#eab308"
+                              : "#f43f5e",
+                      },
+                    ]}
+                    startAngle={90}
+                    endAngle={-270}
+                  >
+                    <RadialBar
+                      dataKey="value"
+                      background={{
+                        fill: "#132238",
+                      }}
+                      cornerRadius={10}
+                    />
+                  </RadialBarChart>
+                </ResponsiveContainer>
 
-                        <td className="px-4 py-4">
-                          <p className="font-black text-white">
-                            {asistencia.estudiante.nombres}{" "}
-                            {asistencia.estudiante.apellidos}
-                          </p>
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <span className="text-lg font-black text-white">
+                    {porcentaje}%
+                  </span>
+                </div>
+              </div>
 
-                          <p className="mt-1 text-xs font-semibold text-slate-400">
-                            {asistencia.estudiante.grado} -{" "}
-                            {asistencia.estudiante.seccion}
-                          </p>
-                        </td>
+              <div className="space-y-2">
+                <BarraEstado
+                  label="Presentes"
+                  value={presentes}
+                  total={total}
+                  tone="green"
+                />
 
-                        <td className="px-4 py-4 font-semibold text-slate-300">
-                          {asistencia.estudiante.turno?.nombre || "Sin turno"}
-                        </td>
+                <BarraEstado
+                  label="Tardanzas"
+                  value={tardanzas}
+                  total={total}
+                  tone="orange"
+                />
 
-                        <td className="px-4 py-4">
-                          <EstadoBadge estado={asistencia.estado} />
-                        </td>
-
-                        <td className="px-4 py-4">
-                          <span className="rounded-full border border-blue-400/25 bg-blue-500/10 px-3 py-1 text-xs font-black text-blue-300">
-                            {tipo(asistencia)}
-                          </span>
-                        </td>
-
-                        <td className="px-4 py-4 font-semibold text-slate-300">
-                          {asistencia.metodo}
-                        </td>
-                      </tr>
-                    ))}
-
-                    {datos.ultimasAsistencias.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="px-4 py-10 text-center font-semibold text-slate-500"
-                        >
-                          Aún no hay asistencias registradas hoy.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                <BarraEstado
+                  label="Ausentes"
+                  value={ausentes}
+                  total={total}
+                  tone="red"
+                />
               </div>
             </div>
-          </section>
+
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              <MiniKpi
+                label="Puntuales"
+                value={numero(
+                  item.puntuales
+                )}
+                tone="green"
+              />
+
+              <MiniKpi
+                label="Incidencias"
+                value={incidencias}
+                tone="orange"
+              />
+
+              <MiniKpi
+                label="Alertas"
+                value={numero(
+                  item.alertasEnviadas
+                )}
+                tone="violet"
+              />
+            </div>
+          </div>
+        );
+      })}
+
+      {seccionesFiltradas.length ===
+        0 && (
+        <div className="col-span-full">
+          <Vacio texto="No hay secciones para los filtros seleccionados." />
+        </div>
+      )}
+    </div>
+  </div>
+</section>
+          
+          <footer className="py-6 text-center text-xs font-semibold text-slate-600">
+            Última sincronización: {fechaHora(datos.actualizadoEn)} · Datos reales de Neon + Automatizaciones + Telegram
+          </footer>
         </div>
 
-        <style jsx global>{`
-          @keyframes dashboardReveal {
-            from {
-              opacity: 0;
-              transform: translateY(24px) scale(0.985);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0) scale(1);
-            }
-          }
-
-          @keyframes premiumGlow {
-            0%,
-            100% {
-              opacity: 0.45;
-              transform: scale(1);
-            }
-            50% {
-              opacity: 0.8;
-              transform: scale(1.08);
-            }
-          }
-
-          @keyframes neonPulse {
-            0%,
-            100% {
-              filter: drop-shadow(0 0 0 rgba(59, 130, 246, 0));
-            }
-            50% {
-              filter: drop-shadow(0 0 14px rgba(59, 130, 246, 0.28));
-            }
-          }
-
-          @keyframes backgroundDrift {
-            0% {
-              transform: translate3d(0, 0, 0);
-            }
-            50% {
-              transform: translate3d(0, -8px, 0);
-            }
-            100% {
-              transform: translate3d(0, 0, 0);
-            }
-          }
-
-          .dashboard-neon {
-            animation: neonPulse 3.2s ease-in-out infinite;
-          }
-
-          .dashboard-reveal {
-            opacity: 0;
-            animation: dashboardReveal 0.75s cubic-bezier(0.22, 1, 0.36, 1)
-              forwards;
-          }
-
-          .dashboard-delay-1 {
-            animation-delay: 0.08s;
-          }
-          .dashboard-delay-2 {
-            animation-delay: 0.16s;
-          }
-          .dashboard-delay-3 {
-            animation-delay: 0.24s;
-          }
-          .dashboard-delay-4 {
-            animation-delay: 0.32s;
-          }
-          .dashboard-delay-5 {
-            animation-delay: 0.4s;
-          }
-
-          @media (prefers-reduced-motion: reduce) {
-            .dashboard-reveal {
-              opacity: 1;
-              animation: none;
-            }
-          }
-        `}</style>
+        {cargando && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="rounded-3xl border border-emerald-500/30 bg-[#07111f] px-8 py-6 text-center shadow-2xl">
+              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-700 border-t-emerald-400" />
+              <p className="mt-4 font-black text-white">Cargando monitoreo...</p>
+            </div>
+          </div>
+        )}
       </main>
     </ProteccionRol>
   );
 }
 
-function RiskCard({
-  titulo,
-  valor,
-  icono,
-  clase,
+function FiltroSelect({
+  label,
+  value,
+  onChange,
+  options,
 }: {
-  titulo: string;
-  valor: number;
-  icono: string;
-  clase: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <label className="rounded-2xl border border-slate-800 bg-slate-950/70 p-3">
+      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-2 w-full bg-transparent text-sm font-black text-white outline-none"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value} className="bg-slate-950">
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function EstadoChip({
+  activo,
+  textoActivo,
+  textoInactivo,
+}: {
+  activo: boolean;
+  textoActivo: string;
+  textoInactivo: string;
 }) {
   return (
     <div
-      className={`group rounded-2xl border p-3 text-center backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:bg-white/20 hover:shadow-xl sm:p-5 ${clase}`}
+      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-black ${
+        activo
+          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+          : "border-red-500/30 bg-red-500/10 text-red-300"
+      }`}
     >
-      <p className="text-xs font-bold text-white/90 sm:text-sm">
-        {icono} {titulo}
-      </p>
-
-      <h3 className="mt-1 text-2xl font-black tabular-nums transition-transform duration-300 group-hover:scale-110 sm:mt-3 sm:text-5xl">
-        {valor}
-      </h3>
+      <span className={`h-2.5 w-2.5 rounded-full ${activo ? "bg-emerald-400" : "bg-red-400"}`} />
+      {activo ? textoActivo : textoInactivo}
     </div>
   );
 }
 
-function CardDashboard({
-  titulo,
-  valor,
-  color = "slate",
+function KpiCard({
+  title,
+  value,
+  icon,
+  tone,
 }: {
-  titulo: string;
-  valor: number;
-  color?: ColorTarjeta;
+  title: string;
+  value: number;
+  icon: string;
+  tone: "violet" | "green" | "emerald" | "yellow" | "orange" | "red";
 }) {
-  const estilos: Record<
-    ColorTarjeta,
-    {
-      tarjeta: string;
-      numero: string;
-      icono: string;
-      progreso: string;
-      brillo: string;
-    }
-  > = {
-    slate: {
-      tarjeta: "border-violet-500/45 bg-gradient-to-br from-violet-950/55 via-[#0b1531] to-[#071226]",
-      numero: "text-violet-200",
-      icono: "border border-violet-400/35 bg-violet-500/15 text-violet-300 shadow-[0_0_28px_rgba(139,92,246,0.25)]",
-      progreso: "bg-violet-400",
-      brillo: "bg-violet-500/10",
-    },
-    green: {
-      tarjeta: "border-green-500/45 bg-gradient-to-br from-green-950/50 via-[#071c20] to-[#071226]",
-      numero: "text-green-300",
-      icono: "border border-green-400/35 bg-green-500/15 text-green-300 shadow-[0_0_28px_rgba(34,197,94,0.25)]",
-      progreso: "bg-green-400",
-      brillo: "bg-green-500/10",
-    },
-    emerald: {
-      tarjeta: "border-emerald-500/45 bg-gradient-to-br from-emerald-950/50 via-[#071d20] to-[#071226]",
-      numero: "text-emerald-300",
-      icono: "border border-emerald-400/35 bg-emerald-500/15 text-emerald-300 shadow-[0_0_28px_rgba(16,185,129,0.25)]",
-      progreso: "bg-emerald-400",
-      brillo: "bg-emerald-500/10",
-    },
-    orange: {
-      tarjeta: "border-orange-500/45 bg-gradient-to-br from-orange-950/45 via-[#21140a] to-[#071226]",
-      numero: "text-orange-300",
-      icono: "border border-orange-400/35 bg-orange-500/15 text-orange-300 shadow-[0_0_28px_rgba(249,115,22,0.25)]",
-      progreso: "bg-orange-400",
-      brillo: "bg-orange-500/10",
-    },
-    red: {
-      tarjeta: "border-rose-500/45 bg-gradient-to-br from-rose-950/45 via-[#25101b] to-[#071226]",
-      numero: "text-rose-300",
-      icono: "border border-rose-400/35 bg-rose-500/15 text-rose-300 shadow-[0_0_28px_rgba(244,63,94,0.25)]",
-      progreso: "bg-rose-400",
-      brillo: "bg-rose-500/10",
-    },
-    blue: {
-      tarjeta: "border-blue-500/45 bg-gradient-to-br from-blue-950/55 via-[#081a36] to-[#071226]",
-      numero: "text-blue-300",
-      icono: "border border-blue-400/35 bg-blue-500/15 text-blue-300 shadow-[0_0_28px_rgba(59,130,246,0.25)]",
-      progreso: "bg-blue-400",
-      brillo: "bg-blue-500/10",
-    },
-    purple: {
-      tarjeta: "border-fuchsia-500/45 bg-gradient-to-br from-fuchsia-950/45 via-[#211038] to-[#071226]",
-      numero: "text-fuchsia-300",
-      icono: "border border-fuchsia-400/35 bg-fuchsia-500/15 text-fuchsia-300 shadow-[0_0_28px_rgba(217,70,239,0.25)]",
-      progreso: "bg-fuchsia-400",
-      brillo: "bg-fuchsia-500/10",
-    },
-    cyan: {
-      tarjeta: "border-cyan-500/45 bg-gradient-to-br from-cyan-950/45 via-[#08202d] to-[#071226]",
-      numero: "text-cyan-300",
-      icono: "border border-cyan-400/35 bg-cyan-500/15 text-cyan-300 shadow-[0_0_28px_rgba(34,211,238,0.25)]",
-      progreso: "bg-cyan-400",
-      brillo: "bg-cyan-500/10",
-    },
+  const tones = {
+    violet: "border-violet-500/30 bg-violet-500/10 text-violet-300",
+    green: "border-green-500/30 bg-green-500/10 text-green-300",
+    emerald: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+    yellow: "border-yellow-500/30 bg-yellow-500/10 text-yellow-300",
+    orange: "border-orange-500/30 bg-orange-500/10 text-orange-300",
+    red: "border-rose-500/30 bg-rose-500/10 text-rose-300",
   };
 
-  const estilo = estilos[color];
-  const partes = titulo.split(" ");
-  const icono = partes[0];
-  const nombre = partes.slice(1).join(" ");
-
   return (
-    <div
-      className={`group relative overflow-hidden rounded-[26px] border p-5 shadow-[0_16px_45px_rgba(0,0,0,0.34)] transition-all duration-500 hover:-translate-y-2 hover:scale-[1.01] hover:shadow-[0_24px_65px_rgba(37,99,235,0.16)] ${estilo.tarjeta}`}
-    >
-      <div className={`absolute -right-10 -top-10 h-32 w-32 rounded-full blur-2xl ${estilo.brillo}`} />
-
-      <div className="relative flex items-start justify-between">
+    <div className={`rounded-[24px] border p-4 shadow-xl ${tones[tone]}`}>
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-black text-slate-400">{nombre}</p>
-
-          <h3 className={`mt-3 text-4xl font-black ${estilo.numero}`}>
-            {valor}
-          </h3>
+          <p className="text-xs font-black uppercase tracking-wider opacity-75">{title}</p>
+          <p className="mt-3 text-4xl font-black tabular-nums text-white">{value}</p>
         </div>
-
-        <div
-          className={`flex h-12 w-12 items-center justify-center rounded-2xl text-xl shadow-lg transition-all duration-500 group-hover:rotate-6 group-hover:scale-110 ${estilo.icono}`}
-        >
-          {icono}
-        </div>
-      </div>
-
-      <div className="relative mt-5 h-1.5 overflow-hidden rounded-full bg-slate-800">
-        <div
-          className={`h-full rounded-full ${estilo.progreso}`}
-          style={{
-            width: valor > 0 ? `${Math.min(valor * 10, 100)}%` : "7%",
-          }}
-        />
+        <span className="text-2xl">{icon}</span>
       </div>
     </div>
   );
 }
 
-function InfoBox({
-  titulo,
-  valor,
-  clase,
+function SectionTitle({
+  title,
+  subtitle,
+  badge,
 }: {
-  titulo: string;
-  valor: string;
-  clase: string;
+  title: string;
+  subtitle: string;
+  badge?: string;
 }) {
   return (
-    <div
-      className={`rounded-2xl p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${clase}`}
-    >
-      <p className="text-xs font-black uppercase tracking-wider opacity-70">
-        {titulo}
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h2 className="text-xl font-black text-white">{title}</h2>
+        <p className="mt-1 text-xs font-semibold text-slate-500">{subtitle}</p>
+      </div>
+      {badge && (
+        <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-xs font-black text-emerald-300">
+          {badge}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function CustomTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+
+  return (
+    <div className="rounded-xl border border-slate-700 bg-[#020806]/95 p-3 text-xs shadow-2xl">
+      {label && <p className="mb-2 font-black text-white">{label}</p>}
+      {payload.map((item: any) => (
+        <div key={`${item.name}-${item.value}`} className="flex items-center justify-between gap-5 py-0.5">
+          <span className="font-semibold" style={{ color: item.color }}>
+            {item.name}
+          </span>
+          <span className="font-black text-white">{item.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MiniStatus({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "green" | "red" | "blue" | "violet" | "slate";
+}) {
+  const tones = {
+    green: "border-emerald-500/25 bg-emerald-500/10 text-emerald-300",
+    red: "border-red-500/25 bg-red-500/10 text-red-300",
+    blue: "border-blue-500/25 bg-blue-500/10 text-blue-300",
+    violet: "border-violet-500/25 bg-violet-500/10 text-violet-300",
+    slate: "border-slate-700 bg-slate-900/70 text-slate-200",
+  };
+
+  return (
+    <div className={`rounded-2xl border p-4 ${tones[tone]}`}>
+      <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{label}</p>
+      <p className="mt-2 break-words text-sm font-black">{value}</p>
+    </div>
+  );
+}
+
+function ActividadAlerta({
+  alerta,
+  hora,
+}: {
+  alerta: AlertaReciente;
+  hora: (fecha: string | null | undefined) => string;
+}) {
+  const icono =
+    alerta.tipo === "INGRESO_PENDIENTE"
+      ? "🟡"
+      : alerta.tipo === "AUSENCIA_CONFIRMADA"
+        ? "🔴"
+        : "🟠";
+
+  const nombre =
+    alerta.tipo === "INGRESO_PENDIENTE"
+      ? "Aviso de ingreso pendiente"
+      : alerta.tipo === "AUSENCIA_CONFIRMADA"
+        ? "Ausencia confirmada"
+        : "Alerta de tardanza";
+
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-950/55 p-4 hover:border-emerald-500/30">
+      <div className="flex min-w-0 gap-3">
+        <span className="text-xl">{icono}</span>
+        <div className="min-w-0">
+          <p className="truncate font-black text-white">
+            {alerta.estudiante.nombres} {alerta.estudiante.apellidos}
+          </p>
+          <p className="mt-1 text-xs font-semibold text-slate-500">
+            {alerta.estudiante.grado}° {alerta.estudiante.seccion} · {alerta.estudiante.turno?.nombre || "Sin turno"}
+          </p>
+          <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-emerald-300">
+            {nombre}
+          </p>
+        </div>
+      </div>
+      <p className="shrink-0 text-xs font-black text-slate-300">{hora(alerta.createdAt)}</p>
+    </div>
+  );
+}
+
+function ActividadAsistencia({
+  asistencia,
+  hora,
+}: {
+  asistencia: Asistencia;
+  hora: (fecha: string | null | undefined) => string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-950/55 p-4 hover:border-blue-500/30">
+      <div>
+        <p className="font-black text-white">
+          {asistencia.estudiante.nombres} {asistencia.estudiante.apellidos}
+        </p>
+        <p className="mt-1 text-xs font-semibold text-slate-500">
+          {asistencia.estudiante.grado}° {asistencia.estudiante.seccion} · {asistencia.estudiante.turno?.nombre || "Sin turno"}
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Badge estado={asistencia.estado} />
+          <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[10px] font-black text-blue-300">
+            {asistencia.metodo}
+          </span>
+        </div>
+      </div>
+      <p className="shrink-0 text-xs font-black text-slate-300">
+        {hora(asistencia.horaSalida || asistencia.horaEntrada)}
       </p>
-
-      <p className="mt-2 break-words text-base font-black">{valor}</p>
     </div>
   );
 }
 
-function AlertBox({
-  texto,
-  icono,
-  clase,
-}: {
-  texto: string;
-  icono: string;
-  clase: string;
-}) {
+function Badge({ estado }: { estado: string }) {
+  const tarde = estado.toUpperCase() === "TARDE";
   return (
-    <div
-      className={`flex items-center gap-3 rounded-2xl border px-4 py-3 font-black transition-all duration-300 hover:translate-x-1 hover:shadow-sm ${clase}`}
+    <span
+      className={`rounded-full border px-2.5 py-1 text-[10px] font-black ${
+        tarde
+          ? "border-orange-500/20 bg-orange-500/10 text-orange-300"
+          : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+      }`}
     >
-      <span className="text-lg">{icono}</span>
-      <span>{texto}</span>
-    </div>
-  );
-}
-
-function TurnoDato({
-  titulo,
-  valor,
-  clase,
-}: {
-  titulo: string;
-  valor: number;
-  clase: string;
-}) {
-  return (
-    <div
-      className={`rounded-2xl p-3 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm ${clase}`}
-    >
-      <p className="text-xs font-bold opacity-70">{titulo}</p>
-      <p className="mt-1 text-xl font-black">{valor}</p>
-    </div>
-  );
-}
-
-function EstadoBadge({ estado }: { estado: string }) {
-  const valor = estado.toUpperCase();
-
-  if (valor === "PUNTUAL") {
-    return (
-      <span className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-xs font-black text-emerald-300">
-        PUNTUAL
-      </span>
-    );
-  }
-
-  if (valor === "TARDE") {
-    return (
-      <span className="rounded-full border border-orange-400/25 bg-orange-500/10 px-3 py-1 text-xs font-black text-orange-300">
-        TARDE
-      </span>
-    );
-  }
-
-  return (
-    <span className="rounded-full border border-slate-500/30 bg-slate-700/50 px-3 py-1 text-xs font-black text-slate-200">
       {estado}
     </span>
+  );
+}
+
+function TurnoCard({ turno }: { turno: TurnoResumen }) {
+  const sinIngreso =
+    turno.esperandoIngreso +
+    turno.ingresoPendiente +
+    turno.tardanzaSinIngreso;
+
+  const porcentaje =
+    turno.total > 0
+      ? Math.round((turno.presentes / turno.total) * 100)
+      : 0;
+
+  const radial = [
+    {
+      name: "Asistencia",
+      value: porcentaje,
+      fill: porcentaje >= 80 ? "#22c55e" : porcentaje >= 50 ? "#eab308" : "#f43f5e",
+    },
+  ];
+
+  return (
+    <div className={`${PANEL} p-5`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">
+            Monitoreo por turno
+          </p>
+          <h3 className="mt-1 text-xl font-black text-white">⏰ {turno.nombre}</h3>
+          <p className="mt-1 text-xs font-semibold text-slate-500">
+            {turno.horaEntrada} - {turno.horaSalida}
+          </p>
+        </div>
+        <EstadoChip
+          activo={turno.activo && !turno.noLectivo}
+          textoActivo="Activo"
+          textoInactivo={turno.noLectivo ? "No lectivo" : "Inactivo"}
+        />
+      </div>
+
+      <div className="mt-4 grid grid-cols-[130px_1fr] items-center gap-4">
+        <div className="relative h-[130px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <RadialBarChart
+              innerRadius="70%"
+              outerRadius="100%"
+              data={radial}
+              startAngle={90}
+              endAngle={-270}
+            >
+              <RadialBar dataKey="value" background={{ fill: "#132238" }} cornerRadius={12} />
+            </RadialBarChart>
+          </ResponsiveContainer>
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-3xl font-black text-white">{porcentaje}%</span>
+            <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">asistencia</span>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <BarraEstado label="Presentes" value={turno.presentes} total={turno.total} tone="green" />
+          <BarraEstado label="Sin ingreso" value={sinIngreso} total={turno.total} tone="yellow" />
+          <BarraEstado label="Ausentes" value={turno.ausentesConfirmados} total={turno.total} tone="red" />
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-4 gap-2">
+        <MiniKpi label="Total" value={turno.total} tone="slate" />
+        <MiniKpi label="Puntuales" value={turno.puntuales} tone="green" />
+        <MiniKpi label="Tardanzas" value={turno.tardanzas + turno.tardanzaSinIngreso} tone="orange" />
+        <MiniKpi label="Alertas" value={turno.alertasEnviadas} tone="violet" />
+      </div>
+    </div>
+  );
+}
+
+
+
+
+
+function BarraEstado({
+  label,
+  value,
+  total,
+  tone,
+}: {
+  label: string;
+  value: number;
+  total: number;
+  tone: "green" | "yellow" | "orange" | "red";
+}) {
+  const porcentaje = total > 0 ? Math.min(Math.round((value / total) * 100), 100) : 0;
+  const colores = {
+    green: "bg-emerald-400",
+    yellow: "bg-yellow-400",
+    orange: "bg-orange-400",
+    red: "bg-rose-400",
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider">
+        <span className="text-slate-500">{label}</span>
+        <span className="text-slate-200">{value}</span>
+      </div>
+      <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-800">
+        <div className={`h-full rounded-full transition-all duration-700 ${colores[tone]}`} style={{ width: `${porcentaje}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function MiniKpi({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number | string;
+  tone: "slate" | "green" | "orange" | "red" | "violet";
+}) {
+  const colores = {
+    slate: "text-slate-200",
+    green: "text-emerald-300",
+    orange: "text-orange-300",
+    red: "text-rose-300",
+    violet: "text-violet-300",
+  };
+
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-slate-950/65 p-3 text-center">
+      <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">{label}</p>
+      <p className={`mt-1 text-lg font-black ${colores[tone]}`}>{value}</p>
+    </div>
+  );
+}
+
+function RecomendacionIA({
+  icono,
+  titulo,
+  descripcion,
+  tone,
+}: {
+  icono: string;
+  titulo: string;
+  descripcion: string;
+  tone: "green" | "orange" | "red" | "violet";
+}) {
+  const tonos = {
+    green: "border-emerald-500/20 bg-emerald-500/5",
+    orange: "border-orange-500/20 bg-orange-500/5",
+    red: "border-rose-500/20 bg-rose-500/5",
+    violet: "border-violet-500/20 bg-violet-500/5",
+  };
+
+  return (
+    <div className={`rounded-2xl border p-3 ${tonos[tone]}`}>
+      <div className="flex items-start gap-3">
+        <span className="text-xl">{icono}</span>
+        <div>
+          <p className="text-sm font-black text-white">{titulo}</p>
+          <p className="mt-1 text-xs leading-5 text-slate-400">{descripcion}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CoberturaDato({
+  icono,
+  titulo,
+  valor,
+  detalle,
+}: {
+  icono: string;
+  titulo: string;
+  valor: number;
+  detalle: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-slate-950/65 p-4">
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-xl">
+          {icono}
+        </div>
+
+        <div className="min-w-0">
+          <p className="text-xs font-black uppercase tracking-wider text-slate-500">
+            {titulo}
+          </p>
+
+          <p className="mt-1 text-2xl font-black text-white">
+            {valor}
+          </p>
+
+          <p className="mt-1 break-words text-xs font-semibold leading-5 text-slate-400">
+            {detalle}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Vacio({ texto }: { texto: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-slate-800 py-10 text-center text-sm font-semibold text-slate-500">
+      {texto}
+    </div>
   );
 }

@@ -6,6 +6,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useConfiguracionColegio } from "@/hooks/useConfiguracionColegio";
 
+type MenuItem = {
+  href: string;
+  icono: string;
+  texto: string;
+  visible: boolean;
+};
+
 export default function DashboardLayout({
   children,
 }: {
@@ -24,12 +31,27 @@ export default function DashboardLayout({
   const esPersonal = rol === "PERSONAL";
   const esDirectivo = rol === "DIRECTIVO";
 
-  const linkClass = (href: string) =>
-    `block rounded-xl px-4 py-3 font-semibold transition ${
-      pathname === href
+  const puedeGestionar =
+    esAdmin || esDirectivo || esDemo || esPersonal;
+
+  const puedeAnalizar =
+    esAdmin || esDirectivo || esDemo;
+
+  const puedeAdministrar =
+    esAdmin || esDirectivo;
+
+  const linkClass = (href: string) => {
+    const activo =
+      pathname === href ||
+      (href !== "/dashboard" &&
+        pathname.startsWith(`${href}/`));
+
+    return `flex items-center gap-3 rounded-xl px-4 py-3 font-semibold transition ${
+      activo
         ? "bg-blue-600 text-white shadow-lg shadow-blue-950/30"
         : "text-slate-200 hover:bg-slate-800 hover:text-white"
     }`;
+  };
 
   useEffect(() => {
     const logueado = localStorage.getItem("logueado");
@@ -116,6 +138,7 @@ export default function DashboardLayout({
     try {
       await fetch("/api/logout", {
         method: "POST",
+        credentials: "include",
       });
     } finally {
       localStorage.removeItem("logueado");
@@ -124,10 +147,171 @@ export default function DashboardLayout({
 
       window.history.replaceState(null, "", "/login");
       router.replace("/login");
+      router.refresh();
     }
   }
 
+  function GrupoMenu({
+    titulo,
+    items,
+  }: {
+    titulo: string;
+    items: MenuItem[];
+  }) {
+    const visibles = items.filter((item) => item.visible);
+
+    if (visibles.length === 0) {
+      return null;
+    }
+
+    return (
+      <div>
+        <p className="mb-2 px-3 text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
+          {titulo}
+        </p>
+
+        <div className="space-y-1">
+          {visibles.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={linkClass(item.href)}
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900/70 text-base">
+                {item.icono}
+              </span>
+
+              <span className="min-w-0 flex-1">
+                {item.texto}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   function Sidebar() {
+    const gestionItems: MenuItem[] = [
+      {
+        href: "/dashboard/estudiantes",
+        icono: "🎓",
+        texto: "Estudiantes",
+        visible: puedeGestionar,
+      },
+      {
+        href: "/dashboard/asistencias",
+        icono: "✅",
+        texto: "Asistencias",
+        visible: puedeGestionar,
+      },
+      {
+        href: "/dashboard/tardanzas",
+        icono: "⏰",
+        texto: "Tardanzas",
+        visible: puedeGestionar,
+      },
+      {
+        href: "/dashboard/ausentes",
+        icono: "🚫",
+        texto: "Ausentes",
+        visible: puedeGestionar,
+      },
+      {
+        href: "/dashboard/reporte-estudiante",
+        icono: "📄",
+        texto: "Reporte estudiante",
+        visible: puedeGestionar,
+      },
+      {
+        href: "/dashboard/reportes-mensuales",
+        icono: "📈",
+        texto: "Reportes mensuales",
+        visible: puedeGestionar,
+      },
+    ];
+
+    const inteligenciaItems: MenuItem[] = [
+      {
+        href: "/dashboard/inteligencia",
+        icono: "🤖",
+        texto: "Inteligencia Escolar",
+        visible: puedeAnalizar,
+      },
+      {
+        href: "/dashboard/inteligencia-institucional",
+        icono: "🧠",
+        texto: "Inteligencia y Reportes IA",
+        visible: puedeAnalizar,
+      },
+      {
+        href: "/dashboard/inteligencia/ranking",
+        icono: "🏆",
+        texto: "Ranking IA",
+        visible: puedeAnalizar,
+      },
+      {
+        href: "/dashboard/inteligencia/historial",
+        icono: "🗂️",
+        texto: "Historial IA",
+        visible: puedeAnalizar,
+      },
+    ];
+
+    const administracionItems: MenuItem[] = [
+      {
+        href: "/dashboard/calendario",
+        icono: "🗓️",
+        texto: "Calendario escolar",
+        visible: puedeAnalizar,
+      },
+      {
+        href: "/dashboard/usuarios",
+        icono: "👥",
+        texto: "Usuarios",
+        visible: esAdmin,
+      },
+      {
+        href: "/dashboard/turnos",
+        icono: "⏱️",
+        texto: "Turnos",
+        visible: puedeAdministrar,
+      },
+      {
+        href: "/dashboard/automatizaciones",
+        icono: "⚡",
+        texto: "Automatizaciones",
+        visible: puedeAdministrar,
+      },
+      {
+        href: "/dashboard/configuracion",
+        icono: "🔧",
+        texto: "Configuración",
+        visible: puedeAdministrar,
+      },
+      {
+        href: "/dashboard/auditoria",
+        icono: "🔍",
+        texto: "Auditoría",
+        visible: puedeAdministrar,
+      },
+      {
+        href: "/dashboard/backup",
+        icono: "💾",
+        texto: "Backup",
+        visible: esAdmin,
+      },
+    ];
+
+    const desarrolloItems: MenuItem[] = [
+      {
+        href: "/dashboard/modo-desarrollador",
+        icono: "🧪",
+        texto: "Modo desarrollador",
+        visible: esAdmin,
+      },
+    ];
+
     return (
       <div className="flex min-h-full flex-col">
         <div className="text-center">
@@ -176,166 +360,62 @@ export default function DashboardLayout({
           </div>
         </div>
 
-        <nav className="mt-7 flex-1 space-y-2">
-          {(esAdmin || esDirectivo || esDemo) && (
-            <Link
-              href="/dashboard"
-              className={linkClass("/dashboard")}
-            >
-              🏠 Dashboard
-            </Link>
-          )}
+        <nav className="mt-7 flex-1 space-y-6">
+          <GrupoMenu
+            titulo="Panel"
+            items={[
+              {
+                href: "/dashboard",
+                icono: "🏠",
+                texto: "Dashboard",
+                visible: puedeAnalizar,
+              },
+            ]}
+          />
 
-          {(esAdmin || esDirectivo || esDemo || esPersonal) && (
-            <>
-              <Link
-                href="/dashboard/estudiantes"
-                className={linkClass("/dashboard/estudiantes")}
-              >
-                👨‍🎓 Estudiantes
-              </Link>
+          <GrupoMenu
+            titulo="Gestión"
+            items={gestionItems}
+          />
 
-              <Link
-                href="/dashboard/asistencias"
-                className={linkClass("/dashboard/asistencias")}
-              >
-                📅 Asistencias
-              </Link>
+          <GrupoMenu
+            titulo="Inteligencia artificial"
+            items={inteligenciaItems}
+          />
 
-              <Link
-                href="/dashboard/tardanzas"
-                className={linkClass("/dashboard/tardanzas")}
-              >
-                🟠 Tardanzas
-              </Link>
-              <Link
-  href="/dashboard/ausentes"
-  className={linkClass("/dashboard/ausentes")}
->
-  ❌ Ausentes
-</Link>
+          <GrupoMenu
+            titulo="Administración"
+            items={administracionItems}
+          />
 
-              <Link
-                href="/dashboard/reportes-mensuales"
-                className={linkClass(
-                  "/dashboard/reportes-mensuales"
-                )}
-              >
-                📊 Reportes mensuales
-              </Link>
+          <GrupoMenu
+            titulo="Desarrollo"
+            items={desarrolloItems}
+          />
 
-              <Link
-                href="/dashboard/reporte-estudiante"
-                className={linkClass(
-                  "/dashboard/reporte-estudiante"
-                )}
-              >
-                👨‍🎓 Reporte estudiante
-              </Link>
-            </>
-          )}
-
-          {(esAdmin || esDirectivo || esDemo) && (
-            <>
-              <Link
-                href="/dashboard/inteligencia"
-                className={linkClass("/dashboard/inteligencia")}
-              >
-                🧠 Inteligencia Escolar
-              </Link>
-
-              <Link
-                href="/dashboard/inteligencia/historial"
-                className={linkClass(
-                  "/dashboard/inteligencia/historial"
-                )}
-              >
-                📚 Historial IA
-              </Link>
-
-              <Link
-                href="/dashboard/inteligencia/ranking"
-                className={linkClass(
-                  "/dashboard/inteligencia/ranking"
-                )}
-              >
-                🔥 Ranking IA
-              </Link>
-
-              <Link
-                href="/dashboard/calendario"
-                className={linkClass("/dashboard/calendario")}
-              >
-                📅 Calendario escolar
-              </Link>
-            </>
-          )}
-
-         {esAdmin && (
-  <>
-    <Link
-      href="/dashboard/usuarios"
-      className={linkClass("/dashboard/usuarios")}
-    >
-      👤 Usuarios
-    </Link>
-
-    <Link
-      href="/dashboard/backup"
-      className={linkClass("/dashboard/backup")}
-    >
-      💾 Backup
-    </Link>
-  </>
-)}
-
-             {(esAdmin || esDirectivo) && (
-  <>
-    <Link
-      href="/dashboard/turnos"
-      className={linkClass("/dashboard/turnos")}
-    >
-      ⏰ Turnos
-    </Link>
-    <Link
-  href="/dashboard/automatizaciones"
-  className={linkClass(
-    "/dashboard/automatizaciones"
-  )}
->
-  ⚙️ Automatizaciones
-</Link>
-
-    <Link
-      href="/dashboard/configuracion"
-      className={linkClass("/dashboard/configuracion")}
-    >
-      ⚙️ Configuración
-    </Link>
-
-    <Link
-      href="/dashboard/auditoria"
-      className={linkClass("/dashboard/auditoria")}
-    >
-      🧾 Auditoría
-    </Link>
-  </>
-)}
-
-          <Link href="/marcar" className={linkClass("/marcar")}>
-            📷 Marcar asistencia
-          </Link>
+          <GrupoMenu
+            titulo="Operación"
+            items={[
+              {
+                href: "/marcar",
+                icono: "📲",
+                texto: "Marcar asistencia",
+                visible: true,
+              },
+            ]}
+          />
 
           {esDemo && (
             <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-200">
               🧪 Modo demo: solo visualización
             </div>
           )}
+
           {esDirectivo && (
-  <div className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-200">
-    👔 Directivo: panel estratégico y análisis institucional
-  </div>
-)}
+            <div className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-200">
+              👔 Directivo: panel estratégico y análisis institucional
+            </div>
+          )}
 
           {esPersonal && (
             <div className="rounded-xl border border-blue-400/40 bg-blue-500/10 px-4 py-3 text-sm font-semibold text-blue-200">
@@ -345,10 +425,12 @@ export default function DashboardLayout({
         </nav>
 
         <button
+          type="button"
           onClick={cerrarSesion}
-          className="mt-8 w-full rounded-xl bg-red-600 px-4 py-3 font-bold transition hover:bg-red-700"
+          className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 font-bold transition hover:bg-red-700"
         >
-          🚪 Cerrar sesión
+          <span>🚪</span>
+          <span>Cerrar sesión</span>
         </button>
 
         <div className="mt-8 border-t border-slate-700 pt-5 text-center">

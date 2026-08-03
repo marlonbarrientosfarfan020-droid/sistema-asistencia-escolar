@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
-  guardarSesion,
+  crearTokenSesion,
   type RolUsuario,
 } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const COOKIE_NAME = "sesion_santa_rita";
 
 const ROLES_PERMITIDOS: RolUsuario[] = [
   "ADMIN",
@@ -42,7 +45,9 @@ export async function POST(request: Request) {
           message:
             "Usuario y contraseña son obligatorios",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -60,7 +65,9 @@ export async function POST(request: Request) {
           message:
             "Usuario o contraseña incorrectos",
         },
-        { status: 401 }
+        {
+          status: 401,
+        }
       );
     }
 
@@ -71,7 +78,9 @@ export async function POST(request: Request) {
           message:
             "Este usuario está inactivo",
         },
-        { status: 403 }
+        {
+          status: 403,
+        }
       );
     }
 
@@ -88,7 +97,9 @@ export async function POST(request: Request) {
           message:
             "Usuario o contraseña incorrectos",
         },
-        { status: 401 }
+        {
+          status: 401,
+        }
       );
     }
 
@@ -103,25 +114,51 @@ export async function POST(request: Request) {
           message:
             "El usuario no tiene un rol permitido",
         },
-        { status: 403 }
+        {
+          status: 403,
+        }
       );
     }
 
-    await guardarSesion({
+    const token = await crearTokenSesion({
       usuarioId: usuarioEncontrado.id,
       usuario: usuarioEncontrado.usuario,
       rol,
     });
 
-    return NextResponse.json({
-      ok: true,
-      message: "Login correcto",
-      usuario: {
-        id: usuarioEncontrado.id,
-        nombre: usuarioEncontrado.usuario,
-        rol,
+    const respuesta = NextResponse.json(
+      {
+        ok: true,
+        message: "Login correcto",
+        usuario: {
+          id: usuarioEncontrado.id,
+          nombre: usuarioEncontrado.usuario,
+          rol,
+        },
       },
-    });
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
+
+    respuesta.cookies.set(
+      COOKIE_NAME,
+      token,
+      {
+        httpOnly: true,
+        secure:
+          process.env.NODE_ENV ===
+          "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 8,
+      }
+    );
+
+    return respuesta;
   } catch (error) {
     console.error(
       "Error iniciando sesión:",
@@ -132,9 +169,13 @@ export async function POST(request: Request) {
       {
         ok: false,
         message:
-          "Error al iniciar sesión",
+          error instanceof Error
+            ? error.message
+            : "Error al iniciar sesión",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

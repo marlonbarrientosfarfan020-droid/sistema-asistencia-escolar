@@ -2,50 +2,107 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import {
+  KeyboardEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { FaIdCard } from "react-icons/fa";
 import { useConfiguracionColegio } from "@/hooks/useConfiguracionColegio";
 
+type EstadoVisual =
+  | "normal"
+  | "entrada"
+  | "salida"
+  | "error";
+
+type ResultadoAsistencia = {
+  tipo?: "ENTRADA" | "SALIDA";
+  message?: string;
+  estudiante?: {
+    nombres: string;
+    apellidos: string;
+    grado: string;
+    seccion: string;
+  };
+};
+
+const SEGUNDOS_PARA_FOTO = 1;
+const TIEMPO_LIBERAR_CAMARA_MS = 400;
+
 export default function MarcarPage() {
   const router = useRouter();
-  const { configuracion } = useConfiguracionColegio();
+  const { configuracion } =
+    useConfiguracionColegio();
 
   const [dni, setDni] = useState("");
-  const [mensaje, setMensaje] = useState("");
-  const [resultado, setResultado] = useState<any>(null);
-  const [camaraActiva, setCamaraActiva] = useState(false);
-  const [tomandoFoto, setTomandoFoto] = useState(false);
-  const [contadorFoto, setContadorFoto] = useState<number | null>(null);
+  const [mensaje, setMensaje] =
+    useState("");
 
-  const [estadoVisual, setEstadoVisual] = useState<
-    "normal" | "entrada" | "salida" | "error"
-  >("normal");
+  const [resultado, setResultado] =
+    useState<ResultadoAsistencia | null>(
+      null
+    );
+
+  const [camaraActiva, setCamaraActiva] =
+    useState(false);
+
+  const [tomandoFoto, setTomandoFoto] =
+    useState(false);
+
+  const [contadorFoto, setContadorFoto] =
+    useState<number | null>(null);
+
+  const [estadoVisual, setEstadoVisual] =
+    useState<EstadoVisual>("normal");
 
   const procesandoQR = useRef(false);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamFotoRef = useRef<MediaStream | null>(null);
+  const scannerRef =
+    useRef<Html5Qrcode | null>(null);
+
+  const videoRef =
+    useRef<HTMLVideoElement | null>(null);
+
+  const streamFotoRef =
+    useRef<MediaStream | null>(null);
 
   useEffect(() => {
-    const logueado = localStorage.getItem("logueado");
+    const logueado =
+      localStorage.getItem("logueado");
 
     if (logueado !== "true") {
       router.replace("/login");
       return;
     }
 
-    window.history.pushState(null, "", window.location.href);
+    window.history.pushState(
+      null,
+      "",
+      window.location.href
+    );
 
     const bloquearAtras = () => {
-      window.history.pushState(null, "", window.location.href);
+      window.history.pushState(
+        null,
+        "",
+        window.location.href
+      );
     };
 
-    window.addEventListener("popstate", bloquearAtras);
+    window.addEventListener(
+      "popstate",
+      bloquearAtras
+    );
 
     return () => {
-      window.removeEventListener("popstate", bloquearAtras);
+      window.removeEventListener(
+        "popstate",
+        bloquearAtras
+      );
+
       detenerCamaraFoto();
       void detenerCamaraQR();
     };
@@ -55,6 +112,7 @@ export default function MarcarPage() {
     try {
       await fetch("/api/logout", {
         method: "POST",
+        credentials: "include",
       });
     } finally {
       detenerCamaraFoto();
@@ -64,17 +122,36 @@ export default function MarcarPage() {
       localStorage.removeItem("rol");
       localStorage.removeItem("usuario");
 
-      window.history.replaceState(null, "", "/login");
+      window.history.replaceState(
+        null,
+        "",
+        "/login"
+      );
+
       router.replace("/login");
+      router.refresh();
     }
   }
 
   function beep(tipo: "ok" | "error") {
     const audio = new Audio(
-      tipo === "ok" ? "/beep-ok.mp3" : "/beep-error.mp3"
+      tipo === "ok"
+        ? "/beep-ok.mp3"
+        : "/beep-error.mp3"
     );
 
     audio.play().catch(() => {});
+  }
+
+  async function esperar(
+    milisegundos: number
+  ) {
+    await new Promise<void>((resolve) => {
+      window.setTimeout(
+        resolve,
+        milisegundos
+      );
+    });
   }
 
   async function detenerCamaraQR() {
@@ -84,14 +161,17 @@ export default function MarcarPage() {
       try {
         const estado = scanner.getState();
 
-        if (estado === 2 || estado === 3) {
+        if (
+          estado === 2 ||
+          estado === 3
+        ) {
           await scanner.stop();
         }
 
         scanner.clear();
       } catch (error) {
         console.warn(
-          "No se pudo detener completamente el QR:",
+          "No se pudo detener completamente el lector QR:",
           error
         );
       } finally {
@@ -102,17 +182,21 @@ export default function MarcarPage() {
     setCamaraActiva(false);
     procesandoQR.current = false;
 
-    // Espera para que Android libere la cámara trasera.
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await esperar(
+      TIEMPO_LIBERAR_CAMARA_MS
+    );
   }
 
   function detenerCamaraFoto() {
-    const stream = streamFotoRef.current;
+    const stream =
+      streamFotoRef.current;
 
     if (stream) {
-      stream.getTracks().forEach((track) => {
-        track.stop();
-      });
+      stream
+        .getTracks()
+        .forEach((track) =>
+          track.stop()
+        );
 
       streamFotoRef.current = null;
     }
@@ -127,8 +211,12 @@ export default function MarcarPage() {
     try {
       detenerCamaraFoto();
       setTomandoFoto(true);
+      setContadorFoto(null);
 
-      if (!navigator.mediaDevices?.getUserMedia) {
+      if (
+        !navigator.mediaDevices
+          ?.getUserMedia
+      ) {
         throw new Error(
           "El navegador no permite acceder a la cámara"
         );
@@ -137,26 +225,31 @@ export default function MarcarPage() {
       let stream: MediaStream;
 
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: {
-  ideal: "environment",
-},
-            width: {
-              ideal: 720,
-            },
-            height: {
-              ideal: 720,
-            },
-          },
-          audio: false,
-        });
+        stream =
+          await navigator.mediaDevices.getUserMedia(
+            {
+              video: {
+                facingMode: {
+                  ideal: "environment",
+                },
+                width: {
+                  ideal: 720,
+                },
+                height: {
+                  ideal: 720,
+                },
+              },
+              audio: false,
+            }
+          );
       } catch {
-        // Respaldo para laptops o celulares que no respetan facingMode.
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: false,
-        });
+        stream =
+          await navigator.mediaDevices.getUserMedia(
+            {
+              video: true,
+              audio: false,
+            }
+          );
       }
 
       streamFotoRef.current = stream;
@@ -164,44 +257,68 @@ export default function MarcarPage() {
       const video = videoRef.current;
 
       if (!video) {
-        throw new Error("No existe el elemento de video");
+        throw new Error(
+          "No existe el elemento de video"
+        );
       }
 
       video.srcObject = stream;
       video.muted = true;
       video.playsInline = true;
 
-      await new Promise<void>((resolve, reject) => {
-        const temporizador = window.setTimeout(() => {
-          reject(
-            new Error("La cámara tardó demasiado en iniciar")
-          );
-        }, 8000);
+      await new Promise<void>(
+        (resolve, reject) => {
+          const temporizador =
+            window.setTimeout(() => {
+              reject(
+                new Error(
+                  "La cámara tardó demasiado en iniciar"
+                )
+              );
+            }, 8000);
 
-        video.onloadedmetadata = async () => {
-          try {
-            await video.play();
-            window.clearTimeout(temporizador);
-            resolve();
-          } catch (error) {
-            window.clearTimeout(temporizador);
-            reject(error);
-          }
-        };
-      });
+          video.onloadedmetadata =
+            async () => {
+              try {
+                await video.play();
 
-      for (let numero = 2; numero >= 1; numero--) {
+                window.clearTimeout(
+                  temporizador
+                );
+
+                resolve();
+              } catch (error) {
+                window.clearTimeout(
+                  temporizador
+                );
+
+                reject(error);
+              }
+            };
+        }
+      );
+
+      /*
+       * Cuenta regresiva solicitada:
+       * únicamente 1 segundo.
+       */
+      for (
+        let numero =
+          SEGUNDOS_PARA_FOTO;
+        numero >= 1;
+        numero--
+      ) {
         setContadorFoto(numero);
-
-        await new Promise((resolve) =>
-          setTimeout(resolve, 1000)
-        );
+        await esperar(1000);
       }
 
       setContadorFoto(null);
 
-      const anchoOriginal = video.videoWidth || 720;
-      const altoOriginal = video.videoHeight || 720;
+      const anchoOriginal =
+        video.videoWidth || 720;
+
+      const altoOriginal =
+        video.videoHeight || 720;
 
       const maximo = 720;
 
@@ -211,31 +328,52 @@ export default function MarcarPage() {
         1
       );
 
-      const ancho = Math.round(anchoOriginal * escala);
-      const alto = Math.round(altoOriginal * escala);
+      const ancho = Math.round(
+        anchoOriginal * escala
+      );
 
-      const canvas = document.createElement("canvas");
+      const alto = Math.round(
+        altoOriginal * escala
+      );
+
+      const canvas =
+        document.createElement(
+          "canvas"
+        );
 
       canvas.width = ancho;
       canvas.height = alto;
 
-      const contexto = canvas.getContext("2d");
+      const contexto =
+        canvas.getContext("2d");
 
       if (!contexto) {
-        throw new Error("No se pudo crear la fotografía");
+        throw new Error(
+          "No se pudo crear la fotografía"
+        );
       }
 
-      contexto.drawImage(video, 0, 0, ancho, alto);
-
-      const blob = await new Promise<Blob | null>(
-        (resolve) => {
-          canvas.toBlob(
-            (resultadoBlob) => resolve(resultadoBlob),
-            "image/jpeg",
-            0.72
-          );
-        }
+      contexto.drawImage(
+        video,
+        0,
+        0,
+        ancho,
+        alto
       );
+
+      const blob =
+        await new Promise<Blob | null>(
+          (resolve) => {
+            canvas.toBlob(
+              (resultadoBlob) =>
+                resolve(
+                  resultadoBlob
+                ),
+              "image/jpeg",
+              0.72
+            );
+          }
+        );
 
       if (!blob) {
         throw new Error(
@@ -245,7 +383,10 @@ export default function MarcarPage() {
 
       return blob;
     } catch (error) {
-      console.error("Error capturando selfie:", error);
+      console.error(
+        "Error capturando fotografía:",
+        error
+      );
 
       setMensaje(
         error instanceof Error
@@ -262,7 +403,9 @@ export default function MarcarPage() {
     }
   }
 
-  async function subirFoto(foto: Blob): Promise<string> {
+  async function subirFoto(
+    foto: Blob
+  ): Promise<string> {
     const formData = new FormData();
 
     formData.append(
@@ -285,7 +428,8 @@ export default function MarcarPage() {
       }
     );
 
-    const texto = await respuesta.text();
+    const texto =
+      await respuesta.text();
 
     let data: {
       ok?: boolean;
@@ -303,7 +447,10 @@ export default function MarcarPage() {
       }
     }
 
-    if (!respuesta.ok || !data.fotoUrl) {
+    if (
+      !respuesta.ok ||
+      !data.fotoUrl
+    ) {
       throw new Error(
         data.message ||
           "No se pudo guardar la fotografía"
@@ -313,25 +460,30 @@ export default function MarcarPage() {
     return data.fotoUrl;
   }
 
-  async function registrarAsistencia(datos: {
-    dni?: string;
-    codigo?: string;
-    metodo: string;
-  }) {
+  async function registrarAsistencia(
+    datos: {
+      dni?: string;
+      codigo?: string;
+      metodo: string;
+    }
+  ) {
     setMensaje("");
     setResultado(null);
 
     try {
-      // Detiene completamente el QR antes de abrir la cámara frontal.
-      if (camaraActiva || scannerRef.current) {
+      if (
+        camaraActiva ||
+        scannerRef.current
+      ) {
         await detenerCamaraQR();
       }
 
       setMensaje(
-        "📸 Prepare el rostro para la fotografía"
+        "📸 Mire hacia la cámara. La foto se tomará en 1 segundo."
       );
 
-      const foto = await tomarFotoSelfie();
+      const foto =
+        await tomarFotoSelfie();
 
       if (!foto) {
         throw new Error(
@@ -339,18 +491,24 @@ export default function MarcarPage() {
         );
       }
 
-      setMensaje("⏳ Guardando fotografía...");
+      setMensaje(
+        "☁️ Guardando fotografía..."
+      );
 
-      const fotoUrl = await subirFoto(foto);
+      const fotoUrl =
+        await subirFoto(foto);
 
-      setMensaje("⏳ Registrando asistencia...");
+      setMensaje(
+        "⏳ Registrando asistencia..."
+      );
 
       const respuesta = await fetch(
         "/api/asistencias",
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
           },
           credentials: "include",
           body: JSON.stringify({
@@ -360,9 +518,12 @@ export default function MarcarPage() {
         }
       );
 
-      const texto = await respuesta.text();
+      const texto =
+        await respuesta.text();
 
-      let data: any = {};
+      let data: ResultadoAsistencia & {
+        message?: string;
+      } = {};
 
       if (texto) {
         try {
@@ -382,21 +543,36 @@ export default function MarcarPage() {
       }
 
       setResultado(data);
+
       setMensaje(
-        `✅ ${data.message || "Asistencia registrada"}`
+        `✅ ${
+          data.message ||
+          "Asistencia registrada"
+        }`
       );
+
       setDni("");
       beep("ok");
 
-      if (data.tipo === "ENTRADA") {
-        setEstadoVisual("entrada");
-      } else if (data.tipo === "SALIDA") {
-        setEstadoVisual("salida");
+      if (
+        data.tipo === "ENTRADA"
+      ) {
+        setEstadoVisual(
+          "entrada"
+        );
+      } else if (
+        data.tipo === "SALIDA"
+      ) {
+        setEstadoVisual(
+          "salida"
+        );
       }
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         setEstadoVisual("normal");
-      }, 3000);
+        setMensaje("");
+        setResultado(null);
+      }, 4000);
     } catch (error) {
       console.error(
         "Error registrando asistencia:",
@@ -414,7 +590,7 @@ export default function MarcarPage() {
       setEstadoVisual("error");
       beep("error");
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         setEstadoVisual("normal");
       }, 3500);
     } finally {
@@ -425,7 +601,10 @@ export default function MarcarPage() {
 
   async function marcarPorDni() {
     if (!dni.trim()) {
-      setMensaje("❌ Ingrese un DNI");
+      setMensaje(
+        "❌ Ingrese un DNI"
+      );
+
       setEstadoVisual("error");
       return;
     }
@@ -436,49 +615,78 @@ export default function MarcarPage() {
     });
   }
 
+  function manejarEnterDni(
+    event: KeyboardEvent<HTMLInputElement>
+  ) {
+    if (
+      event.key === "Enter" &&
+      !tomandoFoto
+    ) {
+      event.preventDefault();
+      void marcarPorDni();
+    }
+  }
+
   async function activarCamara() {
     detenerCamaraFoto();
+    setResultado(null);
+    setMensaje("");
     setCamaraActiva(true);
+
     procesandoQR.current = false;
 
-    setTimeout(async () => {
-      const lector = new Html5Qrcode("lector-qr");
+    window.setTimeout(async () => {
+      const lector =
+        new Html5Qrcode(
+          "lector-qr"
+        );
+
       scannerRef.current = lector;
 
       try {
         await lector.start(
           {
-            facingMode: "environment",
+            facingMode:
+              "environment",
           },
           {
-            fps: 10,
+            fps: 15,
             qrbox: {
               width: 250,
               height: 250,
             },
+            aspectRatio: 1,
           },
           async (codigoLeido) => {
-            if (procesandoQR.current) return;
+            if (
+              procesandoQR.current
+            ) {
+              return;
+            }
 
             procesandoQR.current = true;
 
             await detenerCamaraQR();
 
             await registrarAsistencia({
-              codigo: codigoLeido,
+              codigo:
+                codigoLeido.trim(),
               metodo: "QR",
             });
           },
           () => {}
         );
       } catch (error) {
-        console.error(error);
+        console.error(
+          "Error activando lector QR:",
+          error
+        );
 
         scannerRef.current = null;
         procesandoQR.current = false;
 
         setMensaje(
-          "❌ No se pudo activar la cámara. Verifique permisos."
+          "❌ No se pudo activar la cámara. Verifique los permisos."
         );
 
         setEstadoVisual("error");
@@ -489,198 +697,362 @@ export default function MarcarPage() {
 
   const textoPrincipal =
     estadoVisual === "entrada"
-      ? "✅ Entrada registrada"
+      ? "Entrada registrada"
       : estadoVisual === "salida"
-      ? "👋 Salida registrada"
+      ? "Salida registrada"
       : estadoVisual === "error"
-      ? "❌ Error"
-      : "Marcar Asistencia";
+      ? "No se pudo registrar"
+      : "Marcar asistencia";
 
-  const colorEstado =
+  const descripcionPrincipal =
     estadoVisual === "entrada"
-      ? "bg-green-600"
+      ? "El ingreso fue confirmado correctamente."
       : estadoVisual === "salida"
-      ? "bg-blue-600"
+      ? "La salida fue confirmada correctamente."
       : estadoVisual === "error"
-      ? "bg-red-600"
-      : "bg-blue-600";
+      ? "Revise el mensaje e inténtelo nuevamente."
+      : "Escanee el código QR o ingrese el DNI del estudiante.";
+
+  const colorMensaje =
+    estadoVisual === "entrada"
+      ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-100"
+      : estadoVisual === "salida"
+      ? "border-blue-500/30 bg-blue-500/15 text-blue-100"
+      : estadoVisual === "error"
+      ? "border-red-500/30 bg-red-500/15 text-red-100"
+      : "border-violet-500/30 bg-violet-500/15 text-violet-100";
 
   return (
     <main
-      className="min-h-screen bg-cover bg-center relative flex items-center justify-center p-6"
+      className="relative min-h-screen overflow-hidden bg-cover bg-center p-4 sm:p-6"
       style={{
         backgroundImage:
           "url('/img/colegio-santa-rita.jpg')",
       }}
     >
-      <div className="absolute inset-0 bg-slate-950/45" />
+      <div className="absolute inset-0 bg-slate-950/70" />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-950/30 via-transparent to-emerald-950/30" />
 
-      {contadorFoto !== null && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-          <div className="bg-white rounded-full w-52 h-52 flex items-center justify-center shadow-2xl border-8 border-blue-600">
-            <span className="text-8xl font-extrabold text-blue-600">
-              {contadorFoto}
-            </span>
-          </div>
-        </div>
-      )}
+      <div className="relative z-20 mx-auto flex max-w-[1500px] items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() =>
+            router.replace(
+              "/dashboard"
+            )
+          }
+          className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-slate-950/65 px-4 py-3 text-sm font-black text-white shadow-xl backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-slate-900"
+        >
+          <span>←</span>
+          <span>Volver al panel</span>
+        </button>
 
-      <button
-        onClick={cerrarSesion}
-        className="absolute top-5 right-5 z-20 bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-xl font-bold shadow"
-      >
-        🚪 Cerrar sesión
-      </button>
-
-      <button
-        onClick={() => router.replace("/dashboard")}
-        className="absolute top-5 left-5 z-20 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold shadow"
-      >
-        ⬅️ Volver al panel
-      </button>
+        <button
+          type="button"
+          onClick={cerrarSesion}
+          className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-3 text-sm font-black text-white shadow-xl transition hover:-translate-y-0.5 hover:bg-red-700"
+        >
+          <span>🚪</span>
+          <span className="hidden sm:inline">
+            Cerrar sesión
+          </span>
+        </button>
+      </div>
 
       <video
         ref={videoRef}
-        className="hidden"
+        className={
+          tomandoFoto
+            ? "fixed inset-0 z-[70] h-full w-full object-cover"
+            : "hidden"
+        }
         playsInline
         muted
       />
 
-      <div className="relative z-10 bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-8 w-full max-w-5xl">
-        <div className="text-center">
-          {configuracion.logoUrl ? (
-            <img
-              src={configuracion.logoUrl}
-              alt={`Logo de ${configuracion.nombreColegio}`}
-              className="mx-auto mb-3 h-[95px] w-[95px] rounded-2xl bg-white object-contain p-2 shadow"
-            />
-          ) : (
-            <Image
-              src="/img/logo-santa-rita.png"
-              alt="Logo institucional"
-              width={95}
-              height={95}
-              className="mx-auto mb-3 rounded-2xl bg-white p-2 shadow"
-              priority
-            />
-          )}
+      {tomandoFoto && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-5">
+          <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/80 to-transparent px-5 py-8 text-center">
+            <p className="text-sm font-black uppercase tracking-[0.25em] text-white/75">
+              Captura automática
+            </p>
 
-          <h2 className="text-xl font-bold text-slate-700">
-            {configuracion.nombreColegio}
-          </h2>
-
-          <h1 className="text-5xl font-extrabold text-slate-900">
-            {textoPrincipal}
-          </h1>
-
-          <p className="text-slate-600 mt-2 text-lg">
-            Escanea el QR o ingresa el DNI del
-            estudiante
-          </p>
-        </div>
-
-        {tomandoFoto && contadorFoto === null && (
-          <p className="mt-6 text-center text-2xl font-bold text-white rounded-2xl py-4 bg-purple-600">
-            📸 Capturando foto del estudiante...
-          </p>
-        )}
-
-        {mensaje && (
-          <p
-            className={`mt-6 text-center text-2xl font-bold text-white rounded-2xl py-4 ${colorEstado}`}
-          >
-            {mensaje}
-          </p>
-        )}
-
-        {resultado && (
-          <div className="mt-6 bg-slate-100 rounded-2xl p-6 text-center">
-            <h2 className="text-4xl font-extrabold">
-              {resultado.estudiante.nombres}{" "}
-              {resultado.estudiante.apellidos}
+            <h2 className="mt-2 text-2xl font-black text-white sm:text-4xl">
+              Mire hacia la cámara
             </h2>
-
-            <p className="text-xl text-slate-600 mt-2">
-              Grado {resultado.estudiante.grado} -
-              Sección{" "}
-              {resultado.estudiante.seccion}
-            </p>
-
-            <p className="text-2xl font-bold mt-4">
-              {new Date().toLocaleTimeString("es-PE")}
-            </p>
           </div>
-        )}
 
-        <div className="grid md:grid-cols-2 gap-6 mt-8">
-          <div className="border-2 border-blue-100 bg-white rounded-3xl p-6 text-center shadow">
-            <div className="text-6xl mb-4">📷</div>
+          <div className="relative flex h-64 w-64 items-center justify-center rounded-full border-8 border-white/80 bg-black/30 shadow-[0_0_80px_rgba(59,130,246,0.7)] backdrop-blur-sm sm:h-80 sm:w-80">
+            {contadorFoto !== null ? (
+              <span className="text-9xl font-black text-white drop-shadow-2xl">
+                {contadorFoto}
+              </span>
+            ) : (
+              <div className="text-center">
+                <div className="mx-auto h-14 w-14 animate-spin rounded-full border-4 border-white/30 border-t-white" />
 
-            <h2 className="text-2xl font-bold">
-              Escanear QR
-            </h2>
-
-            {!camaraActiva && (
-              <button
-                onClick={activarCamara}
-                disabled={tomandoFoto}
-                className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold disabled:opacity-50"
-              >
-                Activar cámara
-              </button>
-            )}
-
-            {camaraActiva && (
-              <div className="mt-6">
-                <div
-                  id="lector-qr"
-                  className="overflow-hidden rounded-2xl border-4 border-blue-600"
-                />
-
-                <button
-                  onClick={() => void detenerCamaraQR()}
-                  className="mt-4 bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-xl font-bold"
-                >
-                  Detener cámara
-                </button>
+                <p className="mt-4 font-black text-white">
+                  Preparando cámara...
+                </p>
               </div>
             )}
           </div>
 
-          <div className="border-2 border-green-100 bg-white rounded-3xl p-6 shadow">
-            <div className="flex justify-center mb-4">
-              <FaIdCard className="text-6xl text-blue-600" />
+          <p className="absolute inset-x-0 bottom-8 text-center text-sm font-bold text-white/80">
+            La fotografía se tomará automáticamente.
+          </p>
+        </div>
+      )}
+
+      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-96px)] max-w-[1500px] items-center justify-center py-6">
+        <section className="w-full overflow-hidden rounded-[34px] border border-white/20 bg-white/90 shadow-[0_30px_90px_rgba(0,0,0,0.45)] backdrop-blur-2xl lg:max-w-6xl">
+          <div className="border-b border-slate-200/80 bg-gradient-to-r from-white via-blue-50/70 to-emerald-50/70 px-6 py-6 text-center sm:px-10">
+            {configuracion.logoUrl ? (
+              <img
+                src={
+                  configuracion.logoUrl
+                }
+                alt={`Logo de ${configuracion.nombreColegio}`}
+                className="mx-auto h-[88px] w-[88px] rounded-3xl bg-white object-contain p-2 shadow-xl ring-1 ring-slate-200"
+              />
+            ) : (
+              <Image
+                src="/img/logo-santa-rita.png"
+                alt="Logo institucional"
+                width={88}
+                height={88}
+                className="mx-auto rounded-3xl bg-white p-2 shadow-xl ring-1 ring-slate-200"
+                priority
+              />
+            )}
+
+            <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-blue-700">
+              {
+                configuracion.nombreColegio
+              }
+            </p>
+
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
+              {textoPrincipal}
+            </h1>
+
+            <p className="mx-auto mt-2 max-w-2xl text-sm font-semibold text-slate-500 sm:text-base">
+              {descripcionPrincipal}
+            </p>
+          </div>
+
+          <div className="p-5 sm:p-8">
+            {mensaje && (
+              <div
+                className={`mb-6 rounded-2xl border px-5 py-4 text-center text-base font-black shadow-sm ${colorMensaje}`}
+              >
+                {mensaje}
+              </div>
+            )}
+
+            {resultado?.estudiante && (
+              <div className="mb-6 overflow-hidden rounded-3xl border border-emerald-500/25 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 p-5">
+                <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-widest text-emerald-700">
+                      Registro confirmado
+                    </p>
+
+                    <h2 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">
+                      {
+                        resultado
+                          .estudiante
+                          .nombres
+                      }{" "}
+                      {
+                        resultado
+                          .estudiante
+                          .apellidos
+                      }
+                    </h2>
+
+                    <p className="mt-1 font-semibold text-slate-600">
+                      Grado{" "}
+                      {
+                        resultado
+                          .estudiante
+                          .grado
+                      }{" "}
+                      · Sección{" "}
+                      {
+                        resultado
+                          .estudiante
+                          .seccion
+                      }
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl bg-slate-950 px-5 py-4 text-white shadow-xl">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Hora registrada
+                    </p>
+
+                    <p className="mt-1 text-2xl font-black tabular-nums">
+                      {new Date().toLocaleTimeString(
+                        "es-PE",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second:
+                            "2-digit",
+                          timeZone:
+                            "America/Lima",
+                        }
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="grid gap-5 lg:grid-cols-2">
+              <article className="group rounded-[28px] border border-blue-200 bg-gradient-to-br from-white to-blue-50/70 p-5 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl sm:p-7">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-2xl text-white shadow-lg shadow-blue-200">
+                    📷
+                  </div>
+
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-950">
+                      Escanear QR
+                    </h2>
+
+                    <p className="mt-1 text-sm font-semibold text-slate-500">
+                      Use la cámara trasera para leer el carnet.
+                    </p>
+                  </div>
+                </div>
+
+                {!camaraActiva ? (
+                  <button
+                    type="button"
+                    onClick={activarCamara}
+                    disabled={
+                      tomandoFoto
+                    }
+                    className="mt-6 w-full rounded-2xl bg-blue-600 px-5 py-4 font-black text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    📷 Activar cámara QR
+                  </button>
+                ) : (
+                  <div className="mt-6">
+                    <div className="overflow-hidden rounded-3xl border-4 border-blue-500 bg-slate-950 p-1 shadow-2xl">
+                      <div
+                        id="lector-qr"
+                        className="overflow-hidden rounded-2xl"
+                      />
+                    </div>
+
+                    <p className="mt-3 text-center text-sm font-bold text-blue-700">
+                      Acerque el código QR al centro del recuadro.
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void detenerCamaraQR()
+                      }
+                      className="mt-4 w-full rounded-2xl border-2 border-red-200 bg-red-50 px-5 py-3 font-black text-red-700 transition hover:bg-red-100"
+                    >
+                      Detener cámara
+                    </button>
+                  </div>
+                )}
+              </article>
+
+              <article className="group rounded-[28px] border border-emerald-200 bg-gradient-to-br from-white to-emerald-50/70 p-5 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl sm:p-7">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-200">
+                    <FaIdCard className="text-2xl" />
+                  </div>
+
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-950">
+                      Registrar por DNI
+                    </h2>
+
+                    <p className="mt-1 text-sm font-semibold text-slate-500">
+                      Alternativa manual cuando no se puede leer el QR.
+                    </p>
+                  </div>
+                </div>
+
+                <label className="mt-6 block">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-500">
+                    DNI del estudiante
+                  </span>
+
+                  <div className="relative mt-2">
+                    <FaIdCard className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-emerald-600" />
+
+                    <input
+                      value={dni}
+                      onChange={(event) =>
+                        setDni(
+                          event.target.value
+                            .replace(
+                              /\D/g,
+                              ""
+                            )
+                            .slice(0, 8)
+                        )
+                      }
+                      onKeyDown={
+                        manejarEnterDni
+                      }
+                      placeholder="Ingrese 8 dígitos"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      disabled={
+                        tomandoFoto
+                      }
+                      className="h-16 w-full rounded-2xl border-2 border-slate-200 bg-white pl-12 pr-4 text-center text-2xl font-black tracking-[0.18em] text-slate-950 outline-none transition placeholder:text-base placeholder:font-semibold placeholder:tracking-normal placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 disabled:bg-slate-100 disabled:opacity-60"
+                    />
+                  </div>
+                </label>
+
+                <div className="mt-3 flex items-center justify-between text-xs font-bold text-slate-500">
+                  <span>
+                    {dni.length}/8 dígitos
+                  </span>
+
+                  <span>
+                    También puede presionar Enter
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={marcarPorDni}
+                  disabled={
+                    tomandoFoto ||
+                    dni.length !== 8
+                  }
+                  className="mt-6 w-full rounded-2xl bg-slate-950 px-5 py-4 font-black text-white shadow-lg transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {tomandoFoto
+                    ? "📸 Tomando fotografía..."
+                    : "✅ Marcar asistencia"}
+                </button>
+              </article>
             </div>
 
-            <h2 className="text-2xl font-bold text-center">
-              Registrar por DNI
-            </h2>
+            <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-center text-xs font-semibold text-slate-500 sm:flex-row sm:text-left">
+              <p>
+                🔒 El registro requiere una fotografía como evidencia.
+              </p>
 
-            <input
-              value={dni}
-              onChange={(e) =>
-                setDni(
-                  e.target.value
-                    .replace(/\D/g, "")
-                    .slice(0, 8)
-                )
-              }
-              placeholder="Ingrese DNI"
-              disabled={tomandoFoto}
-              className="mt-6 border rounded-xl p-3 w-full text-center text-xl disabled:opacity-50"
-            />
-
-            <button
-              onClick={marcarPorDni}
-              disabled={tomandoFoto}
-              className="mt-4 bg-slate-900 hover:bg-slate-800 text-white px-5 py-3 rounded-xl font-bold w-full disabled:opacity-50"
-            >
-              {tomandoFoto
-                ? "Tomando foto..."
-                : "Marcar asistencia"}
-            </button>
+              <p>
+                ⚡ Captura automática en 1 segundo.
+              </p>
+            </div>
           </div>
-        </div>
+        </section>
       </div>
     </main>
   );

@@ -20,48 +20,50 @@ model Estudiante {
   telegramChatId String   @default("")
   estado         Boolean  @default(true)
   createdAt      DateTime @default(now())
+
+  turnoId Int?
+  turno   Turno? @relation(fields: [turnoId], references: [id])
+
+  asistencias       Asistencia[]
   alertasAsistencia AlertaAsistencia[]
-  riesgoIA RiesgoEstudianteIA?
+  riesgoIA          RiesgoEstudianteIA?
   historialReportes HistorialReporteAutomatico[]
 
-  turnoId        Int?
-  turno          Turno?   @relation(fields: [turnoId], references: [id])
-
-  asistencias    Asistencia[]
+  @@index([turnoId])
+  @@index([grado, seccion])
+  @@index([estado])
 }
 
 model Turno {
-  id                      Int      @id @default(autoincrement())
-  nombre                  String   @unique
-  horaEntrada             String
-  horaSalida              String
-  estado                  Boolean  @default(true)
+  id                   Int      @id @default(autoincrement())
+  nombre               String   @unique
+  horaEntrada          String
+  horaSalida           String
+  estado               Boolean  @default(true)
+  minutosAlertaInicial Int      @default(5)
+  margenAlertaMinutos  Int      @default(15)
+  createdAt            DateTime @default(now())
 
-  // Primera alerta: todavía está dentro del margen
-  minutosAlertaInicial    Int      @default(5)
-
-  // Segunda alerta y límite para considerarlo puntual
-  margenAlertaMinutos     Int      @default(15)
-
-  createdAt               DateTime @default(now())
-
-  estudiantes             Estudiante[]
-  calendarioEscolar       CalendarioEscolar[]
+  estudiantes       Estudiante[]
+  calendarioEscolar CalendarioEscolar[]
 }
 
 model Asistencia {
-  id           Int       @id @default(autoincrement())
-  fecha        DateTime  @default(now())
+  id           Int        @id @default(autoincrement())
+  fecha        DateTime   @default(now())
   horaEntrada  DateTime?
   horaSalida   DateTime?
   metodo       String
-  estado       String    @default("PUNTUAL")
-
+  estado       String     @default("PUNTUAL")
   fotoEntrada  String?
   fotoSalida   String?
-  fotoUrl     String?
+  fotoUrl      String?
   estudianteId Int
   estudiante   Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+
+  @@index([estudianteId])
+  @@index([fecha])
+  @@index([estado])
 }
 
 model Usuario {
@@ -71,6 +73,9 @@ model Usuario {
   rol       String
   estado    Boolean  @default(true)
   createdAt DateTime @default(now())
+
+  @@index([estado])
+  @@index([rol])
 }
 
 model Configuracion {
@@ -83,48 +88,39 @@ model Configuracion {
   director      String   @default("")
   createdAt     DateTime @default(now())
 
-  // Configuración anterior del reporte Telegram
-  reporteTelegramActivo        Boolean  @default(false)
-  horaReporteDiario            String   @default("21:00")
-  telegramDirectorChatId       String   @default("")
-  enviarReporteExcel           Boolean  @default(true)
-  enviarReportePdf             Boolean  @default(true)
-  ultimoReporteTelegramAt      DateTime?
-  ultimoReporteTelegramEstado  String   @default("")
+  reporteTelegramActivo       Boolean   @default(false)
+  horaReporteDiario           String    @default("21:00")
+  telegramDirectorChatId      String    @default("")
+  enviarReporteExcel          Boolean   @default(true)
+  enviarReportePdf            Boolean   @default(true)
+  ultimoReporteTelegramAt     DateTime?
+  ultimoReporteTelegramEstado String    @default("")
 
-// Reportes para el director
-reporteDirectorActivo       Boolean  @default(false)
-frecuenciaReporteDirector   String   @default("SEMANAL")
-diaReporteDirector          Int      @default(5)
-diaMesReporteDirector       Int      @default(28)
-horaReporteDirector         String   @default("18:00")
-ultimoReporteDirectorAt     DateTime?
+  reporteDirectorActivo     Boolean   @default(false)
+  frecuenciaReporteDirector String    @default("SEMANAL")
+  diaReporteDirector        Int       @default(5)
+  diaMesReporteDirector     Int       @default(28)
+  horaReporteDirector       String    @default("18:00")
+  ultimoReporteDirectorAt   DateTime?
 
-// Reportes para padres
-reportePadresActivo            Boolean  @default(false)
-frecuenciaReportePadres        String   @default("SEMANAL")
-diaReportePadres               Int      @default(5)
-diaMesReportePadres            Int      @default(28)
-horaReportePadres              String   @default("19:00")
-incluirRiesgoIAReportePadres   Boolean  @default(true)
-ultimoReportePadresAt          DateTime?
- // Automatizaciones
-  automatizacionesActivas          Boolean  @default(false)
+  reportePadresActivo          Boolean   @default(false)
+  frecuenciaReportePadres      String    @default("SEMANAL")
+  diaReportePadres             Int       @default(5)
+  diaMesReportePadres          Int       @default(28)
+  horaReportePadres            String    @default("19:00")
+  incluirRiesgoIAReportePadres Boolean   @default(true)
+  ultimoReportePadresAt        DateTime?
 
-  alertaIngresoPendienteActiva     Boolean  @default(true)
-  minutosAlertaInicial             Int      @default(5)
-
-  alertaTardanzaActiva             Boolean  @default(true)
-  alertaAusenciaActiva             Boolean  @default(true)
-
-  modoPruebaAlertas                Boolean  @default(true)
-  telegramPruebaChatId             String   @default("")
-
-  frecuenciaRevisionMinutos        Int      @default(5)
-
-  ultimaEjecucionAutomatizaciones  DateTime?
-  ultimaEjecucionEstado            String   @default("")
-
+  automatizacionesActivas         Boolean   @default(false)
+  alertaIngresoPendienteActiva    Boolean   @default(true)
+  minutosAlertaInicial            Int       @default(5)
+  alertaTardanzaActiva            Boolean   @default(true)
+  alertaAusenciaActiva            Boolean   @default(true)
+  modoPruebaAlertas               Boolean   @default(true)
+  telegramPruebaChatId            String    @default("")
+  frecuenciaRevisionMinutos       Int       @default(5)
+  ultimaEjecucionAutomatizaciones DateTime?
+  ultimaEjecucionEstado           String    @default("")
 }
 
 model Auditoria {
@@ -135,63 +131,82 @@ model Auditoria {
   modulo    String
   detalle   String
   createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([modulo])
+  @@index([usuario])
 }
+
 model AlertaAsistencia {
-  id           Int      @id @default(autoincrement())
+  id           Int        @id @default(autoincrement())
   estudianteId Int
   fecha        String
   tipo         String
-  createdAt    DateTime @default(now())
-
+  createdAt    DateTime   @default(now())
   estudiante   Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
 
   @@unique([estudianteId, fecha, tipo])
+  @@index([fecha])
+  @@index([tipo])
 }
+
 model AnalisisIA {
-  id           Int      @id @default(autoincrement())
-  tipo         String
-  dni          String?
-  resultado    String
-  createdAt    DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  tipo      String
+  dni       String?
+  resultado String
+  createdAt DateTime @default(now())
+
+  @@index([tipo])
+  @@index([dni])
+  @@index([createdAt])
 }
+
 model RiesgoEstudianteIA {
-  id            Int      @id @default(autoincrement())
-  estudianteId  Int      @unique
-  nivel         String   @default("BAJO")
-  resumen       String   @default("")
-  recomendacion String   @default("")
-  porcentaje    Int      @default(0)
-  updatedAt     DateTime @updatedAt
-  createdAt     DateTime @default(now())
-
+  id            Int        @id @default(autoincrement())
+  estudianteId  Int        @unique
+  nivel         String     @default("BAJO")
+  resumen       String     @default("")
+  recomendacion String     @default("")
+  porcentaje    Int        @default(0)
+  updatedAt     DateTime   @updatedAt
+  createdAt     DateTime   @default(now())
   estudiante    Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
-}
-model CalendarioEscolar {
-  id                 Int      @id @default(autoincrement())
-  fechaInicio        DateTime @db.Date
-  fechaFin           DateTime @db.Date
-  tipo               String
-  descripcion        String   @default("")
-  todosLosTurnos     Boolean  @default(true)
-  turnoId            Int?
-  estado             Boolean  @default(true)
-  createdAt          DateTime @default(now())
 
-  turno              Turno?   @relation(fields: [turnoId], references: [id], onDelete: SetNull)
+  @@index([nivel])
+  @@index([porcentaje])
+  @@index([updatedAt])
 }
+
+model CalendarioEscolar {
+  id             Int      @id @default(autoincrement())
+  fechaInicio    DateTime @db.Date
+  fechaFin       DateTime @db.Date
+  tipo           String
+  descripcion    String   @default("")
+  todosLosTurnos Boolean  @default(true)
+  turnoId        Int?
+  estado         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  turno          Turno?   @relation(fields: [turnoId], references: [id], onDelete: SetNull)
+
+  @@index([fechaInicio, fechaFin])
+  @@index([turnoId])
+  @@index([estado])
+}
+
 model HistorialReporteAutomatico {
-  id           Int      @id @default(autoincrement())
+  id           Int         @id @default(autoincrement())
   tipo         String
   destinatario String
-  chatId       String   @default("")
+  chatId       String      @default("")
   estudianteId Int?
   fechaInicio  DateTime?
   fechaFin     DateTime?
   estado       String
-  detalle      String   @default("")
-  createdAt    DateTime @default(now())
-
-  estudiante Estudiante? @relation(fields: [estudianteId], references: [id], onDelete: SetNull)
+  detalle      String      @default("")
+  createdAt    DateTime    @default(now())
+  estudiante   Estudiante? @relation(fields: [estudianteId], references: [id], onDelete: SetNull)
 
   @@index([tipo])
   @@index([estado])
