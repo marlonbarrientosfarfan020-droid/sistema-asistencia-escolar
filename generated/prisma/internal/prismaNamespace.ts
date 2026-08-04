@@ -394,7 +394,9 @@ export const ModelName = {
   AnalisisIA: 'AnalisisIA',
   RiesgoEstudianteIA: 'RiesgoEstudianteIA',
   CalendarioEscolar: 'CalendarioEscolar',
-  HistorialReporteAutomatico: 'HistorialReporteAutomatico'
+  HistorialReporteAutomatico: 'HistorialReporteAutomatico',
+  BiometriaFacial: 'BiometriaFacial',
+  RostroFacial: 'RostroFacial'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -410,7 +412,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "estudiante" | "turno" | "asistencia" | "usuario" | "configuracion" | "auditoria" | "alertaAsistencia" | "analisisIA" | "riesgoEstudianteIA" | "calendarioEscolar" | "historialReporteAutomatico"
+    modelProps: "estudiante" | "turno" | "asistencia" | "usuario" | "configuracion" | "auditoria" | "alertaAsistencia" | "analisisIA" | "riesgoEstudianteIA" | "calendarioEscolar" | "historialReporteAutomatico" | "biometriaFacial" | "rostroFacial"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1228,6 +1230,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    BiometriaFacial: {
+      payload: Prisma.$BiometriaFacialPayload<ExtArgs>
+      fields: Prisma.BiometriaFacialFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BiometriaFacialFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiometriaFacialPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BiometriaFacialFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiometriaFacialPayload>
+        }
+        findFirst: {
+          args: Prisma.BiometriaFacialFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiometriaFacialPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BiometriaFacialFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiometriaFacialPayload>
+        }
+        findMany: {
+          args: Prisma.BiometriaFacialFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiometriaFacialPayload>[]
+        }
+        create: {
+          args: Prisma.BiometriaFacialCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiometriaFacialPayload>
+        }
+        createMany: {
+          args: Prisma.BiometriaFacialCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BiometriaFacialCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiometriaFacialPayload>[]
+        }
+        delete: {
+          args: Prisma.BiometriaFacialDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiometriaFacialPayload>
+        }
+        update: {
+          args: Prisma.BiometriaFacialUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiometriaFacialPayload>
+        }
+        deleteMany: {
+          args: Prisma.BiometriaFacialDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BiometriaFacialUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BiometriaFacialUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiometriaFacialPayload>[]
+        }
+        upsert: {
+          args: Prisma.BiometriaFacialUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BiometriaFacialPayload>
+        }
+        aggregate: {
+          args: Prisma.BiometriaFacialAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBiometriaFacial>
+        }
+        groupBy: {
+          args: Prisma.BiometriaFacialGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BiometriaFacialGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BiometriaFacialCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BiometriaFacialCountAggregateOutputType> | number
+        }
+      }
+    }
+    RostroFacial: {
+      payload: Prisma.$RostroFacialPayload<ExtArgs>
+      fields: Prisma.RostroFacialFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RostroFacialFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RostroFacialPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RostroFacialFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RostroFacialPayload>
+        }
+        findFirst: {
+          args: Prisma.RostroFacialFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RostroFacialPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RostroFacialFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RostroFacialPayload>
+        }
+        findMany: {
+          args: Prisma.RostroFacialFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RostroFacialPayload>[]
+        }
+        create: {
+          args: Prisma.RostroFacialCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RostroFacialPayload>
+        }
+        createMany: {
+          args: Prisma.RostroFacialCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RostroFacialCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RostroFacialPayload>[]
+        }
+        delete: {
+          args: Prisma.RostroFacialDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RostroFacialPayload>
+        }
+        update: {
+          args: Prisma.RostroFacialUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RostroFacialPayload>
+        }
+        deleteMany: {
+          args: Prisma.RostroFacialDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RostroFacialUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RostroFacialUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RostroFacialPayload>[]
+        }
+        upsert: {
+          args: Prisma.RostroFacialUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RostroFacialPayload>
+        }
+        aggregate: {
+          args: Prisma.RostroFacialAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRostroFacial>
+        }
+        groupBy: {
+          args: Prisma.RostroFacialGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RostroFacialGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RostroFacialCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RostroFacialCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1294,7 +1444,9 @@ export const TurnoScalarFieldEnum = {
   estado: 'estado',
   minutosAlertaInicial: 'minutosAlertaInicial',
   margenAlertaMinutos: 'margenAlertaMinutos',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  margenEntradaAnticipadaMinutos: 'margenEntradaAnticipadaMinutos',
+  margenSalidaMinutos: 'margenSalidaMinutos'
 } as const
 
 export type TurnoScalarFieldEnum = (typeof TurnoScalarFieldEnum)[keyof typeof TurnoScalarFieldEnum]
@@ -1450,6 +1602,33 @@ export const HistorialReporteAutomaticoScalarFieldEnum = {
 } as const
 
 export type HistorialReporteAutomaticoScalarFieldEnum = (typeof HistorialReporteAutomaticoScalarFieldEnum)[keyof typeof HistorialReporteAutomaticoScalarFieldEnum]
+
+
+export const BiometriaFacialScalarFieldEnum = {
+  id: 'id',
+  estudianteId: 'estudianteId',
+  proveedor: 'proveedor',
+  collectionId: 'collectionId',
+  externalImageId: 'externalImageId',
+  estado: 'estado',
+  ultimaActualizacionAt: 'ultimaActualizacionAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BiometriaFacialScalarFieldEnum = (typeof BiometriaFacialScalarFieldEnum)[keyof typeof BiometriaFacialScalarFieldEnum]
+
+
+export const RostroFacialScalarFieldEnum = {
+  id: 'id',
+  biometriaId: 'biometriaId',
+  faceId: 'faceId',
+  imageId: 'imageId',
+  confianza: 'confianza',
+  createdAt: 'createdAt'
+} as const
+
+export type RostroFacialScalarFieldEnum = (typeof RostroFacialScalarFieldEnum)[keyof typeof RostroFacialScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1665,6 +1844,8 @@ export type GlobalOmitConfig = {
   riesgoEstudianteIA?: Prisma.RiesgoEstudianteIAOmit
   calendarioEscolar?: Prisma.CalendarioEscolarOmit
   historialReporteAutomatico?: Prisma.HistorialReporteAutomaticoOmit
+  biometriaFacial?: Prisma.BiometriaFacialOmit
+  rostroFacial?: Prisma.RostroFacialOmit
 }
 
 /* Types for Logging */

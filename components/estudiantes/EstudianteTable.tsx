@@ -227,6 +227,11 @@ const [riesgoSeleccionado, setRiesgoSeleccionado] = useState<Estudiante | null>(
     }
   }
 
+  function registrarRostro(estudiante: Estudiante) {
+    window.location.href =
+      `/dashboard/estudiantes/${estudiante.id}/rostro`;
+  }
+
   async function eliminarEstudiante(id: number) {
     if (!confirm("¿Seguro que deseas eliminar este estudiante?")) return;
 
@@ -1047,6 +1052,13 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
   IA
 </button>
 
+
+                    <button
+                      onClick={() => registrarRostro(estudiante)}
+                      className="bg-indigo-600 text-white px-3 py-2 rounded-lg font-bold"
+                    >
+                      📷 Rostro
+                    </button>
 
                     <button
                       onClick={() => abrirEditar(estudiante)}

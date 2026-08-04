@@ -28,6 +28,7 @@ model Estudiante {
   alertasAsistencia AlertaAsistencia[]
   riesgoIA          RiesgoEstudianteIA?
   historialReportes HistorialReporteAutomatico[]
+  biometriaFacial   BiometriaFacial?
 
   @@index([turnoId])
   @@index([grado, seccion])
@@ -35,35 +36,39 @@ model Estudiante {
 }
 
 model Turno {
-  id                   Int      @id @default(autoincrement())
-  nombre               String   @unique
-  horaEntrada          String
-  horaSalida           String
-  estado               Boolean  @default(true)
-  minutosAlertaInicial Int      @default(5)
-  margenAlertaMinutos  Int      @default(15)
-  createdAt            DateTime @default(now())
+  id                             Int      @id @default(autoincrement())
+  nombre                         String   @unique
+  horaEntrada                    String
+  horaSalida                     String
+  estado                         Boolean  @default(true)
+  minutosAlertaInicial           Int      @default(5)
+  margenAlertaMinutos            Int      @default(15)
+  createdAt                      DateTime @default(now())
+  margenEntradaAnticipadaMinutos Int      @default(60)
+  margenSalidaMinutos            Int      @default(60)
 
   estudiantes       Estudiante[]
   calendarioEscolar CalendarioEscolar[]
 }
 
 model Asistencia {
-  id           Int        @id @default(autoincrement())
-  fecha        DateTime   @default(now())
-  horaEntrada  DateTime?
-  horaSalida   DateTime?
-  metodo       String
-  estado       String     @default("PUNTUAL")
-  fotoEntrada  String?
-  fotoSalida   String?
-  fotoUrl      String?
+  id          Int       @id @default(autoincrement())
+  fecha       DateTime  @default(now())
+  horaEntrada DateTime?
+  horaSalida  DateTime?
+  metodo      String
+  estado      String    @default("PUNTUAL")
+  fotoEntrada String?
+  fotoSalida  String?
+  fotoUrl     String?
+
   estudianteId Int
   estudiante   Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
 
   @@index([estudianteId])
   @@index([fecha])
   @@index([estado])
+  @@index([metodo])
 }
 
 model Usuario {
@@ -138,12 +143,13 @@ model Auditoria {
 }
 
 model AlertaAsistencia {
-  id           Int        @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   estudianteId Int
   fecha        String
   tipo         String
-  createdAt    DateTime   @default(now())
-  estudiante   Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
 
   @@unique([estudianteId, fecha, tipo])
   @@index([fecha])
@@ -163,15 +169,16 @@ model AnalisisIA {
 }
 
 model RiesgoEstudianteIA {
-  id            Int        @id @default(autoincrement())
-  estudianteId  Int        @unique
-  nivel         String     @default("BAJO")
-  resumen       String     @default("")
-  recomendacion String     @default("")
-  porcentaje    Int        @default(0)
-  updatedAt     DateTime   @updatedAt
-  createdAt     DateTime   @default(now())
-  estudiante    Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  id            Int      @id @default(autoincrement())
+  estudianteId  Int      @unique
+  nivel         String   @default("BAJO")
+  resumen       String   @default("")
+  recomendacion String   @default("")
+  porcentaje    Int      @default(0)
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
 
   @@index([nivel])
   @@index([porcentaje])
@@ -188,7 +195,8 @@ model CalendarioEscolar {
   turnoId        Int?
   estado         Boolean  @default(true)
   createdAt      DateTime @default(now())
-  turno          Turno?   @relation(fields: [turnoId], references: [id], onDelete: SetNull)
+
+  turno Turno? @relation(fields: [turnoId], references: [id], onDelete: SetNull)
 
   @@index([fechaInicio, fechaFin])
   @@index([turnoId])
@@ -196,20 +204,54 @@ model CalendarioEscolar {
 }
 
 model HistorialReporteAutomatico {
-  id           Int         @id @default(autoincrement())
+  id           Int       @id @default(autoincrement())
   tipo         String
   destinatario String
-  chatId       String      @default("")
+  chatId       String    @default("")
   estudianteId Int?
   fechaInicio  DateTime?
   fechaFin     DateTime?
   estado       String
-  detalle      String      @default("")
-  createdAt    DateTime    @default(now())
-  estudiante   Estudiante? @relation(fields: [estudianteId], references: [id], onDelete: SetNull)
+  detalle      String    @default("")
+  createdAt    DateTime  @default(now())
+
+  estudiante Estudiante? @relation(fields: [estudianteId], references: [id], onDelete: SetNull)
 
   @@index([tipo])
   @@index([estado])
   @@index([createdAt])
   @@index([estudianteId])
+}
+
+model BiometriaFacial {
+  id                    Int      @id @default(autoincrement())
+  estudianteId          Int      @unique
+  proveedor             String   @default("AWS_REKOGNITION")
+  collectionId          String
+  externalImageId       String   @unique
+  estado                Boolean  @default(true)
+  ultimaActualizacionAt DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  estudiante Estudiante     @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  rostros    RostroFacial[]
+
+  @@index([estado])
+  @@index([collectionId])
+  @@index([proveedor])
+}
+
+model RostroFacial {
+  id          Int      @id @default(autoincrement())
+  biometriaId Int
+  faceId      String   @unique
+  imageId     String?
+  confianza   Float?
+  createdAt   DateTime @default(now())
+
+  biometria BiometriaFacial @relation(fields: [biometriaId], references: [id], onDelete: Cascade)
+
+  @@index([biometriaId])
+  @@index([createdAt])
 }

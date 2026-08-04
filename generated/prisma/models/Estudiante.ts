@@ -289,6 +289,7 @@ export type EstudianteWhereInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaListRelationFilter
   riesgoIA?: Prisma.XOR<Prisma.RiesgoEstudianteIANullableScalarRelationFilter, Prisma.RiesgoEstudianteIAWhereInput> | null
   historialReportes?: Prisma.HistorialReporteAutomaticoListRelationFilter
+  biometriaFacial?: Prisma.XOR<Prisma.BiometriaFacialNullableScalarRelationFilter, Prisma.BiometriaFacialWhereInput> | null
 }
 
 export type EstudianteOrderByWithRelationInput = {
@@ -310,6 +311,7 @@ export type EstudianteOrderByWithRelationInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaOrderByRelationAggregateInput
   riesgoIA?: Prisma.RiesgoEstudianteIAOrderByWithRelationInput
   historialReportes?: Prisma.HistorialReporteAutomaticoOrderByRelationAggregateInput
+  biometriaFacial?: Prisma.BiometriaFacialOrderByWithRelationInput
 }
 
 export type EstudianteWhereUniqueInput = Prisma.AtLeast<{
@@ -334,6 +336,7 @@ export type EstudianteWhereUniqueInput = Prisma.AtLeast<{
   alertasAsistencia?: Prisma.AlertaAsistenciaListRelationFilter
   riesgoIA?: Prisma.XOR<Prisma.RiesgoEstudianteIANullableScalarRelationFilter, Prisma.RiesgoEstudianteIAWhereInput> | null
   historialReportes?: Prisma.HistorialReporteAutomaticoListRelationFilter
+  biometriaFacial?: Prisma.XOR<Prisma.BiometriaFacialNullableScalarRelationFilter, Prisma.BiometriaFacialWhereInput> | null
 }, "id" | "codigo" | "dni">
 
 export type EstudianteOrderByWithAggregationInput = {
@@ -393,6 +396,7 @@ export type EstudianteCreateInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
   riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialCreateNestedOneWithoutEstudianteInput
 }
 
 export type EstudianteUncheckedCreateInput = {
@@ -413,6 +417,7 @@ export type EstudianteUncheckedCreateInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedCreateNestedOneWithoutEstudianteInput
 }
 
 export type EstudianteUpdateInput = {
@@ -432,6 +437,7 @@ export type EstudianteUpdateInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUpdateOneWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateInput = {
@@ -452,6 +458,7 @@ export type EstudianteUncheckedUpdateInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedUpdateOneWithoutEstudianteNestedInput
 }
 
 export type EstudianteCreateManyInput = {
@@ -706,6 +713,20 @@ export type EstudianteUpdateOneWithoutHistorialReportesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.EstudianteUpdateToOneWithWhereWithoutHistorialReportesInput, Prisma.EstudianteUpdateWithoutHistorialReportesInput>, Prisma.EstudianteUncheckedUpdateWithoutHistorialReportesInput>
 }
 
+export type EstudianteCreateNestedOneWithoutBiometriaFacialInput = {
+  create?: Prisma.XOR<Prisma.EstudianteCreateWithoutBiometriaFacialInput, Prisma.EstudianteUncheckedCreateWithoutBiometriaFacialInput>
+  connectOrCreate?: Prisma.EstudianteCreateOrConnectWithoutBiometriaFacialInput
+  connect?: Prisma.EstudianteWhereUniqueInput
+}
+
+export type EstudianteUpdateOneRequiredWithoutBiometriaFacialNestedInput = {
+  create?: Prisma.XOR<Prisma.EstudianteCreateWithoutBiometriaFacialInput, Prisma.EstudianteUncheckedCreateWithoutBiometriaFacialInput>
+  connectOrCreate?: Prisma.EstudianteCreateOrConnectWithoutBiometriaFacialInput
+  upsert?: Prisma.EstudianteUpsertWithoutBiometriaFacialInput
+  connect?: Prisma.EstudianteWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.EstudianteUpdateToOneWithWhereWithoutBiometriaFacialInput, Prisma.EstudianteUpdateWithoutBiometriaFacialInput>, Prisma.EstudianteUncheckedUpdateWithoutBiometriaFacialInput>
+}
+
 export type EstudianteCreateWithoutTurnoInput = {
   codigo: string
   dni: string
@@ -722,6 +743,7 @@ export type EstudianteCreateWithoutTurnoInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
   riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialCreateNestedOneWithoutEstudianteInput
 }
 
 export type EstudianteUncheckedCreateWithoutTurnoInput = {
@@ -741,6 +763,7 @@ export type EstudianteUncheckedCreateWithoutTurnoInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedCreateNestedOneWithoutEstudianteInput
 }
 
 export type EstudianteCreateOrConnectWithoutTurnoInput = {
@@ -804,6 +827,7 @@ export type EstudianteCreateWithoutAsistenciasInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
   riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialCreateNestedOneWithoutEstudianteInput
 }
 
 export type EstudianteUncheckedCreateWithoutAsistenciasInput = {
@@ -823,6 +847,7 @@ export type EstudianteUncheckedCreateWithoutAsistenciasInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedCreateNestedOneWithoutEstudianteInput
 }
 
 export type EstudianteCreateOrConnectWithoutAsistenciasInput = {
@@ -857,6 +882,7 @@ export type EstudianteUpdateWithoutAsistenciasInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUpdateOneWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateWithoutAsistenciasInput = {
@@ -876,6 +902,7 @@ export type EstudianteUncheckedUpdateWithoutAsistenciasInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedUpdateOneWithoutEstudianteNestedInput
 }
 
 export type EstudianteCreateWithoutAlertasAsistenciaInput = {
@@ -894,6 +921,7 @@ export type EstudianteCreateWithoutAlertasAsistenciaInput = {
   asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
   riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialCreateNestedOneWithoutEstudianteInput
 }
 
 export type EstudianteUncheckedCreateWithoutAlertasAsistenciaInput = {
@@ -913,6 +941,7 @@ export type EstudianteUncheckedCreateWithoutAlertasAsistenciaInput = {
   asistencias?: Prisma.AsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedCreateNestedOneWithoutEstudianteInput
 }
 
 export type EstudianteCreateOrConnectWithoutAlertasAsistenciaInput = {
@@ -947,6 +976,7 @@ export type EstudianteUpdateWithoutAlertasAsistenciaInput = {
   asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUpdateOneWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateWithoutAlertasAsistenciaInput = {
@@ -966,6 +996,7 @@ export type EstudianteUncheckedUpdateWithoutAlertasAsistenciaInput = {
   asistencias?: Prisma.AsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedUpdateOneWithoutEstudianteNestedInput
 }
 
 export type EstudianteCreateWithoutRiesgoIAInput = {
@@ -984,6 +1015,7 @@ export type EstudianteCreateWithoutRiesgoIAInput = {
   asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
   alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialCreateNestedOneWithoutEstudianteInput
 }
 
 export type EstudianteUncheckedCreateWithoutRiesgoIAInput = {
@@ -1003,6 +1035,7 @@ export type EstudianteUncheckedCreateWithoutRiesgoIAInput = {
   asistencias?: Prisma.AsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
   alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedCreateNestedOneWithoutEstudianteInput
 }
 
 export type EstudianteCreateOrConnectWithoutRiesgoIAInput = {
@@ -1037,6 +1070,7 @@ export type EstudianteUpdateWithoutRiesgoIAInput = {
   asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
   alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUpdateOneWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateWithoutRiesgoIAInput = {
@@ -1056,6 +1090,7 @@ export type EstudianteUncheckedUpdateWithoutRiesgoIAInput = {
   asistencias?: Prisma.AsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
   alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedUpdateOneWithoutEstudianteNestedInput
 }
 
 export type EstudianteCreateWithoutHistorialReportesInput = {
@@ -1074,6 +1109,7 @@ export type EstudianteCreateWithoutHistorialReportesInput = {
   asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
   alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
   riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialCreateNestedOneWithoutEstudianteInput
 }
 
 export type EstudianteUncheckedCreateWithoutHistorialReportesInput = {
@@ -1093,6 +1129,7 @@ export type EstudianteUncheckedCreateWithoutHistorialReportesInput = {
   asistencias?: Prisma.AsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
   alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedCreateNestedOneWithoutEstudianteInput
 }
 
 export type EstudianteCreateOrConnectWithoutHistorialReportesInput = {
@@ -1127,6 +1164,7 @@ export type EstudianteUpdateWithoutHistorialReportesInput = {
   asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
   alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUpdateOneWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateWithoutHistorialReportesInput = {
@@ -1146,6 +1184,101 @@ export type EstudianteUncheckedUpdateWithoutHistorialReportesInput = {
   asistencias?: Prisma.AsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
   alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedUpdateOneWithoutEstudianteNestedInput
+}
+
+export type EstudianteCreateWithoutBiometriaFacialInput = {
+  codigo: string
+  dni: string
+  nombres: string
+  apellidos: string
+  grado: string
+  seccion: string
+  nombreTutor?: string
+  whatsapp?: string
+  telegramChatId?: string
+  estado?: boolean
+  createdAt?: Date | string
+  turno?: Prisma.TurnoCreateNestedOneWithoutEstudiantesInput
+  asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
+  alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
+  riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
+}
+
+export type EstudianteUncheckedCreateWithoutBiometriaFacialInput = {
+  id?: number
+  codigo: string
+  dni: string
+  nombres: string
+  apellidos: string
+  grado: string
+  seccion: string
+  nombreTutor?: string
+  whatsapp?: string
+  telegramChatId?: string
+  estado?: boolean
+  createdAt?: Date | string
+  turnoId?: number | null
+  asistencias?: Prisma.AsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
+}
+
+export type EstudianteCreateOrConnectWithoutBiometriaFacialInput = {
+  where: Prisma.EstudianteWhereUniqueInput
+  create: Prisma.XOR<Prisma.EstudianteCreateWithoutBiometriaFacialInput, Prisma.EstudianteUncheckedCreateWithoutBiometriaFacialInput>
+}
+
+export type EstudianteUpsertWithoutBiometriaFacialInput = {
+  update: Prisma.XOR<Prisma.EstudianteUpdateWithoutBiometriaFacialInput, Prisma.EstudianteUncheckedUpdateWithoutBiometriaFacialInput>
+  create: Prisma.XOR<Prisma.EstudianteCreateWithoutBiometriaFacialInput, Prisma.EstudianteUncheckedCreateWithoutBiometriaFacialInput>
+  where?: Prisma.EstudianteWhereInput
+}
+
+export type EstudianteUpdateToOneWithWhereWithoutBiometriaFacialInput = {
+  where?: Prisma.EstudianteWhereInput
+  data: Prisma.XOR<Prisma.EstudianteUpdateWithoutBiometriaFacialInput, Prisma.EstudianteUncheckedUpdateWithoutBiometriaFacialInput>
+}
+
+export type EstudianteUpdateWithoutBiometriaFacialInput = {
+  codigo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.StringFieldUpdateOperationsInput | string
+  nombres?: Prisma.StringFieldUpdateOperationsInput | string
+  apellidos?: Prisma.StringFieldUpdateOperationsInput | string
+  grado?: Prisma.StringFieldUpdateOperationsInput | string
+  seccion?: Prisma.StringFieldUpdateOperationsInput | string
+  nombreTutor?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsapp?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  turno?: Prisma.TurnoUpdateOneWithoutEstudiantesNestedInput
+  asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
+  alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
+}
+
+export type EstudianteUncheckedUpdateWithoutBiometriaFacialInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  codigo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.StringFieldUpdateOperationsInput | string
+  nombres?: Prisma.StringFieldUpdateOperationsInput | string
+  apellidos?: Prisma.StringFieldUpdateOperationsInput | string
+  grado?: Prisma.StringFieldUpdateOperationsInput | string
+  seccion?: Prisma.StringFieldUpdateOperationsInput | string
+  nombreTutor?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsapp?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  turnoId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  asistencias?: Prisma.AsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteCreateManyTurnoInput = {
@@ -1179,6 +1312,7 @@ export type EstudianteUpdateWithoutTurnoInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUpdateOneWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateWithoutTurnoInput = {
@@ -1198,6 +1332,7 @@ export type EstudianteUncheckedUpdateWithoutTurnoInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedUpdateOneWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateManyWithoutTurnoInput = {
@@ -1283,6 +1418,7 @@ export type EstudianteSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   alertasAsistencia?: boolean | Prisma.Estudiante$alertasAsistenciaArgs<ExtArgs>
   riesgoIA?: boolean | Prisma.Estudiante$riesgoIAArgs<ExtArgs>
   historialReportes?: boolean | Prisma.Estudiante$historialReportesArgs<ExtArgs>
+  biometriaFacial?: boolean | Prisma.Estudiante$biometriaFacialArgs<ExtArgs>
   _count?: boolean | Prisma.EstudianteCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["estudiante"]>
 
@@ -1343,6 +1479,7 @@ export type EstudianteInclude<ExtArgs extends runtime.Types.Extensions.InternalA
   alertasAsistencia?: boolean | Prisma.Estudiante$alertasAsistenciaArgs<ExtArgs>
   riesgoIA?: boolean | Prisma.Estudiante$riesgoIAArgs<ExtArgs>
   historialReportes?: boolean | Prisma.Estudiante$historialReportesArgs<ExtArgs>
+  biometriaFacial?: boolean | Prisma.Estudiante$biometriaFacialArgs<ExtArgs>
   _count?: boolean | Prisma.EstudianteCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type EstudianteIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1360,6 +1497,7 @@ export type $EstudiantePayload<ExtArgs extends runtime.Types.Extensions.Internal
     alertasAsistencia: Prisma.$AlertaAsistenciaPayload<ExtArgs>[]
     riesgoIA: Prisma.$RiesgoEstudianteIAPayload<ExtArgs> | null
     historialReportes: Prisma.$HistorialReporteAutomaticoPayload<ExtArgs>[]
+    biometriaFacial: Prisma.$BiometriaFacialPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -1774,6 +1912,7 @@ export interface Prisma__EstudianteClient<T, Null = never, ExtArgs extends runti
   alertasAsistencia<T extends Prisma.Estudiante$alertasAsistenciaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Estudiante$alertasAsistenciaArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AlertaAsistenciaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   riesgoIA<T extends Prisma.Estudiante$riesgoIAArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Estudiante$riesgoIAArgs<ExtArgs>>): Prisma.Prisma__RiesgoEstudianteIAClient<runtime.Types.Result.GetResult<Prisma.$RiesgoEstudianteIAPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   historialReportes<T extends Prisma.Estudiante$historialReportesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Estudiante$historialReportesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$HistorialReporteAutomaticoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  biometriaFacial<T extends Prisma.Estudiante$biometriaFacialArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Estudiante$biometriaFacialArgs<ExtArgs>>): Prisma.Prisma__BiometriaFacialClient<runtime.Types.Result.GetResult<Prisma.$BiometriaFacialPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2324,6 +2463,25 @@ export type Estudiante$historialReportesArgs<ExtArgs extends runtime.Types.Exten
   take?: number
   skip?: number
   distinct?: Prisma.HistorialReporteAutomaticoScalarFieldEnum | Prisma.HistorialReporteAutomaticoScalarFieldEnum[]
+}
+
+/**
+ * Estudiante.biometriaFacial
+ */
+export type Estudiante$biometriaFacialArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the BiometriaFacial
+   */
+  select?: Prisma.BiometriaFacialSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the BiometriaFacial
+   */
+  omit?: Prisma.BiometriaFacialOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BiometriaFacialInclude<ExtArgs> | null
+  where?: Prisma.BiometriaFacialWhereInput
 }
 
 /**

@@ -11,6 +11,8 @@ type Turno = {
   estado: boolean;
   minutosAlertaInicial: number;
   margenAlertaMinutos: number;
+  margenEntradaAnticipadaMinutos: number;
+  margenSalidaMinutos: number;
 };
 
 export default function TurnoTable({
@@ -68,6 +70,16 @@ export default function TurnoTable({
             Number(
               turno.margenAlertaMinutos
             ) || 15,
+
+          margenEntradaAnticipadaMinutos:
+            Number(
+              turno.margenEntradaAnticipadaMinutos
+            ) || 60,
+
+          margenSalidaMinutos:
+            Number(
+              turno.margenSalidaMinutos
+            ) || 60,
         }))
       );
     } catch (error) {
@@ -119,15 +131,31 @@ export default function TurnoTable({
     }
 
     if (
-      turno.minutosAlertaInicial <= 0
+      turno.margenEntradaAnticipadaMinutos < 0 ||
+      turno.margenEntradaAnticipadaMinutos > 180
     ) {
-      return "El aviso inicial debe ser mayor a 0 minutos";
+      return "La entrada anticipada debe estar entre 0 y 180 minutos";
     }
 
     if (
-      turno.margenAlertaMinutos <= 0
+      turno.minutosAlertaInicial < 0 ||
+      turno.minutosAlertaInicial > 180
     ) {
-      return "El margen de tardanza debe ser mayor a 0 minutos";
+      return "El aviso inicial debe estar entre 0 y 180 minutos";
+    }
+
+    if (
+      turno.margenAlertaMinutos < 0 ||
+      turno.margenAlertaMinutos > 180
+    ) {
+      return "El margen de tardanza debe estar entre 0 y 180 minutos";
+    }
+
+    if (
+      turno.margenSalidaMinutos < 0 ||
+      turno.margenSalidaMinutos > 180
+    ) {
+      return "El margen de salida debe estar entre 0 y 180 minutos";
     }
 
     if (
@@ -176,6 +204,12 @@ export default function TurnoTable({
             nombre: turno.nombre.trim(),
             horaEntrada:
               turno.horaEntrada,
+
+            margenEntradaAnticipadaMinutos:
+              Number(
+                turno.margenEntradaAnticipadaMinutos
+              ),
+
             minutosAlertaInicial:
               Number(
                 turno.minutosAlertaInicial
@@ -186,6 +220,12 @@ export default function TurnoTable({
               ),
             horaSalida:
               turno.horaSalida,
+
+            margenSalidaMinutos:
+              Number(
+                turno.margenSalidaMinutos
+              ),
+
             estado: turno.estado,
           }),
         }
@@ -230,15 +270,26 @@ export default function TurnoTable({
       </h3>
 
       <p className="mb-5 text-sm leading-6 text-slate-500">
-        Configure los tres momentos automáticos:
-        el aviso inicial informa que el estudiante
-        todavía no registra ingreso; el margen de
-        tardanza define desde qué momento será
-        considerado tarde; y la hora de salida
-        confirma la ausencia.
+        Configure la ventana completa de cada turno:
+        cuánto antes puede ingresar el estudiante,
+        cuándo se envía el aviso inicial, desde qué
+        momento se considera tardanza, la hora de
+        salida y cuánto tiempo adicional tendrá para
+        registrar su salida.
       </p>
 
-      <div className="mb-5 grid gap-3 md:grid-cols-3">
+      <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+          <p className="font-black text-emerald-800">
+            🟢 Entrada anticipada
+          </p>
+
+          <p className="mt-1 text-sm text-emerald-700">
+            Permite marcar antes de la hora oficial
+            del turno.
+          </p>
+        </div>
+
         <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
           <p className="font-black text-yellow-800">
             🟡 Aviso inicial
@@ -271,6 +322,17 @@ export default function TurnoTable({
             salida si nunca registró ingreso.
           </p>
         </div>
+
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+          <p className="font-black text-blue-800">
+            🔵 Margen de salida
+          </p>
+
+          <p className="mt-1 text-sm text-blue-700">
+            Tiempo adicional después de la hora
+            oficial para registrar la salida.
+          </p>
+        </div>
       </div>
 
       {mensaje && (
@@ -280,7 +342,7 @@ export default function TurnoTable({
       )}
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1180px] text-left">
+        <table className="w-full min-w-[1580px] text-left">
           <thead>
             <tr className="border-b bg-slate-50">
               <th className="px-2 py-3">
@@ -289,6 +351,10 @@ export default function TurnoTable({
 
               <th className="px-2 py-3">
                 Hora entrada
+              </th>
+
+              <th className="px-2 py-3">
+                Entrada anticipada
               </th>
 
               <th className="px-2 py-3">
@@ -301,6 +367,10 @@ export default function TurnoTable({
 
               <th className="px-2 py-3">
                 Hora salida
+              </th>
+
+              <th className="px-2 py-3">
+                Margen salida
               </th>
 
               <th className="px-2 py-3">
@@ -348,6 +418,33 @@ export default function TurnoTable({
                     }
                     className="rounded-xl border p-3"
                   />
+                </td>
+
+                <td className="px-2 py-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      max={180}
+                      value={
+                        turno.margenEntradaAnticipadaMinutos
+                      }
+                      onChange={(e) =>
+                        cambiarValor(
+                          turno.id,
+                          "margenEntradaAnticipadaMinutos",
+                          Number(
+                            e.target.value
+                          )
+                        )
+                      }
+                      className="w-24 rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-center font-bold"
+                    />
+
+                    <span className="text-sm font-bold text-slate-500">
+                      min
+                    </span>
+                  </div>
                 </td>
 
                 <td className="px-2 py-3">
@@ -422,6 +519,33 @@ export default function TurnoTable({
                 </td>
 
                 <td className="px-2 py-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      max={180}
+                      value={
+                        turno.margenSalidaMinutos
+                      }
+                      onChange={(e) =>
+                        cambiarValor(
+                          turno.id,
+                          "margenSalidaMinutos",
+                          Number(
+                            e.target.value
+                          )
+                        )
+                      }
+                      className="w-24 rounded-xl border border-blue-300 bg-blue-50 p-3 text-center font-bold"
+                    />
+
+                    <span className="text-sm font-bold text-slate-500">
+                      min
+                    </span>
+                  </div>
+                </td>
+
+                <td className="px-2 py-3">
                   <select
                     value={
                       turno.estado
@@ -474,7 +598,7 @@ export default function TurnoTable({
             {turnos.length === 0 && (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={9}
                   className="py-8 text-center text-slate-500"
                 >
                   No hay turnos disponibles.

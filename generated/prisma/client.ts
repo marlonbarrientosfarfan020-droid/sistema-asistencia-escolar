@@ -96,3 +96,13 @@ export type CalendarioEscolar = Prisma.CalendarioEscolarModel
  * 
  */
 export type HistorialReporteAutomatico = Prisma.HistorialReporteAutomaticoModel
+/**
+ * Model BiometriaFacial
+ * 
+ */
+export type BiometriaFacial = Prisma.BiometriaFacialModel
+/**
+ * Model RostroFacial
+ * 
+ */
+export type RostroFacial = Prisma.RostroFacialModel

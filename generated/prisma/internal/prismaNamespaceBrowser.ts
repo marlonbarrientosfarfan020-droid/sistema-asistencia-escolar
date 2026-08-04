@@ -61,7 +61,9 @@ export const ModelName = {
   AnalisisIA: 'AnalisisIA',
   RiesgoEstudianteIA: 'RiesgoEstudianteIA',
   CalendarioEscolar: 'CalendarioEscolar',
-  HistorialReporteAutomatico: 'HistorialReporteAutomatico'
+  HistorialReporteAutomatico: 'HistorialReporteAutomatico',
+  BiometriaFacial: 'BiometriaFacial',
+  RostroFacial: 'RostroFacial'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -107,7 +109,9 @@ export const TurnoScalarFieldEnum = {
   estado: 'estado',
   minutosAlertaInicial: 'minutosAlertaInicial',
   margenAlertaMinutos: 'margenAlertaMinutos',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  margenEntradaAnticipadaMinutos: 'margenEntradaAnticipadaMinutos',
+  margenSalidaMinutos: 'margenSalidaMinutos'
 } as const
 
 export type TurnoScalarFieldEnum = (typeof TurnoScalarFieldEnum)[keyof typeof TurnoScalarFieldEnum]
@@ -263,6 +267,33 @@ export const HistorialReporteAutomaticoScalarFieldEnum = {
 } as const
 
 export type HistorialReporteAutomaticoScalarFieldEnum = (typeof HistorialReporteAutomaticoScalarFieldEnum)[keyof typeof HistorialReporteAutomaticoScalarFieldEnum]
+
+
+export const BiometriaFacialScalarFieldEnum = {
+  id: 'id',
+  estudianteId: 'estudianteId',
+  proveedor: 'proveedor',
+  collectionId: 'collectionId',
+  externalImageId: 'externalImageId',
+  estado: 'estado',
+  ultimaActualizacionAt: 'ultimaActualizacionAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BiometriaFacialScalarFieldEnum = (typeof BiometriaFacialScalarFieldEnum)[keyof typeof BiometriaFacialScalarFieldEnum]
+
+
+export const RostroFacialScalarFieldEnum = {
+  id: 'id',
+  biometriaId: 'biometriaId',
+  faceId: 'faceId',
+  imageId: 'imageId',
+  confianza: 'confianza',
+  createdAt: 'createdAt'
+} as const
+
+export type RostroFacialScalarFieldEnum = (typeof RostroFacialScalarFieldEnum)[keyof typeof RostroFacialScalarFieldEnum]
 
 
 export const SortOrder = {

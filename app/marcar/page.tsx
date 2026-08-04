@@ -29,8 +29,45 @@ type ResultadoAsistencia = {
   };
 };
 
+type ResultadoReconocimientoFacial = {
+  ok?: boolean;
+  reconocido?: boolean;
+  message?: string;
+  coincidencia?: {
+    similitud: number;
+    confianzaDeteccion?: number | null;
+    faceId?: string;
+  };
+  estudiante?: {
+    id: number;
+    codigo: string;
+    dni: string;
+    nombres: string;
+    apellidos: string;
+    grado: string;
+    seccion: string;
+    turno?: {
+      id: number;
+      nombre: string;
+      horaEntrada: string;
+      horaSalida: string;
+    } | null;
+  };
+};
+
+type CamaraDisponible = {
+  deviceId: string;
+  label: string;
+};
+
 const SEGUNDOS_PARA_FOTO = 1;
 const TIEMPO_LIBERAR_CAMARA_MS = 400;
+
+const STORAGE_CAMARA_QR =
+  "camara_qr_device_id";
+
+const STORAGE_CAMARA_FACIAL =
+  "camara_facial_device_id";
 
 export default function MarcarPage() {
   const router = useRouter();
@@ -52,11 +89,34 @@ export default function MarcarPage() {
   const [tomandoFoto, setTomandoFoto] =
     useState(false);
 
+  const [
+    reconociendoFacial,
+    setReconociendoFacial,
+  ] = useState(false);
+
   const [contadorFoto, setContadorFoto] =
     useState<number | null>(null);
 
   const [estadoVisual, setEstadoVisual] =
     useState<EstadoVisual>("normal");
+
+  const [camaras, setCamaras] =
+    useState<CamaraDisponible[]>([]);
+
+  const [
+    camaraQrSeleccionada,
+    setCamaraQrSeleccionada,
+  ] = useState("");
+
+  const [
+    camaraFacialSeleccionada,
+    setCamaraFacialSeleccionada,
+  ] = useState("");
+
+  const [
+    cargandoCamaras,
+    setCargandoCamaras,
+  ] = useState(false);
 
   const procesandoQR = useRef(false);
 
@@ -78,6 +138,8 @@ export default function MarcarPage() {
       return;
     }
 
+    void cargarCamaras();
+
     window.history.pushState(
       null,
       "",
@@ -92,9 +154,18 @@ export default function MarcarPage() {
       );
     };
 
+    const actualizarCamaras = () => {
+      void cargarCamaras();
+    };
+
     window.addEventListener(
       "popstate",
       bloquearAtras
+    );
+
+    navigator.mediaDevices?.addEventListener(
+      "devicechange",
+      actualizarCamaras
     );
 
     return () => {
@@ -103,10 +174,232 @@ export default function MarcarPage() {
         bloquearAtras
       );
 
+      navigator.mediaDevices?.removeEventListener(
+        "devicechange",
+        actualizarCamaras
+      );
+
       detenerCamaraFoto();
       void detenerCamaraQR();
     };
   }, [router]);
+
+
+  function nombreCamara(
+    dispositivo: MediaDeviceInfo,
+    indice: number
+  ) {
+    return (
+      dispositivo.label.trim() ||
+      `Cámara ${indice + 1}`
+    );
+  }
+
+  function elegirCamaraPredeterminada({
+    dispositivos,
+    preferencia,
+    tipo,
+  }: {
+    dispositivos: CamaraDisponible[];
+    preferencia: string;
+    tipo: "QR" | "FACIAL";
+  }) {
+    if (
+      preferencia &&
+      dispositivos.some(
+        (camara) =>
+          camara.deviceId ===
+          preferencia
+      )
+    ) {
+      return preferencia;
+    }
+
+    const palabras =
+      tipo === "QR"
+        ? [
+            "back",
+            "rear",
+            "environment",
+            "trasera",
+          ]
+        : [
+            "front",
+            "user",
+            "facetime",
+            "webcam",
+            "integrated",
+            "frontal",
+          ];
+
+    const encontrada =
+      dispositivos.find((camara) =>
+        palabras.some((palabra) =>
+          camara.label
+            .toLowerCase()
+            .includes(palabra)
+        )
+      );
+
+    if (encontrada) {
+      return encontrada.deviceId;
+    }
+
+    return tipo === "QR"
+      ? dispositivos.at(-1)
+          ?.deviceId || ""
+      : dispositivos[0]
+          ?.deviceId || "";
+  }
+
+  async function cargarCamaras() {
+    if (
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices
+        .enumerateDevices
+    ) {
+      return;
+    }
+
+    setCargandoCamaras(true);
+
+    let streamTemporal:
+      | MediaStream
+      | null = null;
+
+    try {
+      const iniciales =
+        await navigator.mediaDevices
+          .enumerateDevices();
+
+      const hayEtiquetas =
+        iniciales.some(
+          (dispositivo) =>
+            dispositivo.kind ===
+              "videoinput" &&
+            Boolean(
+              dispositivo.label
+            )
+        );
+
+      if (!hayEtiquetas) {
+        try {
+          streamTemporal =
+            await navigator.mediaDevices
+              .getUserMedia({
+                video: true,
+                audio: false,
+              });
+        } catch {
+          // Se mostrarán nombres genéricos.
+        }
+      }
+
+      const dispositivos =
+        await navigator.mediaDevices
+          .enumerateDevices();
+
+      const camarasEncontradas =
+        dispositivos
+          .filter(
+            (dispositivo) =>
+              dispositivo.kind ===
+              "videoinput"
+          )
+          .map(
+            (
+              dispositivo,
+              indice
+            ) => ({
+              deviceId:
+                dispositivo.deviceId,
+
+              label:
+                nombreCamara(
+                  dispositivo,
+                  indice
+                ),
+            })
+          );
+
+      setCamaras(
+        camarasEncontradas
+      );
+
+      const guardadaQr =
+        localStorage.getItem(
+          STORAGE_CAMARA_QR
+        ) || "";
+
+      const guardadaFacial =
+        localStorage.getItem(
+          STORAGE_CAMARA_FACIAL
+        ) || "";
+
+      setCamaraQrSeleccionada(
+        elegirCamaraPredeterminada({
+          dispositivos:
+            camarasEncontradas,
+          preferencia:
+            guardadaQr,
+          tipo: "QR",
+        })
+      );
+
+      setCamaraFacialSeleccionada(
+        elegirCamaraPredeterminada({
+          dispositivos:
+            camarasEncontradas,
+          preferencia:
+            guardadaFacial,
+          tipo: "FACIAL",
+        })
+      );
+    } catch (error) {
+      console.error(
+        "Error detectando cámaras:",
+        error
+      );
+
+      setMensaje(
+        "⚠️ No se pudieron listar las cámaras. Se usará la cámara predeterminada."
+      );
+    } finally {
+      streamTemporal
+        ?.getTracks()
+        .forEach((track) =>
+          track.stop()
+        );
+
+      setCargandoCamaras(false);
+    }
+  }
+
+  function seleccionarCamaraQr(
+    deviceId: string
+  ) {
+    setCamaraQrSeleccionada(
+      deviceId
+    );
+
+    localStorage.setItem(
+      STORAGE_CAMARA_QR,
+      deviceId
+    );
+  }
+
+  function seleccionarCamaraFacial(
+    deviceId: string
+  ) {
+    setCamaraFacialSeleccionada(
+      deviceId
+    );
+
+    localStorage.setItem(
+      STORAGE_CAMARA_FACIAL,
+      deviceId
+    );
+  }
 
   async function cerrarSesion() {
     try {
@@ -207,7 +500,9 @@ export default function MarcarPage() {
     }
   }
 
-  async function tomarFotoSelfie(): Promise<Blob | null> {
+  async function tomarFotoSelfie(
+    deviceId?: string
+  ): Promise<Blob | null> {
     try {
       detenerCamaraFoto();
       setTomandoFoto(true);
@@ -228,17 +523,30 @@ export default function MarcarPage() {
         stream =
           await navigator.mediaDevices.getUserMedia(
             {
-              video: {
-                facingMode: {
-                  ideal: "environment",
-                },
-                width: {
-                  ideal: 720,
-                },
-                height: {
-                  ideal: 720,
-                },
-              },
+              video: deviceId
+                ? {
+                    deviceId: {
+                      exact: deviceId,
+                    },
+                    width: {
+                      ideal: 720,
+                    },
+                    height: {
+                      ideal: 720,
+                    },
+                  }
+                : {
+                    facingMode: {
+                      ideal: "user",
+                    },
+                    width: {
+                      ideal: 720,
+                    },
+                    height: {
+                      ideal: 720,
+                    },
+                  },
+
               audio: false,
             }
           );
@@ -465,7 +773,8 @@ export default function MarcarPage() {
       dni?: string;
       codigo?: string;
       metodo: string;
-    }
+    },
+    fotoPreparada?: Blob
   ) {
     setMensaje("");
     setResultado(null);
@@ -478,12 +787,19 @@ export default function MarcarPage() {
         await detenerCamaraQR();
       }
 
-      setMensaje(
-        "📸 Mire hacia la cámara. La foto se tomará en 1 segundo."
-      );
+   let foto: Blob | null =
+  fotoPreparada ?? null;
 
-      const foto =
-        await tomarFotoSelfie();
+if (!foto) {
+  setMensaje(
+    "📸 Mire hacia la cámara. La foto se tomará en 1 segundo."
+  );
+
+  foto =
+    await tomarFotoSelfie(
+          camaraFacialSeleccionada
+        );
+}
 
       if (!foto) {
         throw new Error(
@@ -535,12 +851,32 @@ export default function MarcarPage() {
         }
       }
 
-      if (!respuesta.ok) {
-        throw new Error(
-          data.message ||
-            `No se pudo registrar la asistencia (${respuesta.status})`
-        );
-      }
+   if (!respuesta.ok) {
+  const mensajeRespuesta =
+    data.message ||
+    `No se pudo registrar la asistencia (${respuesta.status})`;
+
+  const esAvisoDeEntradaExistente =
+    respuesta.status === 400 &&
+    mensajeRespuesta.includes(
+      "ya registró entrada hoy"
+    );
+
+  if (esAvisoDeEntradaExistente) {
+    setMensaje(`⚠️ ${mensajeRespuesta}`);
+    setEstadoVisual("normal");
+    beep("ok");
+
+    window.setTimeout(() => {
+      setMensaje("");
+      setResultado(null);
+    }, 5000);
+
+    return;
+  }
+
+  throw new Error(mensajeRespuesta);
+}
 
       setResultado(data);
 
@@ -615,6 +951,141 @@ export default function MarcarPage() {
     });
   }
 
+  async function marcarPorRostro() {
+    if (
+      tomandoFoto ||
+      reconociendoFacial
+    ) {
+      return;
+    }
+
+    setReconociendoFacial(true);
+    setResultado(null);
+    setEstadoVisual("normal");
+    setMensaje(
+      "🙂 Mire de frente. Capturaremos su rostro en 1 segundo."
+    );
+
+    try {
+      if (
+        camaraActiva ||
+        scannerRef.current
+      ) {
+        await detenerCamaraQR();
+      }
+
+      const foto =
+        await tomarFotoSelfie(
+          camaraFacialSeleccionada
+        );
+
+      if (!foto) {
+        throw new Error(
+          "No se pudo capturar el rostro"
+        );
+      }
+
+      setMensaje(
+        "🧠 Buscando coincidencia facial en AWS Rekognition..."
+      );
+
+      const formData =
+        new FormData();
+
+      formData.append(
+        "foto",
+        new File(
+          [foto],
+          `reconocimiento-${Date.now()}.jpg`,
+          {
+            type: "image/jpeg",
+          }
+        )
+      );
+
+      const respuesta =
+        await fetch(
+          "/api/biometria/reconocer",
+          {
+            method: "POST",
+            credentials: "include",
+            body: formData,
+          }
+        );
+
+      const texto =
+        await respuesta.text();
+
+      let data: ResultadoReconocimientoFacial =
+        {};
+
+      if (texto) {
+        try {
+          data = JSON.parse(texto);
+        } catch {
+          throw new Error(
+            "La API facial devolvió una respuesta inválida"
+          );
+        }
+      }
+
+      if (
+        !respuesta.ok ||
+        !data.ok ||
+        !data.reconocido ||
+        !data.estudiante
+      ) {
+        throw new Error(
+          data.message ||
+            "No se reconoció al estudiante"
+        );
+      }
+
+      const similitud =
+        data.coincidencia?.similitud;
+
+      setMensaje(
+        `✅ ${data.estudiante.nombres} ${data.estudiante.apellidos} reconocido${
+          typeof similitud === "number"
+            ? ` con ${similitud.toFixed(2)}% de similitud`
+            : ""
+        }. Registrando asistencia...`
+      );
+
+      await registrarAsistencia(
+        {
+          dni:
+            data.estudiante.dni,
+          metodo: "FACIAL",
+        },
+        foto
+      );
+    } catch (error) {
+      console.error(
+        "Error en reconocimiento facial:",
+        error
+      );
+
+      setMensaje(
+        `❌ ${
+          error instanceof Error
+            ? error.message
+            : "No se pudo reconocer el rostro"
+        }`
+      );
+
+      setEstadoVisual("error");
+      beep("error");
+
+      window.setTimeout(() => {
+        setEstadoVisual("normal");
+      }, 3500);
+    } finally {
+      setReconociendoFacial(false);
+      detenerCamaraFoto();
+    }
+  }
+
   function manejarEnterDni(
     event: KeyboardEvent<HTMLInputElement>
   ) {
@@ -644,11 +1115,19 @@ export default function MarcarPage() {
       scannerRef.current = lector;
 
       try {
+        const configuracionCamara =
+          camaraQrSeleccionada
+            ? {
+                deviceId:
+                  camaraQrSeleccionada,
+              }
+            : {
+                facingMode:
+                  "environment",
+              };
+
         await lector.start(
-          {
-            facingMode:
-              "environment",
-          },
+          configuracionCamara,
           {
             fps: 15,
             qrbox: {
@@ -711,7 +1190,7 @@ export default function MarcarPage() {
       ? "La salida fue confirmada correctamente."
       : estadoVisual === "error"
       ? "Revise el mensaje e inténtelo nuevamente."
-      : "Escanee el código QR o ingrese el DNI del estudiante.";
+      : "Escanee el QR, ingrese el DNI o use reconocimiento facial.";
 
   const colorMensaje =
     estadoVisual === "entrada"
@@ -910,7 +1389,7 @@ export default function MarcarPage() {
               </div>
             )}
 
-            <div className="grid gap-5 lg:grid-cols-2">
+            <div className="grid gap-5 lg:grid-cols-3">
               <article className="group rounded-[28px] border border-blue-200 bg-gradient-to-br from-white to-blue-50/70 p-5 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl sm:p-7">
                 <div className="flex items-center gap-4">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-2xl text-white shadow-lg shadow-blue-200">
@@ -927,6 +1406,69 @@ export default function MarcarPage() {
                     </p>
                   </div>
                 </div>
+
+                <label className="mt-6 block">
+                  <span className="text-xs font-black uppercase tracking-wider text-blue-700">
+                    Cámara para QR
+                  </span>
+
+                  <select
+                    value={
+                      camaraQrSeleccionada
+                    }
+                    onChange={(event) =>
+                      seleccionarCamaraQr(
+                        event.target.value
+                      )
+                    }
+                    disabled={
+                      camaraActiva ||
+                      tomandoFoto ||
+                      cargandoCamaras
+                    }
+                    className="mt-2 h-12 w-full rounded-2xl border-2 border-blue-200 bg-white px-4 font-bold text-slate-800 outline-none focus:border-blue-500 disabled:opacity-60"
+                  >
+                    {camaras.length ===
+                    0 ? (
+                      <option value="">
+                        Cámara predeterminada
+                      </option>
+                    ) : (
+                      camaras.map(
+                        (camara) => (
+                          <option
+                            key={
+                              camara.deviceId
+                            }
+                            value={
+                              camara.deviceId
+                            }
+                          >
+                            {
+                              camara.label
+                            }
+                          </option>
+                        )
+                      )
+                    )}
+                  </select>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    void cargarCamaras()
+                  }
+                  disabled={
+                    camaraActiva ||
+                    cargandoCamaras
+                  }
+                  className="mt-3 w-full rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-black text-blue-700 transition hover:bg-blue-100 disabled:opacity-50"
+                >
+                  {cargandoCamaras
+                    ? "Buscando cámaras..."
+                    : "🔄 Actualizar cámaras"}
+                </button>
 
                 {!camaraActiva ? (
                   <button
@@ -1040,15 +1582,122 @@ export default function MarcarPage() {
                     : "✅ Marcar asistencia"}
                 </button>
               </article>
+
+              <article className="group rounded-[28px] border border-violet-200 bg-gradient-to-br from-white to-violet-50/70 p-5 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl sm:p-7">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-600 text-2xl text-white shadow-lg shadow-violet-200">
+                    🙂
+                  </div>
+
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-950">
+                      Reconocimiento facial
+                    </h2>
+
+                    <p className="mt-1 text-sm font-semibold text-slate-500">
+                      Identificación automática mediante AWS Rekognition.
+                    </p>
+                  </div>
+                </div>
+
+                <label className="mt-6 block">
+                  <span className="text-xs font-black uppercase tracking-wider text-violet-700">
+                    Cámara para rostro
+                  </span>
+
+                  <select
+                    value={
+                      camaraFacialSeleccionada
+                    }
+                    onChange={(event) =>
+                      seleccionarCamaraFacial(
+                        event.target.value
+                      )
+                    }
+                    disabled={
+                      tomandoFoto ||
+                      reconociendoFacial ||
+                      camaraActiva ||
+                      cargandoCamaras
+                    }
+                    className="mt-2 h-12 w-full rounded-2xl border-2 border-violet-200 bg-white px-4 font-bold text-slate-800 outline-none focus:border-violet-500 disabled:opacity-60"
+                  >
+                    {camaras.length ===
+                    0 ? (
+                      <option value="">
+                        Cámara predeterminada
+                      </option>
+                    ) : (
+                      camaras.map(
+                        (camara) => (
+                          <option
+                            key={
+                              camara.deviceId
+                            }
+                            value={
+                              camara.deviceId
+                            }
+                          >
+                            {
+                              camara.label
+                            }
+                          </option>
+                        )
+                      )
+                    )}
+                  </select>
+                </label>
+
+                <div className="mt-4 rounded-2xl border border-violet-200 bg-white/80 p-5">
+                  <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4 border-violet-500 bg-violet-50 text-6xl shadow-[0_0_35px_rgba(124,58,237,0.25)]">
+                    👤
+                  </div>
+
+                  <p className="mt-4 text-center text-sm font-bold text-slate-600">
+                    Mire de frente, mantenga buena iluminación y asegúrese de que aparezca una sola persona.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={marcarPorRostro}
+                  disabled={
+                    tomandoFoto ||
+                    reconociendoFacial ||
+                    camaraActiva
+                  }
+                  className="mt-6 w-full rounded-2xl bg-violet-600 px-5 py-4 font-black text-white shadow-lg shadow-violet-200 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {reconociendoFacial
+                    ? "🧠 Reconociendo estudiante..."
+                    : tomandoFoto
+                    ? "📸 Capturando rostro..."
+                    : "🙂 Marcar con rostro"}
+                </button>
+
+                <div className="mt-4 grid grid-cols-2 gap-3 text-center text-xs font-black">
+                  <div className="rounded-xl bg-violet-100 px-3 py-3 text-violet-700">
+                    AWS Rekognition
+                  </div>
+
+                  <div className="rounded-xl bg-emerald-100 px-3 py-3 text-emerald-700">
+                    Neon conectado
+                  </div>
+                </div>
+              </article>
             </div>
 
             <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-center text-xs font-semibold text-slate-500 sm:flex-row sm:text-left">
               <p>
-                🔒 El registro requiere una fotografía como evidencia.
+                🔒 QR, DNI y facial usan fotografía como evidencia.
               </p>
 
               <p>
                 ⚡ Captura automática en 1 segundo.
+              </p>
+
+              <p>
+                🎥 La cámara elegida queda guardada en este equipo.
               </p>
             </div>
           </div>
