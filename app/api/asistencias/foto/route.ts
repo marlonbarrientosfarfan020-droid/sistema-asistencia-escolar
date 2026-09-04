@@ -16,22 +16,25 @@ const TAMANO_MAXIMO = 5 * 1024 * 1024;
 
 export async function POST(request: Request) {
   const acceso =
-    await exigirAdminOPersonal();
+    await exigirAdminOPersonal(request);
 
   if (!acceso.autorizado) {
+    console.warn("[BLOB API] Acceso denegado en /api/asistencias/foto");
     return acceso.respuesta;
   }
 
   try {
+    console.log("[BLOB API] Petición autorizada en /api/asistencias/foto");
     const token =
       process.env.BLOB_READ_WRITE_TOKEN?.trim();
 
     if (!token) {
+      console.error("[BLOB API] Falta BLOB_READ_WRITE_TOKEN");
       return NextResponse.json(
         {
           ok: false,
           message:
-            "Falta BLOB_READ_WRITE_TOKEN en el archivo .env local",
+            "Falta BLOB_READ_WRITE_TOKEN en las variables de entorno",
         },
         {
           status: 500,
@@ -46,6 +49,7 @@ export async function POST(request: Request) {
       formData.get("foto");
 
     if (!(archivo instanceof File)) {
+      console.warn("[BLOB API] Campo 'foto' no es instancia de File");
       return NextResponse.json(
         {
           ok: false,
@@ -57,6 +61,12 @@ export async function POST(request: Request) {
         }
       );
     }
+
+    console.log("[BLOB API] Archivo recibido:", {
+      name: archivo.name,
+      size: archivo.size,
+      type: archivo.type,
+    });
 
     if (archivo.size <= 0) {
       return NextResponse.json(
@@ -114,6 +124,8 @@ export async function POST(request: Request) {
     const nombreArchivo =
       `asistencias/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
+    console.log("[BLOB API] Enviando a Vercel Blob:", nombreArchivo);
+
     const blob =
       await put(
         nombreArchivo,
@@ -125,6 +137,8 @@ export async function POST(request: Request) {
           contentType: archivo.type,
         }
       );
+
+    console.log("[BLOB API] Subida exitosa a Vercel Blob. URL:", blob.url);
 
     return NextResponse.json({
       ok: true,
@@ -142,7 +156,7 @@ export async function POST(request: Request) {
     });
   } catch (error: unknown) {
     console.error(
-      "Error subiendo fotografía a Vercel Blob:",
+      "[BLOB API] Error subiendo fotografía a Vercel Blob:",
       error
     );
 

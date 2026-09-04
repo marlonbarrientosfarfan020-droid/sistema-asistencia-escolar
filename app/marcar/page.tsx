@@ -454,6 +454,14 @@ export default function MarcarPage() {
           "terminal_porteria_autorizado",
           "true"
         );
+        sessionStorage.setItem(
+          "terminal_porteria_pin",
+          pinLimpio
+        );
+        localStorage.setItem(
+          "terminal_porteria_pin",
+          pinLimpio
+        );
         setTerminalAutorizado(true);
         setErrorPin("");
       } else {
@@ -469,6 +477,12 @@ export default function MarcarPage() {
   function bloquearTerminal() {
     sessionStorage.removeItem(
       "terminal_porteria_autorizado"
+    );
+    sessionStorage.removeItem(
+      "terminal_porteria_pin"
+    );
+    localStorage.removeItem(
+      "terminal_porteria_pin"
     );
     detenerCamaraFoto();
     void detenerCamaraQR();
@@ -551,208 +565,117 @@ export default function MarcarPage() {
     }
   }
 
-  async function tomarFotoSelfie(
-    deviceId?: string
+  async function tomarFotoEvidencia(
+    deviceId?: string,
+    modoCamara: "environment" | "user" = "environment"
   ): Promise<Blob | null> {
+    console.log("[FOTO] iniciando captura");
     try {
       detenerCamaraFoto();
       setTomandoFoto(true);
       setContadorFoto(null);
 
-      if (
-        !navigator.mediaDevices
-          ?.getUserMedia
-      ) {
-        throw new Error(
-          "El navegador no permite acceder a la cámara"
-        );
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("El navegador no permite acceder a la cámara");
       }
 
       let stream: MediaStream;
 
       try {
-        stream =
-          await navigator.mediaDevices.getUserMedia(
-            {
-              video: deviceId
-                ? {
-                    deviceId: {
-                      exact: deviceId,
-                    },
-                    width: {
-                      ideal: 720,
-                    },
-                    height: {
-                      ideal: 720,
-                    },
-                  }
-                : {
-                    facingMode: {
-                      ideal: "user",
-                    },
-                    width: {
-                      ideal: 720,
-                    },
-                    height: {
-                      ideal: 720,
-                    },
-                  },
-
-              audio: false,
-            }
-          );
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: deviceId
+            ? {
+                deviceId: { exact: deviceId },
+                width: { ideal: 720 },
+                height: { ideal: 720 },
+              }
+            : {
+                facingMode: { ideal: modoCamara },
+                width: { ideal: 720 },
+                height: { ideal: 720 },
+              },
+          audio: false,
+        });
       } catch {
-        stream =
-          await navigator.mediaDevices.getUserMedia(
-            {
-              video: true,
-              audio: false,
-            }
-          );
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
       }
 
       streamFotoRef.current = stream;
 
       const video = videoRef.current;
-
       if (!video) {
-        throw new Error(
-          "No existe el elemento de video"
-        );
+        throw new Error("No existe el elemento de video");
       }
 
       video.srcObject = stream;
       video.muted = true;
       video.playsInline = true;
 
-      await new Promise<void>(
-        (resolve, reject) => {
-          const temporizador =
-            window.setTimeout(() => {
-              reject(
-                new Error(
-                  "La cámara tardó demasiado en iniciar"
-                )
-              );
-            }, 8000);
+      await new Promise<void>((resolve, reject) => {
+        const temporizador = window.setTimeout(() => {
+          reject(new Error("La cámara de evidencia tardó demasiado en iniciar (timeout 6s)"));
+        }, 6000);
 
-          video.onloadedmetadata =
-            async () => {
-              try {
-                await video.play();
+        const alIniciar = async () => {
+          try {
+            await video.play();
+            window.clearTimeout(temporizador);
+            resolve();
+          } catch (error) {
+            window.clearTimeout(temporizador);
+            reject(error);
+          }
+        };
 
-                window.clearTimeout(
-                  temporizador
-                );
-
-                resolve();
-              } catch (error) {
-                window.clearTimeout(
-                  temporizador
-                );
-
-                reject(error);
-              }
-            };
+        if (video.readyState >= 2) {
+          void alIniciar();
+        } else {
+          video.onloadedmetadata = () => {
+            void alIniciar();
+          };
         }
-      );
+      });
 
-      /*
-       * Cuenta regresiva solicitada:
-       * únicamente 1 segundo.
-       */
-      for (
-        let numero =
-          SEGUNDOS_PARA_FOTO;
-        numero >= 1;
-        numero--
-      ) {
+      // Cuenta regresiva: 1 segundo
+      for (let numero = SEGUNDOS_PARA_FOTO; numero >= 1; numero--) {
         setContadorFoto(numero);
         await esperar(1000);
       }
-
       setContadorFoto(null);
 
-      const anchoOriginal =
-        video.videoWidth || 720;
-
-      const altoOriginal =
-        video.videoHeight || 720;
-
+      const anchoOriginal = video.videoWidth || 720;
+      const altoOriginal = video.videoHeight || 720;
       const maximo = 720;
+      const escala = Math.min(maximo / anchoOriginal, maximo / altoOriginal, 1);
+      const ancho = Math.round(anchoOriginal * escala);
+      const alto = Math.round(altoOriginal * escala);
 
-      const escala = Math.min(
-        maximo / anchoOriginal,
-        maximo / altoOriginal,
-        1
-      );
-
-      const ancho = Math.round(
-        anchoOriginal * escala
-      );
-
-      const alto = Math.round(
-        altoOriginal * escala
-      );
-
-      const canvas =
-        document.createElement(
-          "canvas"
-        );
-
+      const canvas = document.createElement("canvas");
       canvas.width = ancho;
       canvas.height = alto;
-
-      const contexto =
-        canvas.getContext("2d");
-
+      const contexto = canvas.getContext("2d");
       if (!contexto) {
-        throw new Error(
-          "No se pudo crear la fotografía"
-        );
+        throw new Error("No se pudo crear la fotografía de evidencia");
       }
+      contexto.drawImage(video, 0, 0, ancho, alto);
 
-      contexto.drawImage(
-        video,
-        0,
-        0,
-        ancho,
-        alto
-      );
-
-      const blob =
-        await new Promise<Blob | null>(
-          (resolve) => {
-            canvas.toBlob(
-              (resultadoBlob) =>
-                resolve(
-                  resultadoBlob
-                ),
-              "image/jpeg",
-              0.72
-            );
-          }
-        );
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((resultadoBlob) => resolve(resultadoBlob), "image/jpeg", 0.72);
+      });
 
       if (!blob) {
-        throw new Error(
-          "No se pudo comprimir la fotografía"
-        );
+        throw new Error("No se pudo comprimir la fotografía");
       }
 
+      console.log("[FOTO] archivo generado:", { size: blob.size, type: blob.type });
       return blob;
     } catch (error) {
-      console.error(
-        "Error capturando fotografía:",
-        error
-      );
-
-      setMensaje(
-        error instanceof Error
-          ? `❌ ${error.message}`
-          : "❌ No se pudo tomar la fotografía"
-      );
-
+      console.error("[FOTO] Error capturando fotografía:", error);
+      const mensajeError = error instanceof Error ? error.message : "Error al capturar fotografía";
+      setMensaje(`❌ ${mensajeError}`);
       setEstadoVisual("error");
       return null;
     } finally {
@@ -762,61 +685,67 @@ export default function MarcarPage() {
     }
   }
 
-  async function subirFoto(
-    foto: Blob
-  ): Promise<string> {
-    const formData = new FormData();
+  async function subirFoto(foto: Blob): Promise<string> {
+    console.log("[BLOB] subida iniciada");
+    setMensaje("☁️ Subiendo fotografía a Vercel Blob...");
 
+    const formData = new FormData();
     formData.append(
       "foto",
-      new File(
-        [foto],
-        `asistencia-${Date.now()}.jpg`,
-        {
-          type: "image/jpeg",
-        }
-      )
+      new File([foto], `asistencia-${Date.now()}.jpg`, {
+        type: "image/jpeg",
+      })
     );
 
-    const respuesta = await fetch(
-      "/api/asistencias/foto",
-      {
+    const pinTerminal =
+      sessionStorage.getItem("terminal_porteria_pin") ||
+      localStorage.getItem("terminal_porteria_pin") ||
+      "";
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+    try {
+      const respuesta = await fetch("/api/asistencias/foto", {
         method: "POST",
         credentials: "include",
+        headers: {
+          ...(pinTerminal ? { "x-terminal-pin": pinTerminal } : {}),
+        },
         body: formData,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const texto = await respuesta.text();
+
+      let data: {
+        ok?: boolean;
+        fotoUrl?: string;
+        message?: string;
+      } = {};
+
+      if (texto) {
+        try {
+          data = JSON.parse(texto);
+        } catch {
+          throw new Error("El servidor devolvió una respuesta inválida");
+        }
       }
-    );
 
-    const texto =
-      await respuesta.text();
-
-    let data: {
-      ok?: boolean;
-      fotoUrl?: string;
-      message?: string;
-    } = {};
-
-    if (texto) {
-      try {
-        data = JSON.parse(texto);
-      } catch {
-        throw new Error(
-          "El servidor devolvió una respuesta inválida"
-        );
+      if (!respuesta.ok || !data.fotoUrl) {
+        throw new Error(data.message || `No se pudo guardar la fotografía en Blob (${respuesta.status})`);
       }
-    }
 
-    if (
-      !respuesta.ok ||
-      !data.fotoUrl
-    ) {
-      throw new Error(
-        data.message ||
-          "No se pudo guardar la fotografía"
-      );
+      console.log("[BLOB] URL obtenida:", data.fotoUrl);
+      return data.fotoUrl;
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === "AbortError") {
+        throw new Error("Tiempo de espera agotado al subir a Vercel Blob (12s)");
+      }
+      throw err;
     }
-
-    return data.fotoUrl;
   }
 
   async function registrarAsistencia(
@@ -831,128 +760,106 @@ export default function MarcarPage() {
     setResultado(null);
 
     try {
-      if (
-        camaraActiva ||
-        scannerRef.current
-      ) {
+      if (camaraActiva || scannerRef.current) {
         await detenerCamaraQR();
       }
 
-   let foto: Blob | null =
-  fotoPreparada ?? null;
-
-if (!foto) {
-  setMensaje(
-    "📸 Mire hacia la cámara. La foto se tomará en 1 segundo."
-  );
-
-  foto =
-    await tomarFotoSelfie(
-          camaraFacialSeleccionada
-        );
-}
+      let foto: Blob | null = fotoPreparada ?? null;
 
       if (!foto) {
-        throw new Error(
-          "La fotografía es obligatoria para registrar la asistencia"
+        setMensaje("📸 Posicione la cámara hacia la estudiante o carnet...");
+        foto = await tomarFotoEvidencia(
+          camaraQrSeleccionada || undefined,
+          "environment"
         );
       }
 
-      setMensaje(
-        "☁️ Guardando fotografía..."
-      );
+      if (!foto) {
+        throw new Error("La fotografía es obligatoria para registrar la asistencia");
+      }
 
-      const fotoUrl =
-        await subirFoto(foto);
+      const fotoUrl = await subirFoto(foto);
 
-      setMensaje(
-        "⏳ Registrando asistencia..."
-      );
+      console.log("[ASISTENCIA] creando registro:", { ...datos, fotoUrl });
+      setMensaje("⏳ Registrando asistencia...");
 
-      const respuesta = await fetch(
-        "/api/asistencias",
-        {
+      const pinTerminal =
+        sessionStorage.getItem("terminal_porteria_pin") ||
+        localStorage.getItem("terminal_porteria_pin") ||
+        "";
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+      let data: ResultadoAsistencia & { message?: string; asistencia?: any } = {};
+
+      try {
+        const respuesta = await fetch("/api/asistencias", {
           method: "POST",
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
+            ...(pinTerminal ? { "x-terminal-pin": pinTerminal } : {}),
           },
           credentials: "include",
           body: JSON.stringify({
             ...datos,
             fotoUrl,
           }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        const texto = await respuesta.text();
+
+        if (texto) {
+          try {
+            data = JSON.parse(texto);
+          } catch {
+            throw new Error("La API de asistencia devolvió datos inválidos");
+          }
         }
-      );
 
-      const texto =
-        await respuesta.text();
+        if (!respuesta.ok) {
+          const mensajeRespuesta =
+            data.message || `No se pudo registrar la asistencia (${respuesta.status})`;
 
-      let data: ResultadoAsistencia & {
-        message?: string;
-      } = {};
+          const esAvisoDeEntradaExistente =
+            respuesta.status === 400 &&
+            mensajeRespuesta.includes("ya registró entrada hoy");
 
-      if (texto) {
-        try {
-          data = JSON.parse(texto);
-        } catch {
-          throw new Error(
-            "La API de asistencia devolvió datos inválidos"
-          );
+          if (esAvisoDeEntradaExistente) {
+            setMensaje(`⚠️ ${mensajeRespuesta}`);
+            setEstadoVisual("normal");
+            beep("ok");
+
+            window.setTimeout(() => {
+              setMensaje("");
+              setResultado(null);
+            }, 5000);
+            return;
+          }
+
+          throw new Error(mensajeRespuesta);
         }
+
+        console.log("[ASISTENCIA] registro creado:", data.asistencia?.id || data);
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (err.name === "AbortError") {
+          throw new Error("Tiempo de espera agotado al registrar en base de datos (12s)");
+        }
+        throw err;
       }
 
-   if (!respuesta.ok) {
-  const mensajeRespuesta =
-    data.message ||
-    `No se pudo registrar la asistencia (${respuesta.status})`;
-
-  const esAvisoDeEntradaExistente =
-    respuesta.status === 400 &&
-    mensajeRespuesta.includes(
-      "ya registró entrada hoy"
-    );
-
-  if (esAvisoDeEntradaExistente) {
-    setMensaje(`⚠️ ${mensajeRespuesta}`);
-    setEstadoVisual("normal");
-    beep("ok");
-
-    window.setTimeout(() => {
-      setMensaje("");
-      setResultado(null);
-    }, 5000);
-
-    return;
-  }
-
-  throw new Error(mensajeRespuesta);
-}
-
       setResultado(data);
-
-      setMensaje(
-        `✅ ${
-          data.message ||
-          "Asistencia registrada"
-        }`
-      );
-
+      setMensaje(`✅ ${data.message || "Asistencia registrada"}`);
       setDni("");
       beep("ok");
 
-      if (
-        data.tipo === "ENTRADA"
-      ) {
-        setEstadoVisual(
-          "entrada"
-        );
-      } else if (
-        data.tipo === "SALIDA"
-      ) {
-        setEstadoVisual(
-          "salida"
-        );
+      if (data.tipo === "ENTRADA") {
+        setEstadoVisual("entrada");
+      } else if (data.tipo === "SALIDA") {
+        setEstadoVisual("salida");
       }
 
       window.setTimeout(() => {
@@ -961,28 +868,19 @@ if (!foto) {
         setResultado(null);
       }, 4000);
     } catch (error) {
-      console.error(
-        "Error registrando asistencia:",
-        error
-      );
-
-      setMensaje(
-        `❌ ${
-          error instanceof Error
-            ? error.message
-            : "Error al registrar asistencia"
-        }`
-      );
-
+      console.error("[ASISTENCIA] Error en flujo de marcación:", error);
+      const msg = error instanceof Error ? error.message : "Error al registrar asistencia";
+      setMensaje(`❌ ${msg}`);
       setEstadoVisual("error");
       beep("error");
 
       window.setTimeout(() => {
         setEstadoVisual("normal");
-      }, 3500);
+      }, 5000);
     } finally {
       detenerCamaraFoto();
       setTomandoFoto(false);
+      procesandoQR.current = false;
     }
   }
 
@@ -1026,8 +924,9 @@ if (!foto) {
       }
 
       const foto =
-        await tomarFotoSelfie(
-          camaraFacialSeleccionada
+        await tomarFotoEvidencia(
+          camaraFacialSeleccionada,
+          "user"
         );
 
       if (!foto) {
@@ -1195,14 +1094,41 @@ if (!foto) {
             }
 
             procesandoQR.current = true;
+            console.log("[QR] estudiante detectado:", codigoLeido.trim());
+
+            // Capturar fotograma de evidencia directamente desde el video activo del sensor QR
+            let fotoCapturada: Blob | null = null;
+            try {
+              const videoQR = document.querySelector("#lector-qr video") as HTMLVideoElement | null;
+              if (videoQR && videoQR.videoWidth > 0 && videoQR.videoHeight > 0) {
+                console.log("[FOTO] iniciando captura");
+                const canvas = document.createElement("canvas");
+                canvas.width = Math.min(videoQR.videoWidth, 720);
+                canvas.height = Math.round((videoQR.videoHeight * canvas.width) / videoQR.videoWidth);
+                const ctx = canvas.getContext("2d");
+                if (ctx) {
+                  ctx.drawImage(videoQR, 0, 0, canvas.width, canvas.height);
+                  fotoCapturada = await new Promise<Blob | null>((res) => {
+                    canvas.toBlob((b) => res(b), "image/jpeg", 0.72);
+                  });
+                  if (fotoCapturada) {
+                    console.log("[FOTO] archivo generado:", { size: fotoCapturada.size, type: fotoCapturada.type });
+                  }
+                }
+              }
+            } catch (errFoto) {
+              console.warn("No se pudo extraer fotograma directo del sensor QR:", errFoto);
+            }
 
             await detenerCamaraQR();
 
-            await registrarAsistencia({
-              codigo:
-                codigoLeido.trim(),
-              metodo: "QR",
-            });
+            await registrarAsistencia(
+              {
+                codigo: codigoLeido.trim(),
+                metodo: "QR",
+              },
+              fotoCapturada ?? undefined
+            );
           },
           () => {}
         );

@@ -346,9 +346,10 @@ ${metodo}
 }
 
 export async function POST(request: Request) {
-  const acceso = await exigirAdminOPersonal();
+  const acceso = await exigirAdminOPersonal(request);
 
   if (!acceso.autorizado) {
+    console.warn("[ASISTENCIA API] Acceso denegado en /api/asistencias");
     return acceso.respuesta;
   }
 
@@ -682,6 +683,7 @@ export async function POST(request: Request) {
         );
       }
 
+      console.log("[ASISTENCIA API] creando registro para estudiante:", estudiante.id, "fotoUrl:", fotoUrl);
       asistencia =
         await prisma.asistencia.create({
           data: {
@@ -694,6 +696,7 @@ export async function POST(request: Request) {
             fotoEntrada: fotoUrl,
           },
         });
+      console.log("[ASISTENCIA API] registro creado id:", asistencia.id);
 
       // Notificaciones externas en segundo plano (NO bloqueantes ni obligatorias)
       if (configuracionCanales?.canalWhatsAppActivo && estudiante.whatsapp) {
