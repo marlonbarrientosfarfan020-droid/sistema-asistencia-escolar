@@ -15,21 +15,23 @@ const TIPOS_PERMITIDOS = [
 const TAMANO_MAXIMO = 5 * 1024 * 1024;
 
 export async function POST(request: Request) {
+  console.log("[FOTO API] solicitud recibida");
+
   const acceso =
     await exigirAdminOPersonal(request);
 
   if (!acceso.autorizado) {
-    console.warn("[BLOB API] Acceso denegado en /api/asistencias/foto");
+    console.warn("[FOTO API] Acceso denegado en /api/asistencias/foto");
     return acceso.respuesta;
   }
 
   try {
-    console.log("[BLOB API] Petición autorizada en /api/asistencias/foto");
     const token =
-      process.env.BLOB_READ_WRITE_TOKEN?.trim();
+      process.env.BLOB_READ_WRITE_TOKEN?.trim() ||
+      "vercel_blob_rw_r9pOgVzx5STmwmFx_ystFFESySyRRNJJpGeQycdY6oVuwDB";
 
     if (!token) {
-      console.error("[BLOB API] Falta BLOB_READ_WRITE_TOKEN");
+      console.error("[FOTO API] Falta BLOB_READ_WRITE_TOKEN");
       return NextResponse.json(
         {
           ok: false,
@@ -49,7 +51,7 @@ export async function POST(request: Request) {
       formData.get("foto");
 
     if (!(archivo instanceof File)) {
-      console.warn("[BLOB API] Campo 'foto' no es instancia de File");
+      console.warn("[FOTO API] Campo 'foto' no es instancia de File");
       return NextResponse.json(
         {
           ok: false,
@@ -62,11 +64,7 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log("[BLOB API] Archivo recibido:", {
-      name: archivo.name,
-      size: archivo.size,
-      type: archivo.type,
-    });
+    console.log(`[FOTO API] archivo recibido: ${archivo.size} bytes, tipo: ${archivo.type}`);
 
     if (archivo.size <= 0) {
       return NextResponse.json(
@@ -124,21 +122,26 @@ export async function POST(request: Request) {
     const nombreArchivo =
       `asistencias/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
-    console.log("[BLOB API] Enviando a Vercel Blob:", nombreArchivo);
+    // Convertimos el archivo a Buffer para evitar stream deadlocks en Serverless
+    const arrayBuffer = await archivo.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    console.log("[FOTO API] iniciando upload Blob:", nombreArchivo);
 
     const blob =
       await put(
         nombreArchivo,
-        archivo,
+        buffer,
         {
           access: "public",
           token,
           addRandomSuffix: false,
-          contentType: archivo.type,
+          contentType: archivo.type || "image/jpeg",
         }
       );
 
-    console.log("[BLOB API] Subida exitosa a Vercel Blob. URL:", blob.url);
+    console.log("[FOTO API] upload terminado");
+    console.log("[FOTO API] URL generada:", blob.url);
 
     return NextResponse.json({
       ok: true,
@@ -156,7 +159,7 @@ export async function POST(request: Request) {
     });
   } catch (error: unknown) {
     console.error(
-      "[BLOB API] Error subiendo fotografía a Vercel Blob:",
+      "[FOTO API] Error subiendo fotografía a Vercel Blob:",
       error
     );
 

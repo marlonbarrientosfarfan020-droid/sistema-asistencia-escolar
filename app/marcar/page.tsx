@@ -646,9 +646,9 @@ export default function MarcarPage() {
       }
       setContadorFoto(null);
 
-      const anchoOriginal = video.videoWidth || 720;
-      const altoOriginal = video.videoHeight || 720;
-      const maximo = 720;
+      const anchoOriginal = video.videoWidth || 640;
+      const altoOriginal = video.videoHeight || 640;
+      const maximo = 640;
       const escala = Math.min(maximo / anchoOriginal, maximo / altoOriginal, 1);
       const ancho = Math.round(anchoOriginal * escala);
       const alto = Math.round(altoOriginal * escala);
@@ -663,14 +663,14 @@ export default function MarcarPage() {
       contexto.drawImage(video, 0, 0, ancho, alto);
 
       const blob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob((resultadoBlob) => resolve(resultadoBlob), "image/jpeg", 0.72);
+        canvas.toBlob((resultadoBlob) => resolve(resultadoBlob), "image/jpeg", 0.70);
       });
 
       if (!blob) {
         throw new Error("No se pudo comprimir la fotografía");
       }
 
-      console.log("[FOTO] archivo generado:", { size: blob.size, type: blob.type });
+      console.log(`[FOTO] archivo generado: ${(blob.size / 1024).toFixed(1)} KB, tipo: ${blob.type}`);
       return blob;
     } catch (error) {
       console.error("[FOTO] Error capturando fotografía:", error);
@@ -703,7 +703,7 @@ export default function MarcarPage() {
       "";
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
 
     try {
       const respuesta = await fetch("/api/asistencias/foto", {
@@ -742,7 +742,7 @@ export default function MarcarPage() {
     } catch (err: any) {
       clearTimeout(timeoutId);
       if (err.name === "AbortError") {
-        throw new Error("Tiempo de espera agotado al subir a Vercel Blob (12s)");
+        throw new Error("Tiempo de espera agotado al subir a Vercel Blob (5s)");
       }
       throw err;
     }
