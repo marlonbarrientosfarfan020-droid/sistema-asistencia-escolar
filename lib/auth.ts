@@ -125,6 +125,7 @@ export async function eliminarSesion(): Promise<void> {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
+    maxAge: 0,
     expires: new Date(0),
   });
 }

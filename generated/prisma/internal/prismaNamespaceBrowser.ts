@@ -63,7 +63,8 @@ export const ModelName = {
   CalendarioEscolar: 'CalendarioEscolar',
   HistorialReporteAutomatico: 'HistorialReporteAutomatico',
   BiometriaFacial: 'BiometriaFacial',
-  RostroFacial: 'RostroFacial'
+  RostroFacial: 'RostroFacial',
+  CodigoFamiliar: 'CodigoFamiliar'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -95,7 +96,8 @@ export const EstudianteScalarFieldEnum = {
   telegramChatId: 'telegramChatId',
   estado: 'estado',
   createdAt: 'createdAt',
-  turnoId: 'turnoId'
+  turnoId: 'turnoId',
+  codigoFamiliarId: 'codigoFamiliarId'
 } as const
 
 export type EstudianteScalarFieldEnum = (typeof EstudianteScalarFieldEnum)[keyof typeof EstudianteScalarFieldEnum]
@@ -183,7 +185,10 @@ export const ConfiguracionScalarFieldEnum = {
   telegramPruebaChatId: 'telegramPruebaChatId',
   frecuenciaRevisionMinutos: 'frecuenciaRevisionMinutos',
   ultimaEjecucionAutomatizaciones: 'ultimaEjecucionAutomatizaciones',
-  ultimaEjecucionEstado: 'ultimaEjecucionEstado'
+  ultimaEjecucionEstado: 'ultimaEjecucionEstado',
+  canalTelegramActivo: 'canalTelegramActivo',
+  canalWhatsAppActivo: 'canalWhatsAppActivo',
+  canalPortalWebActivo: 'canalPortalWebActivo'
 } as const
 
 export type ConfiguracionScalarFieldEnum = (typeof ConfiguracionScalarFieldEnum)[keyof typeof ConfiguracionScalarFieldEnum]
@@ -294,6 +299,21 @@ export const RostroFacialScalarFieldEnum = {
 } as const
 
 export type RostroFacialScalarFieldEnum = (typeof RostroFacialScalarFieldEnum)[keyof typeof RostroFacialScalarFieldEnum]
+
+
+export const CodigoFamiliarScalarFieldEnum = {
+  id: 'id',
+  codigo: 'codigo',
+  tutorTitular: 'tutorTitular',
+  telefonoContacto: 'telefonoContacto',
+  correoContacto: 'correoContacto',
+  estado: 'estado',
+  ultimoIngresoAt: 'ultimoIngresoAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CodigoFamiliarScalarFieldEnum = (typeof CodigoFamiliarScalarFieldEnum)[keyof typeof CodigoFamiliarScalarFieldEnum]
 
 
 export const SortOrder = {

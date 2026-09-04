@@ -82,3 +82,8 @@ export type BiometriaFacial = Prisma.BiometriaFacialModel
  * 
  */
 export type RostroFacial = Prisma.RostroFacialModel
+/**
+ * Model CodigoFamiliar
+ * 
+ */
+export type CodigoFamiliar = Prisma.CodigoFamiliarModel

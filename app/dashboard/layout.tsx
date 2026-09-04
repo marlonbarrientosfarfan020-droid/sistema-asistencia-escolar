@@ -74,13 +74,18 @@ export default function DashboardLayout({
 
     let temporizador: ReturnType<typeof setTimeout>;
 
-    const cerrarPorInactividad = () => {
-      localStorage.removeItem("logueado");
-      localStorage.removeItem("rol");
-      localStorage.removeItem("usuario");
-
-      alert("Sesión cerrada por inactividad");
-      router.replace("/login");
+    const cerrarPorInactividad = async () => {
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+        await fetch("/api/logout", {
+          method: "POST",
+          credentials: "include",
+        });
+      } finally {
+        alert("Sesión cerrada por inactividad");
+        window.location.replace("/login");
+      }
     };
 
     const reiniciarTemporizador = () => {
@@ -136,18 +141,17 @@ export default function DashboardLayout({
 
   async function cerrarSesion() {
     try {
+      localStorage.clear();
+      sessionStorage.clear();
+
       await fetch("/api/logout", {
         method: "POST",
         credentials: "include",
       });
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
     } finally {
-      localStorage.removeItem("logueado");
-      localStorage.removeItem("rol");
-      localStorage.removeItem("usuario");
-
-      window.history.replaceState(null, "", "/login");
-      router.replace("/login");
-      router.refresh();
+      window.location.replace("/login");
     }
   }
 
@@ -197,6 +201,12 @@ export default function DashboardLayout({
         href: "/dashboard/estudiantes",
         icono: "🎓",
         texto: "Estudiantes",
+        visible: puedeGestionar,
+      },
+      {
+        href: "/dashboard/padres",
+        icono: "👨‍👩‍👧",
+        texto: "Familias / Padres",
         visible: puedeGestionar,
       },
       {

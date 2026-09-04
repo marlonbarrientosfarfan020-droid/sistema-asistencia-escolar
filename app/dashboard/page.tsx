@@ -270,14 +270,28 @@ export default function Dashboard() {
     seccion: "TODAS",
   });
 
-  async function cargarDashboard() {
+  async function cargarDashboard(signal?: AbortSignal) {
+    if (typeof window !== "undefined" && localStorage.getItem("logueado") !== "true") {
+      return;
+    }
+
     try {
       const respuesta = await fetch("/api/dashboard", {
         headers: {
           "x-user-role": localStorage.getItem("rol") || "",
         },
         cache: "no-store",
+        signal,
       });
+
+      if (respuesta.status === 401) {
+        if (typeof window !== "undefined") {
+          localStorage.clear();
+          sessionStorage.clear();
+          window.location.replace("/login");
+        }
+        return;
+      }
 
       const data = await respuesta.json().catch(() => ({}));
 
@@ -350,6 +364,9 @@ export default function Dashboard() {
 
       setMensaje("");
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
       console.error("Error cargando dashboard:", error);
       setMensaje("⚠️ No se pudo conectar temporalmente con el servidor.");
     } finally {
@@ -358,18 +375,33 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    cargarDashboard();
+    let activo = true;
+    const controller = new AbortController();
 
-    const datosIntervalo = setInterval(cargarDashboard, 5000);
+    if (localStorage.getItem("logueado") !== "true") {
+      window.location.replace("/login");
+      return;
+    }
+
+    void cargarDashboard(controller.signal);
+
+    const datosIntervalo = setInterval(() => {
+      if (activo && localStorage.getItem("logueado") === "true") {
+        void cargarDashboard(controller.signal);
+      }
+    }, 5000);
+
     const relojIntervalo = setInterval(() => {
-      setHoraActual(
-        new Date().toLocaleTimeString("es-PE", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          timeZone: "America/Lima",
-        }),
-      );
+      if (activo) {
+        setHoraActual(
+          new Date().toLocaleTimeString("es-PE", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            timeZone: "America/Lima",
+          }),
+        );
+      }
     }, 1000);
 
     setHoraActual(
@@ -382,6 +414,8 @@ export default function Dashboard() {
     );
 
     return () => {
+      activo = false;
+      controller.abort();
       clearInterval(datosIntervalo);
       clearInterval(relojIntervalo);
     };

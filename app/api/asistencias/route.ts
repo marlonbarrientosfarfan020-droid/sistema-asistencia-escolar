@@ -455,15 +455,23 @@ export async function POST(request: Request) {
       condicionesBusqueda.push({ codigo });
     }
 
-    const estudiante =
-      await prisma.estudiante.findFirst({
-        where: {
-          OR: condicionesBusqueda,
-        },
-        include: {
-          turno: true,
-        },
-      });
+    const [estudiante, configuracionCanales] =
+      await Promise.all([
+        prisma.estudiante.findFirst({
+          where: {
+            OR: condicionesBusqueda,
+          },
+          include: {
+            turno: true,
+          },
+        }),
+        prisma.configuracion.findFirst({
+          select: {
+            canalWhatsAppActivo: true,
+            canalTelegramActivo: true,
+          },
+        }),
+      ]);
 
     if (!estudiante) {
       return NextResponse.json(
@@ -708,41 +716,45 @@ export async function POST(request: Request) {
           },
         });
 
-      try {
-        await enviarWhatsApp({
-          telefono: estudiante.whatsapp,
-          tutor: estudiante.nombreTutor,
-          estudiante: `${estudiante.nombres} ${estudiante.apellidos}`,
-          tipo: "ENTRADA",
-          hora: horaActual,
-          grado: estudiante.grado,
-          seccion: estudiante.seccion,
-          turno: `${estudiante.turno.nombre} (${estudiante.turno.horaEntrada} - ${estudiante.turno.horaSalida})`,
-          estado: estadoAsistencia,
-          metodo,
-        });
-      } catch (error) {
-        console.error(
-          "Error enviando WhatsApp:",
-          error
-        );
+      if (configuracionCanales?.canalWhatsAppActivo ?? false) {
+        try {
+          await enviarWhatsApp({
+            telefono: estudiante.whatsapp,
+            tutor: estudiante.nombreTutor,
+            estudiante: `${estudiante.nombres} ${estudiante.apellidos}`,
+            tipo: "ENTRADA",
+            hora: horaActual,
+            grado: estudiante.grado,
+            seccion: estudiante.seccion,
+            turno: `${estudiante.turno.nombre} (${estudiante.turno.horaEntrada} - ${estudiante.turno.horaSalida})`,
+            estado: estadoAsistencia,
+            metodo,
+          });
+        } catch (error) {
+          console.error(
+            "Error enviando WhatsApp:",
+            error
+          );
+        }
       }
 
-      try {
-        await notificarTelegram({
-          chatId: estudiante.telegramChatId,
-          estudiante,
-          tipo: "ENTRADA",
-          hora: horaActual,
-          metodo,
-          estado: estadoAsistencia,
-          fotoUrl,
-        });
-      } catch (error) {
-        console.error(
-          "Error enviando Telegram:",
-          error
-        );
+      if (configuracionCanales?.canalTelegramActivo ?? true) {
+        try {
+          await notificarTelegram({
+            chatId: estudiante.telegramChatId,
+            estudiante,
+            tipo: "ENTRADA",
+            hora: horaActual,
+            metodo,
+            estado: estadoAsistencia,
+            fotoUrl,
+          });
+        } catch (error) {
+          console.error(
+            "Error enviando Telegram:",
+            error
+          );
+        }
       }
 
       return NextResponse.json({
@@ -842,41 +854,45 @@ export async function POST(request: Request) {
           },
         });
 
-      try {
-        await enviarWhatsApp({
-          telefono: estudiante.whatsapp,
-          tutor: estudiante.nombreTutor,
-          estudiante: `${estudiante.nombres} ${estudiante.apellidos}`,
-          tipo: "SALIDA",
-          hora: horaActual,
-          grado: estudiante.grado,
-          seccion: estudiante.seccion,
-          turno: `${estudiante.turno.nombre} (${estudiante.turno.horaEntrada} - ${estudiante.turno.horaSalida})`,
-          estado: asistencia.estado,
-          metodo,
-        });
-      } catch (error) {
-        console.error(
-          "Error enviando WhatsApp:",
-          error
-        );
+      if (configuracionCanales?.canalWhatsAppActivo ?? false) {
+        try {
+          await enviarWhatsApp({
+            telefono: estudiante.whatsapp,
+            tutor: estudiante.nombreTutor,
+            estudiante: `${estudiante.nombres} ${estudiante.apellidos}`,
+            tipo: "SALIDA",
+            hora: horaActual,
+            grado: estudiante.grado,
+            seccion: estudiante.seccion,
+            turno: `${estudiante.turno.nombre} (${estudiante.turno.horaEntrada} - ${estudiante.turno.horaSalida})`,
+            estado: asistencia.estado,
+            metodo,
+          });
+        } catch (error) {
+          console.error(
+            "Error enviando WhatsApp:",
+            error
+          );
+        }
       }
 
-      try {
-        await notificarTelegram({
-          chatId: estudiante.telegramChatId,
-          estudiante,
-          tipo: "SALIDA",
-          hora: horaActual,
-          metodo,
-          estado: asistencia.estado,
-          fotoUrl,
-        });
-      } catch (error) {
-        console.error(
-          "Error enviando Telegram:",
-          error
-        );
+      if (configuracionCanales?.canalTelegramActivo ?? true) {
+        try {
+          await notificarTelegram({
+            chatId: estudiante.telegramChatId,
+            estudiante,
+            tipo: "SALIDA",
+            hora: horaActual,
+            metodo,
+            estado: asistencia.estado,
+            fotoUrl,
+          });
+        } catch (error) {
+          console.error(
+            "Error enviando Telegram:",
+            error
+          );
+        }
       }
 
       return NextResponse.json({

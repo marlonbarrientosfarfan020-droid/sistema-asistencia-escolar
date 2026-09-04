@@ -119,8 +119,10 @@ export default function ProteccionRol({
           respuesta.status === 401 ||
           !data.autenticado
         ) {
-          if (componenteActivo) {
-            router.replace(
+          if (typeof window !== "undefined") {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.replace(
               `/login?retorno=${encodeURIComponent(
                 pathname
               )}`

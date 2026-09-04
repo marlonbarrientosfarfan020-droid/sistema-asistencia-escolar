@@ -100,6 +100,12 @@ export default function MarcarPage() {
   const [estadoVisual, setEstadoVisual] =
     useState<EstadoVisual>("normal");
 
+  const [terminalAutorizado, setTerminalAutorizado] =
+    useState<boolean | null>(null);
+  const [pinTerminal, setPinTerminal] = useState("");
+  const [errorPin, setErrorPin] = useState("");
+  const [validandoPin, setValidandoPin] = useState(false);
+
   const [camaras, setCamaras] =
     useState<CamaraDisponible[]>([]);
 
@@ -132,13 +138,21 @@ export default function MarcarPage() {
   useEffect(() => {
     const logueado =
       localStorage.getItem("logueado");
+    const terminalPinAuth =
+      sessionStorage.getItem(
+        "terminal_porteria_autorizado"
+      );
 
-    if (logueado !== "true") {
-      router.replace("/login");
+    if (
+      logueado === "true" ||
+      terminalPinAuth === "true"
+    ) {
+      setTerminalAutorizado(true);
+      void cargarCamaras();
+    } else {
+      setTerminalAutorizado(false);
       return;
     }
-
-    void cargarCamaras();
 
     window.history.pushState(
       null,
@@ -182,7 +196,7 @@ export default function MarcarPage() {
       detenerCamaraFoto();
       void detenerCamaraQR();
     };
-  }, [router]);
+  }, [router, terminalAutorizado]);
 
 
   function nombreCamara(
@@ -403,27 +417,64 @@ export default function MarcarPage() {
 
   async function cerrarSesion() {
     try {
+      localStorage.clear();
+      sessionStorage.clear();
+
       await fetch("/api/logout", {
         method: "POST",
         credentials: "include",
       });
+    } catch (error) {
+      console.error("Error cerrando sesión:", error);
     } finally {
       detenerCamaraFoto();
-      await detenerCamaraQR();
-
-      localStorage.removeItem("logueado");
-      localStorage.removeItem("rol");
-      localStorage.removeItem("usuario");
-
-      window.history.replaceState(
-        null,
-        "",
-        "/login"
-      );
-
-      router.replace("/login");
-      router.refresh();
+      void detenerCamaraQR();
+      window.location.replace("/login");
     }
+  }
+
+  function desbloquearConPin(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    setErrorPin("");
+
+    const pinLimpio = pinTerminal.trim();
+    if (!pinLimpio) {
+      setErrorPin("Por favor ingrese el PIN de seguridad del terminal.");
+      return;
+    }
+
+    setValidandoPin(true);
+    try {
+      if (
+        pinLimpio === "2026" ||
+        pinLimpio === "1234" ||
+        pinLimpio === "SR2026"
+      ) {
+        sessionStorage.setItem(
+          "terminal_porteria_autorizado",
+          "true"
+        );
+        setTerminalAutorizado(true);
+        setErrorPin("");
+      } else {
+        setErrorPin(
+          "PIN de terminal incorrecto. Comuníquese con la dirección escolar."
+        );
+      }
+    } finally {
+      setValidandoPin(false);
+    }
+  }
+
+  function bloquearTerminal() {
+    sessionStorage.removeItem(
+      "terminal_porteria_autorizado"
+    );
+    detenerCamaraFoto();
+    void detenerCamaraQR();
+    setTerminalAutorizado(false);
+    setPinTerminal("");
+    setErrorPin("");
   }
 
   function beep(tipo: "ok" | "error") {
@@ -1201,6 +1252,128 @@ if (!foto) {
       ? "border-red-500/30 bg-red-500/15 text-red-100"
       : "border-violet-500/30 bg-violet-500/15 text-violet-100";
 
+  if (terminalAutorizado === null) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
+        <div className="flex items-center gap-3 bg-slate-900 px-6 py-4 rounded-2xl border border-slate-800 shadow-2xl">
+          <span className="animate-spin text-xl">⏳</span>
+          <span className="font-bold text-sm">
+            Verificando autorización de terminal...
+          </span>
+        </div>
+      </main>
+    );
+  }
+
+  if (terminalAutorizado === false) {
+    return (
+      <main
+        className="min-h-screen flex items-center justify-center relative bg-slate-950 overflow-hidden p-4 sm:p-6 bg-cover bg-center"
+        style={{
+          backgroundImage:
+            "url('/img/colegio-santa-rita.jpg')",
+        }}
+      >
+        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-red-950/50" />
+
+        <div className="relative z-10 w-full max-w-md bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-300">
+          <div className="bg-gradient-to-b from-slate-900 to-red-950 text-white p-8 text-center relative border-b-2 border-amber-400">
+            <div className="w-20 h-20 mx-auto mb-3 rounded-3xl bg-white p-1.5 shadow-xl ring-4 ring-amber-400/40">
+              <Image
+                src="/img/logo-santa-rita.png"
+                alt="Escudo Santa Rita de Cassia"
+                width={80}
+                height={80}
+                className="object-contain w-full h-full"
+                priority
+              />
+            </div>
+
+            <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-black uppercase tracking-widest border border-amber-400/40 mb-2">
+              <span>🔒</span>
+              <span>Terminal de Portería Protegido</span>
+            </div>
+
+            <h1 className="text-2xl font-black tracking-tight text-white">
+              {configuracion.nombreColegio || "I.E.P. Santa Rita de Cassia"}
+            </h1>
+            <p className="text-xs text-slate-300 mt-1">
+              Estación de Marcación de Asistencia Escolar
+            </p>
+          </div>
+
+          <form
+            onSubmit={desbloquearConPin}
+            className="p-8 space-y-5"
+          >
+            {errorPin && (
+              <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-start gap-2 animate-in fade-in">
+                <span className="text-base leading-none">⚠️</span>
+                <span className="leading-relaxed">{errorPin}</span>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5">
+                Código PIN de Terminal (Portería)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base text-slate-400">
+                  🔢
+                </span>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={pinTerminal}
+                  onChange={(e) => setPinTerminal(e.target.value)}
+                  placeholder="Ingrese PIN de 4 dígitos"
+                  className="w-full pl-10 pr-4 py-3.5 rounded-2xl border border-slate-300 text-base font-mono font-bold tracking-[0.3em] text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-slate-50/50 text-center"
+                  autoFocus
+                />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1 text-center">
+                PIN de estación para operadores autorizados
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={validandoPin}
+              className="w-full py-4 rounded-2xl font-black text-sm text-slate-950 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:from-amber-300 hover:to-amber-400 shadow-lg shadow-amber-500/20 active:scale-[0.98] transition-all duration-200 border border-amber-300 flex items-center justify-center gap-2"
+            >
+              <span>🔓</span>
+              <span>
+                {validandoPin ? "Verificando PIN..." : "DESBLOQUEAR TERMINAL"}
+              </span>
+            </button>
+
+            <div className="pt-3 border-t border-slate-200 space-y-2 text-center">
+              <button
+                type="button"
+                onClick={() => router.push("/login?retorno=/marcar")}
+                className="w-full py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-xs font-bold text-slate-700 transition flex items-center justify-center gap-2"
+              >
+                <span>👤</span>
+                <span>Ingresar con Usuario de Personal</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => router.push("/")}
+                className="text-xs font-bold text-slate-500 hover:text-slate-800 transition inline-flex items-center gap-1 pt-1"
+              >
+                <span>←</span>
+                <span>Regresar al portal institucional</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main
       className="relative min-h-screen overflow-hidden bg-cover bg-center p-4 sm:p-6"
@@ -1213,29 +1386,55 @@ if (!foto) {
       <div className="absolute inset-0 bg-gradient-to-br from-blue-950/30 via-transparent to-emerald-950/30" />
 
       <div className="relative z-20 mx-auto flex max-w-[1500px] items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() =>
-            router.replace(
-              "/dashboard"
-            )
-          }
-          className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-slate-950/65 px-4 py-3 text-sm font-black text-white shadow-xl backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-slate-900"
-        >
-          <span>←</span>
-          <span>Volver al panel</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-slate-950/65 px-4 py-3 text-sm font-black text-white shadow-xl backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-slate-900"
+          >
+            <span>🌐</span>
+            <span>Portada Web</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={cerrarSesion}
-          className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-3 text-sm font-black text-white shadow-xl transition hover:-translate-y-0.5 hover:bg-red-700"
-        >
-          <span>🚪</span>
-          <span className="hidden sm:inline">
-            Cerrar sesión
-          </span>
-        </button>
+          {typeof window !== "undefined" &&
+            localStorage.getItem("logueado") === "true" && (
+              <button
+                type="button"
+                onClick={() =>
+                  router.replace(
+                    "/dashboard"
+                  )
+                }
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-slate-950/65 px-4 py-3 text-sm font-black text-white shadow-xl backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-slate-900"
+              >
+                <span>←</span>
+                <span className="hidden sm:inline">Panel</span>
+              </button>
+            )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={bloquearTerminal}
+            className="inline-flex items-center gap-2 rounded-2xl border border-amber-400/40 bg-amber-500/20 px-4 py-3 text-sm font-black text-amber-300 shadow-xl backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-amber-500/30"
+            title="Bloquear estación de portería"
+          >
+            <span>🔒</span>
+            <span className="hidden sm:inline">Bloquear Terminal</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={cerrarSesion}
+            className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-3 text-sm font-black text-white shadow-xl transition hover:-translate-y-0.5 hover:bg-red-700"
+          >
+            <span>🚪</span>
+            <span className="hidden sm:inline">
+              Cerrar sesión
+            </span>
+          </button>
+        </div>
       </div>
 
       <video

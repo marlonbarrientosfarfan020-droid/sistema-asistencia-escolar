@@ -24,6 +24,9 @@ model Estudiante {
   turnoId Int?
   turno   Turno? @relation(fields: [turnoId], references: [id])
 
+  codigoFamiliarId Int?
+  codigoFamiliar   CodigoFamiliar? @relation(fields: [codigoFamiliarId], references: [id], onDelete: SetNull)
+
   asistencias       Asistencia[]
   alertasAsistencia AlertaAsistencia[]
   riesgoIA          RiesgoEstudianteIA?
@@ -31,6 +34,7 @@ model Estudiante {
   biometriaFacial   BiometriaFacial?
 
   @@index([turnoId])
+  @@index([codigoFamiliarId])
   @@index([grado, seccion])
   @@index([estado])
 }
@@ -126,6 +130,10 @@ model Configuracion {
   frecuenciaRevisionMinutos       Int       @default(5)
   ultimaEjecucionAutomatizaciones DateTime?
   ultimaEjecucionEstado           String    @default("")
+
+  canalTelegramActivo             Boolean   @default(true)
+  canalWhatsAppActivo             Boolean   @default(false)
+  canalPortalWebActivo            Boolean   @default(true)
 }
 
 model Auditoria {
@@ -254,4 +262,21 @@ model RostroFacial {
 
   @@index([biometriaId])
   @@index([createdAt])
+}
+
+model CodigoFamiliar {
+  id               Int          @id @default(autoincrement())
+  codigo           String       @unique
+  tutorTitular     String       @default("")
+  telefonoContacto String       @default("")
+  correoContacto   String       @default("")
+  estado           Boolean      @default(true)
+  ultimoIngresoAt  DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  estudiantes      Estudiante[]
+
+  @@index([codigo])
+  @@index([estado])
 }

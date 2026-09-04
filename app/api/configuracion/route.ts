@@ -312,6 +312,21 @@ export async function PUT(request: Request) {
           : Boolean(
               body.incluirRiesgoIAReportePadres
             ),
+
+      canalTelegramActivo:
+        body.canalTelegramActivo === undefined
+          ? (configuracion?.canalTelegramActivo ?? true)
+          : Boolean(body.canalTelegramActivo),
+
+      canalWhatsAppActivo:
+        body.canalWhatsAppActivo === undefined
+          ? (configuracion?.canalWhatsAppActivo ?? false)
+          : Boolean(body.canalWhatsAppActivo),
+
+      canalPortalWebActivo:
+        body.canalPortalWebActivo === undefined
+          ? (configuracion?.canalPortalWebActivo ?? true)
+          : Boolean(body.canalPortalWebActivo),
     };
 
     if (!configuracion) {

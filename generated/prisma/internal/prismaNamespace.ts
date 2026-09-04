@@ -396,7 +396,8 @@ export const ModelName = {
   CalendarioEscolar: 'CalendarioEscolar',
   HistorialReporteAutomatico: 'HistorialReporteAutomatico',
   BiometriaFacial: 'BiometriaFacial',
-  RostroFacial: 'RostroFacial'
+  RostroFacial: 'RostroFacial',
+  CodigoFamiliar: 'CodigoFamiliar'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -412,7 +413,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "estudiante" | "turno" | "asistencia" | "usuario" | "configuracion" | "auditoria" | "alertaAsistencia" | "analisisIA" | "riesgoEstudianteIA" | "calendarioEscolar" | "historialReporteAutomatico" | "biometriaFacial" | "rostroFacial"
+    modelProps: "estudiante" | "turno" | "asistencia" | "usuario" | "configuracion" | "auditoria" | "alertaAsistencia" | "analisisIA" | "riesgoEstudianteIA" | "calendarioEscolar" | "historialReporteAutomatico" | "biometriaFacial" | "rostroFacial" | "codigoFamiliar"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1378,6 +1379,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    CodigoFamiliar: {
+      payload: Prisma.$CodigoFamiliarPayload<ExtArgs>
+      fields: Prisma.CodigoFamiliarFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CodigoFamiliarFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CodigoFamiliarPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CodigoFamiliarFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CodigoFamiliarPayload>
+        }
+        findFirst: {
+          args: Prisma.CodigoFamiliarFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CodigoFamiliarPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CodigoFamiliarFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CodigoFamiliarPayload>
+        }
+        findMany: {
+          args: Prisma.CodigoFamiliarFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CodigoFamiliarPayload>[]
+        }
+        create: {
+          args: Prisma.CodigoFamiliarCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CodigoFamiliarPayload>
+        }
+        createMany: {
+          args: Prisma.CodigoFamiliarCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CodigoFamiliarCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CodigoFamiliarPayload>[]
+        }
+        delete: {
+          args: Prisma.CodigoFamiliarDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CodigoFamiliarPayload>
+        }
+        update: {
+          args: Prisma.CodigoFamiliarUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CodigoFamiliarPayload>
+        }
+        deleteMany: {
+          args: Prisma.CodigoFamiliarDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CodigoFamiliarUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CodigoFamiliarUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CodigoFamiliarPayload>[]
+        }
+        upsert: {
+          args: Prisma.CodigoFamiliarUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CodigoFamiliarPayload>
+        }
+        aggregate: {
+          args: Prisma.CodigoFamiliarAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCodigoFamiliar>
+        }
+        groupBy: {
+          args: Prisma.CodigoFamiliarGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CodigoFamiliarGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CodigoFamiliarCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CodigoFamiliarCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1430,7 +1505,8 @@ export const EstudianteScalarFieldEnum = {
   telegramChatId: 'telegramChatId',
   estado: 'estado',
   createdAt: 'createdAt',
-  turnoId: 'turnoId'
+  turnoId: 'turnoId',
+  codigoFamiliarId: 'codigoFamiliarId'
 } as const
 
 export type EstudianteScalarFieldEnum = (typeof EstudianteScalarFieldEnum)[keyof typeof EstudianteScalarFieldEnum]
@@ -1518,7 +1594,10 @@ export const ConfiguracionScalarFieldEnum = {
   telegramPruebaChatId: 'telegramPruebaChatId',
   frecuenciaRevisionMinutos: 'frecuenciaRevisionMinutos',
   ultimaEjecucionAutomatizaciones: 'ultimaEjecucionAutomatizaciones',
-  ultimaEjecucionEstado: 'ultimaEjecucionEstado'
+  ultimaEjecucionEstado: 'ultimaEjecucionEstado',
+  canalTelegramActivo: 'canalTelegramActivo',
+  canalWhatsAppActivo: 'canalWhatsAppActivo',
+  canalPortalWebActivo: 'canalPortalWebActivo'
 } as const
 
 export type ConfiguracionScalarFieldEnum = (typeof ConfiguracionScalarFieldEnum)[keyof typeof ConfiguracionScalarFieldEnum]
@@ -1629,6 +1708,21 @@ export const RostroFacialScalarFieldEnum = {
 } as const
 
 export type RostroFacialScalarFieldEnum = (typeof RostroFacialScalarFieldEnum)[keyof typeof RostroFacialScalarFieldEnum]
+
+
+export const CodigoFamiliarScalarFieldEnum = {
+  id: 'id',
+  codigo: 'codigo',
+  tutorTitular: 'tutorTitular',
+  telefonoContacto: 'telefonoContacto',
+  correoContacto: 'correoContacto',
+  estado: 'estado',
+  ultimoIngresoAt: 'ultimoIngresoAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CodigoFamiliarScalarFieldEnum = (typeof CodigoFamiliarScalarFieldEnum)[keyof typeof CodigoFamiliarScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1846,6 +1940,7 @@ export type GlobalOmitConfig = {
   historialReporteAutomatico?: Prisma.HistorialReporteAutomaticoOmit
   biometriaFacial?: Prisma.BiometriaFacialOmit
   rostroFacial?: Prisma.RostroFacialOmit
+  codigoFamiliar?: Prisma.CodigoFamiliarOmit
 }
 
 /* Types for Logging */

@@ -85,6 +85,9 @@ export type ConfiguracionMinAggregateOutputType = {
   frecuenciaRevisionMinutos: number | null
   ultimaEjecucionAutomatizaciones: Date | null
   ultimaEjecucionEstado: string | null
+  canalTelegramActivo: boolean | null
+  canalWhatsAppActivo: boolean | null
+  canalPortalWebActivo: boolean | null
 }
 
 export type ConfiguracionMaxAggregateOutputType = {
@@ -126,6 +129,9 @@ export type ConfiguracionMaxAggregateOutputType = {
   frecuenciaRevisionMinutos: number | null
   ultimaEjecucionAutomatizaciones: Date | null
   ultimaEjecucionEstado: string | null
+  canalTelegramActivo: boolean | null
+  canalWhatsAppActivo: boolean | null
+  canalPortalWebActivo: boolean | null
 }
 
 export type ConfiguracionCountAggregateOutputType = {
@@ -167,6 +173,9 @@ export type ConfiguracionCountAggregateOutputType = {
   frecuenciaRevisionMinutos: number
   ultimaEjecucionAutomatizaciones: number
   ultimaEjecucionEstado: number
+  canalTelegramActivo: number
+  canalWhatsAppActivo: number
+  canalPortalWebActivo: number
   _all: number
 }
 
@@ -230,6 +239,9 @@ export type ConfiguracionMinAggregateInputType = {
   frecuenciaRevisionMinutos?: true
   ultimaEjecucionAutomatizaciones?: true
   ultimaEjecucionEstado?: true
+  canalTelegramActivo?: true
+  canalWhatsAppActivo?: true
+  canalPortalWebActivo?: true
 }
 
 export type ConfiguracionMaxAggregateInputType = {
@@ -271,6 +283,9 @@ export type ConfiguracionMaxAggregateInputType = {
   frecuenciaRevisionMinutos?: true
   ultimaEjecucionAutomatizaciones?: true
   ultimaEjecucionEstado?: true
+  canalTelegramActivo?: true
+  canalWhatsAppActivo?: true
+  canalPortalWebActivo?: true
 }
 
 export type ConfiguracionCountAggregateInputType = {
@@ -312,6 +327,9 @@ export type ConfiguracionCountAggregateInputType = {
   frecuenciaRevisionMinutos?: true
   ultimaEjecucionAutomatizaciones?: true
   ultimaEjecucionEstado?: true
+  canalTelegramActivo?: true
+  canalWhatsAppActivo?: true
+  canalPortalWebActivo?: true
   _all?: true
 }
 
@@ -440,6 +458,9 @@ export type ConfiguracionGroupByOutputType = {
   frecuenciaRevisionMinutos: number
   ultimaEjecucionAutomatizaciones: Date | null
   ultimaEjecucionEstado: string
+  canalTelegramActivo: boolean
+  canalWhatsAppActivo: boolean
+  canalPortalWebActivo: boolean
   _count: ConfiguracionCountAggregateOutputType | null
   _avg: ConfiguracionAvgAggregateOutputType | null
   _sum: ConfiguracionSumAggregateOutputType | null
@@ -504,6 +525,9 @@ export type ConfiguracionWhereInput = {
   frecuenciaRevisionMinutos?: Prisma.IntFilter<"Configuracion"> | number
   ultimaEjecucionAutomatizaciones?: Prisma.DateTimeNullableFilter<"Configuracion"> | Date | string | null
   ultimaEjecucionEstado?: Prisma.StringFilter<"Configuracion"> | string
+  canalTelegramActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
+  canalWhatsAppActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
+  canalPortalWebActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
 }
 
 export type ConfiguracionOrderByWithRelationInput = {
@@ -545,6 +569,9 @@ export type ConfiguracionOrderByWithRelationInput = {
   frecuenciaRevisionMinutos?: Prisma.SortOrder
   ultimaEjecucionAutomatizaciones?: Prisma.SortOrderInput | Prisma.SortOrder
   ultimaEjecucionEstado?: Prisma.SortOrder
+  canalTelegramActivo?: Prisma.SortOrder
+  canalWhatsAppActivo?: Prisma.SortOrder
+  canalPortalWebActivo?: Prisma.SortOrder
 }
 
 export type ConfiguracionWhereUniqueInput = Prisma.AtLeast<{
@@ -589,6 +616,9 @@ export type ConfiguracionWhereUniqueInput = Prisma.AtLeast<{
   frecuenciaRevisionMinutos?: Prisma.IntFilter<"Configuracion"> | number
   ultimaEjecucionAutomatizaciones?: Prisma.DateTimeNullableFilter<"Configuracion"> | Date | string | null
   ultimaEjecucionEstado?: Prisma.StringFilter<"Configuracion"> | string
+  canalTelegramActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
+  canalWhatsAppActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
+  canalPortalWebActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
 }, "id">
 
 export type ConfiguracionOrderByWithAggregationInput = {
@@ -630,6 +660,9 @@ export type ConfiguracionOrderByWithAggregationInput = {
   frecuenciaRevisionMinutos?: Prisma.SortOrder
   ultimaEjecucionAutomatizaciones?: Prisma.SortOrderInput | Prisma.SortOrder
   ultimaEjecucionEstado?: Prisma.SortOrder
+  canalTelegramActivo?: Prisma.SortOrder
+  canalWhatsAppActivo?: Prisma.SortOrder
+  canalPortalWebActivo?: Prisma.SortOrder
   _count?: Prisma.ConfiguracionCountOrderByAggregateInput
   _avg?: Prisma.ConfiguracionAvgOrderByAggregateInput
   _max?: Prisma.ConfiguracionMaxOrderByAggregateInput
@@ -679,6 +712,9 @@ export type ConfiguracionScalarWhereWithAggregatesInput = {
   frecuenciaRevisionMinutos?: Prisma.IntWithAggregatesFilter<"Configuracion"> | number
   ultimaEjecucionAutomatizaciones?: Prisma.DateTimeNullableWithAggregatesFilter<"Configuracion"> | Date | string | null
   ultimaEjecucionEstado?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
+  canalTelegramActivo?: Prisma.BoolWithAggregatesFilter<"Configuracion"> | boolean
+  canalWhatsAppActivo?: Prisma.BoolWithAggregatesFilter<"Configuracion"> | boolean
+  canalPortalWebActivo?: Prisma.BoolWithAggregatesFilter<"Configuracion"> | boolean
 }
 
 export type ConfiguracionCreateInput = {
@@ -719,6 +755,9 @@ export type ConfiguracionCreateInput = {
   frecuenciaRevisionMinutos?: number
   ultimaEjecucionAutomatizaciones?: Date | string | null
   ultimaEjecucionEstado?: string
+  canalTelegramActivo?: boolean
+  canalWhatsAppActivo?: boolean
+  canalPortalWebActivo?: boolean
 }
 
 export type ConfiguracionUncheckedCreateInput = {
@@ -760,6 +799,9 @@ export type ConfiguracionUncheckedCreateInput = {
   frecuenciaRevisionMinutos?: number
   ultimaEjecucionAutomatizaciones?: Date | string | null
   ultimaEjecucionEstado?: string
+  canalTelegramActivo?: boolean
+  canalWhatsAppActivo?: boolean
+  canalPortalWebActivo?: boolean
 }
 
 export type ConfiguracionUpdateInput = {
@@ -800,6 +842,9 @@ export type ConfiguracionUpdateInput = {
   frecuenciaRevisionMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   ultimaEjecucionAutomatizaciones?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ultimaEjecucionEstado?: Prisma.StringFieldUpdateOperationsInput | string
+  canalTelegramActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  canalWhatsAppActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  canalPortalWebActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type ConfiguracionUncheckedUpdateInput = {
@@ -841,6 +886,9 @@ export type ConfiguracionUncheckedUpdateInput = {
   frecuenciaRevisionMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   ultimaEjecucionAutomatizaciones?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ultimaEjecucionEstado?: Prisma.StringFieldUpdateOperationsInput | string
+  canalTelegramActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  canalWhatsAppActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  canalPortalWebActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type ConfiguracionCreateManyInput = {
@@ -882,6 +930,9 @@ export type ConfiguracionCreateManyInput = {
   frecuenciaRevisionMinutos?: number
   ultimaEjecucionAutomatizaciones?: Date | string | null
   ultimaEjecucionEstado?: string
+  canalTelegramActivo?: boolean
+  canalWhatsAppActivo?: boolean
+  canalPortalWebActivo?: boolean
 }
 
 export type ConfiguracionUpdateManyMutationInput = {
@@ -922,6 +973,9 @@ export type ConfiguracionUpdateManyMutationInput = {
   frecuenciaRevisionMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   ultimaEjecucionAutomatizaciones?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ultimaEjecucionEstado?: Prisma.StringFieldUpdateOperationsInput | string
+  canalTelegramActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  canalWhatsAppActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  canalPortalWebActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type ConfiguracionUncheckedUpdateManyInput = {
@@ -963,6 +1017,9 @@ export type ConfiguracionUncheckedUpdateManyInput = {
   frecuenciaRevisionMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   ultimaEjecucionAutomatizaciones?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ultimaEjecucionEstado?: Prisma.StringFieldUpdateOperationsInput | string
+  canalTelegramActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  canalWhatsAppActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  canalPortalWebActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type ConfiguracionCountOrderByAggregateInput = {
@@ -1004,6 +1061,9 @@ export type ConfiguracionCountOrderByAggregateInput = {
   frecuenciaRevisionMinutos?: Prisma.SortOrder
   ultimaEjecucionAutomatizaciones?: Prisma.SortOrder
   ultimaEjecucionEstado?: Prisma.SortOrder
+  canalTelegramActivo?: Prisma.SortOrder
+  canalWhatsAppActivo?: Prisma.SortOrder
+  canalPortalWebActivo?: Prisma.SortOrder
 }
 
 export type ConfiguracionAvgOrderByAggregateInput = {
@@ -1055,6 +1115,9 @@ export type ConfiguracionMaxOrderByAggregateInput = {
   frecuenciaRevisionMinutos?: Prisma.SortOrder
   ultimaEjecucionAutomatizaciones?: Prisma.SortOrder
   ultimaEjecucionEstado?: Prisma.SortOrder
+  canalTelegramActivo?: Prisma.SortOrder
+  canalWhatsAppActivo?: Prisma.SortOrder
+  canalPortalWebActivo?: Prisma.SortOrder
 }
 
 export type ConfiguracionMinOrderByAggregateInput = {
@@ -1096,6 +1159,9 @@ export type ConfiguracionMinOrderByAggregateInput = {
   frecuenciaRevisionMinutos?: Prisma.SortOrder
   ultimaEjecucionAutomatizaciones?: Prisma.SortOrder
   ultimaEjecucionEstado?: Prisma.SortOrder
+  canalTelegramActivo?: Prisma.SortOrder
+  canalWhatsAppActivo?: Prisma.SortOrder
+  canalPortalWebActivo?: Prisma.SortOrder
 }
 
 export type ConfiguracionSumOrderByAggregateInput = {
@@ -1149,6 +1215,9 @@ export type ConfiguracionSelect<ExtArgs extends runtime.Types.Extensions.Interna
   frecuenciaRevisionMinutos?: boolean
   ultimaEjecucionAutomatizaciones?: boolean
   ultimaEjecucionEstado?: boolean
+  canalTelegramActivo?: boolean
+  canalWhatsAppActivo?: boolean
+  canalPortalWebActivo?: boolean
 }, ExtArgs["result"]["configuracion"]>
 
 export type ConfiguracionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1190,6 +1259,9 @@ export type ConfiguracionSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   frecuenciaRevisionMinutos?: boolean
   ultimaEjecucionAutomatizaciones?: boolean
   ultimaEjecucionEstado?: boolean
+  canalTelegramActivo?: boolean
+  canalWhatsAppActivo?: boolean
+  canalPortalWebActivo?: boolean
 }, ExtArgs["result"]["configuracion"]>
 
 export type ConfiguracionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1231,6 +1303,9 @@ export type ConfiguracionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   frecuenciaRevisionMinutos?: boolean
   ultimaEjecucionAutomatizaciones?: boolean
   ultimaEjecucionEstado?: boolean
+  canalTelegramActivo?: boolean
+  canalWhatsAppActivo?: boolean
+  canalPortalWebActivo?: boolean
 }, ExtArgs["result"]["configuracion"]>
 
 export type ConfiguracionSelectScalar = {
@@ -1272,9 +1347,12 @@ export type ConfiguracionSelectScalar = {
   frecuenciaRevisionMinutos?: boolean
   ultimaEjecucionAutomatizaciones?: boolean
   ultimaEjecucionEstado?: boolean
+  canalTelegramActivo?: boolean
+  canalWhatsAppActivo?: boolean
+  canalPortalWebActivo?: boolean
 }
 
-export type ConfiguracionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nombreColegio" | "logoUrl" | "direccion" | "telefono" | "correo" | "director" | "createdAt" | "reporteTelegramActivo" | "horaReporteDiario" | "telegramDirectorChatId" | "enviarReporteExcel" | "enviarReportePdf" | "ultimoReporteTelegramAt" | "ultimoReporteTelegramEstado" | "reporteDirectorActivo" | "frecuenciaReporteDirector" | "diaReporteDirector" | "diaMesReporteDirector" | "horaReporteDirector" | "ultimoReporteDirectorAt" | "reportePadresActivo" | "frecuenciaReportePadres" | "diaReportePadres" | "diaMesReportePadres" | "horaReportePadres" | "incluirRiesgoIAReportePadres" | "ultimoReportePadresAt" | "automatizacionesActivas" | "alertaIngresoPendienteActiva" | "minutosAlertaInicial" | "alertaTardanzaActiva" | "alertaAusenciaActiva" | "modoPruebaAlertas" | "telegramPruebaChatId" | "frecuenciaRevisionMinutos" | "ultimaEjecucionAutomatizaciones" | "ultimaEjecucionEstado", ExtArgs["result"]["configuracion"]>
+export type ConfiguracionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nombreColegio" | "logoUrl" | "direccion" | "telefono" | "correo" | "director" | "createdAt" | "reporteTelegramActivo" | "horaReporteDiario" | "telegramDirectorChatId" | "enviarReporteExcel" | "enviarReportePdf" | "ultimoReporteTelegramAt" | "ultimoReporteTelegramEstado" | "reporteDirectorActivo" | "frecuenciaReporteDirector" | "diaReporteDirector" | "diaMesReporteDirector" | "horaReporteDirector" | "ultimoReporteDirectorAt" | "reportePadresActivo" | "frecuenciaReportePadres" | "diaReportePadres" | "diaMesReportePadres" | "horaReportePadres" | "incluirRiesgoIAReportePadres" | "ultimoReportePadresAt" | "automatizacionesActivas" | "alertaIngresoPendienteActiva" | "minutosAlertaInicial" | "alertaTardanzaActiva" | "alertaAusenciaActiva" | "modoPruebaAlertas" | "telegramPruebaChatId" | "frecuenciaRevisionMinutos" | "ultimaEjecucionAutomatizaciones" | "ultimaEjecucionEstado" | "canalTelegramActivo" | "canalWhatsAppActivo" | "canalPortalWebActivo", ExtArgs["result"]["configuracion"]>
 
 export type $ConfiguracionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Configuracion"
@@ -1318,6 +1396,9 @@ export type $ConfiguracionPayload<ExtArgs extends runtime.Types.Extensions.Inter
     frecuenciaRevisionMinutos: number
     ultimaEjecucionAutomatizaciones: Date | null
     ultimaEjecucionEstado: string
+    canalTelegramActivo: boolean
+    canalWhatsAppActivo: boolean
+    canalPortalWebActivo: boolean
   }, ExtArgs["result"]["configuracion"]>
   composites: {}
 }
@@ -1779,6 +1860,9 @@ export interface ConfiguracionFieldRefs {
   readonly frecuenciaRevisionMinutos: Prisma.FieldRef<"Configuracion", 'Int'>
   readonly ultimaEjecucionAutomatizaciones: Prisma.FieldRef<"Configuracion", 'DateTime'>
   readonly ultimaEjecucionEstado: Prisma.FieldRef<"Configuracion", 'String'>
+  readonly canalTelegramActivo: Prisma.FieldRef<"Configuracion", 'Boolean'>
+  readonly canalWhatsAppActivo: Prisma.FieldRef<"Configuracion", 'Boolean'>
+  readonly canalPortalWebActivo: Prisma.FieldRef<"Configuracion", 'Boolean'>
 }
     
 

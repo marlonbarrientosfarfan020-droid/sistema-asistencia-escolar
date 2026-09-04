@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CanalesConfiguracion } from "@/components/configuracion/CanalesConfiguracion";
 
 type Configuracion = {
   nombreColegio: string;
@@ -35,6 +36,11 @@ diaMesReportePadres: number;
 horaReportePadres: string;
   incluirRiesgoIAReportePadres: boolean;
   ultimoReportePadresAt?: string | null;
+
+  // Canales de comunicación y acceso
+  canalTelegramActivo: boolean;
+  canalWhatsAppActivo: boolean;
+  canalPortalWebActivo: boolean;
 };
 
 const DIAS_SEMANA = [
@@ -77,6 +83,10 @@ diaMesReportePadres: 28,
 horaReportePadres: "19:00",
 incluirRiesgoIAReportePadres: true,
 ultimoReportePadresAt: null,
+
+  canalTelegramActivo: true,
+  canalWhatsAppActivo: false,
+  canalPortalWebActivo: true,
 };
 
 export default function ConfiguracionPage() {
@@ -179,7 +189,14 @@ incluirRiesgoIAReportePadres:
 ultimoReportePadresAt:
   data.ultimoReportePadresAt || null,
 
-          
+        canalTelegramActivo:
+          data.canalTelegramActivo ?? true,
+
+        canalWhatsAppActivo:
+          data.canalWhatsAppActivo ?? false,
+
+        canalPortalWebActivo:
+          data.canalPortalWebActivo ?? true,
       });
 
       setMensaje("");
@@ -598,6 +615,19 @@ async function enviarPadresAhora() {
             </div>
           </div>
         </section>
+
+        {/* CANALES DE COMUNICACIÓN Y ACCESO */}
+        <CanalesConfiguracion
+          canalTelegramActivo={form.canalTelegramActivo}
+          canalWhatsAppActivo={form.canalWhatsAppActivo}
+          canalPortalWebActivo={form.canalPortalWebActivo}
+          onChange={(campo, valor) =>
+            setForm((actual) => ({
+              ...actual,
+              [campo]: valor,
+            }))
+          }
+        />
 
         {/* REPORTE DEL DIRECTOR */}
         <section className="bg-white rounded-3xl shadow overflow-hidden">

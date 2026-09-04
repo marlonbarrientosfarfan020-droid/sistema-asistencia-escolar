@@ -40,37 +40,41 @@ export default function LoginPage() {
         }
       );
 
-      const data = await respuesta.json();
+      if (respuesta.ok) {
+        const contentType = respuesta.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const data = await respuesta.json().catch(() => null);
+          if (
+            activo &&
+            data &&
+            data.autenticado &&
+            data.usuario
+          ) {
+            const rol = String(
+              data.usuario.rol || ""
+            ).toUpperCase();
 
-      if (
-        activo &&
-        respuesta.ok &&
-        data.autenticado &&
-        data.usuario
-      ) {
-        const rol = String(
-          data.usuario.rol || ""
-        ).toUpperCase();
+            localStorage.setItem(
+              "logueado",
+              "true"
+            );
 
-        localStorage.setItem(
-          "logueado",
-          "true"
-        );
+            localStorage.setItem(
+              "usuario",
+              data.usuario.nombre || ""
+            );
 
-        localStorage.setItem(
-          "usuario",
-          data.usuario.nombre || ""
-        );
+            localStorage.setItem("rol", rol);
 
-        localStorage.setItem("rol", rol);
+            router.replace(
+              rol === "PERSONAL"
+                ? "/marcar"
+                : "/dashboard"
+            );
 
-        router.replace(
-          rol === "PERSONAL"
-            ? "/marcar"
-            : "/dashboard"
-        );
-
-        return;
+            return;
+          }
+        }
       }
 
       /*
@@ -118,7 +122,11 @@ export default function LoginPage() {
         }),
       });
 
-      const data = (await respuesta.json()) as LoginResponse;
+      const contentType = respuesta.headers.get("content-type");
+      let data: LoginResponse = {};
+      if (contentType && contentType.includes("application/json")) {
+        data = (await respuesta.json().catch(() => ({}))) as LoginResponse;
+      }
 
       if (!respuesta.ok) {
         setError(data.message || "Error al iniciar sesión");
@@ -130,35 +138,39 @@ export default function LoginPage() {
         return;
       }
 
-     const rol = String(
-  data.usuario.rol || ""
-).toUpperCase();
+      const rol = String(
+        data.usuario.rol || ""
+      ).toUpperCase();
 
-/*
- * Confirmamos que el servidor ya reconoce
- * la cookie antes de entrar al sistema.
- */
-const respuestaSesion = await fetch(
-  "/api/auth/sesion",
-  {
-    method: "GET",
-    credentials: "include",
-    cache: "no-store",
-  }
-);
+      /*
+       * Confirmamos que el servidor ya reconoce
+       * la cookie antes de entrar al sistema.
+       */
+      const respuestaSesion = await fetch(
+        "/api/auth/sesion",
+        {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        }
+      );
 
-const sesion = await respuestaSesion.json();
+      let sesion: any = {};
+      const tipoSesion = respuestaSesion.headers.get("content-type");
+      if (tipoSesion && tipoSesion.includes("application/json")) {
+        sesion = await respuestaSesion.json().catch(() => ({}));
+      }
 
-if (
-  !respuestaSesion.ok ||
-  !sesion.autenticado
-) {
-  setError(
-    "El usuario fue validado, pero no se pudo crear la sesión. Revise AUTH_SECRET."
-  );
+      if (
+        !respuestaSesion.ok ||
+        !sesion.autenticado
+      ) {
+        setError(
+          "El usuario fue validado, pero no se pudo crear la sesión. Revise AUTH_SECRET."
+        );
 
-  return;
-}
+        return;
+      }
 
 localStorage.setItem(
   "logueado",

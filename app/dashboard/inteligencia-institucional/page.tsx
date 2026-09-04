@@ -80,12 +80,27 @@ export default function InteligenciaInstitucionalPage() {
   const [mensaje, setMensaje] = useState("");
   const [mostrarResumen, setMostrarResumen] = useState(false);
 
-  async function cargar() {
+  async function cargar(signal?: AbortSignal) {
+    if (typeof window !== "undefined" && localStorage.getItem("logueado") !== "true") {
+      return;
+    }
+
     try {
       const res = await fetch("/api/inteligencia-institucional", {
         cache: "no-store",
         credentials: "include",
+        signal,
       });
+
+      if (res.status === 401) {
+        if (typeof window !== "undefined") {
+          localStorage.clear();
+          sessionStorage.clear();
+          window.location.replace("/login");
+        }
+        return;
+      }
+
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
@@ -95,7 +110,10 @@ export default function InteligenciaInstitucionalPage() {
 
       setDatos(data);
       setMensaje("");
-    } catch {
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
       setMensaje("❌ No se pudo conectar con el servidor");
     } finally {
       setCargando(false);
@@ -103,9 +121,26 @@ export default function InteligenciaInstitucionalPage() {
   }
 
   useEffect(() => {
-    cargar();
-    const intervalo = setInterval(cargar, 15000);
-    return () => clearInterval(intervalo);
+    let activo = true;
+    const controller = new AbortController();
+
+    if (localStorage.getItem("logueado") !== "true") {
+      window.location.replace("/login");
+      return;
+    }
+
+    void cargar(controller.signal);
+    const intervalo = setInterval(() => {
+      if (activo && localStorage.getItem("logueado") === "true") {
+        void cargar(controller.signal);
+      }
+    }, 15000);
+
+    return () => {
+      activo = false;
+      controller.abort();
+      clearInterval(intervalo);
+    };
   }, []);
 
   const estabilidad = useMemo(() => {
