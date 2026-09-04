@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { put } from "@vercel/blob";
 import { enviarWhatsApp } from "@/services/whatsapp";
-import {
-  enviarTelegram,
-  enviarFotoTelegram,
-} from "@/lib/telegram";
+import { enviarTelegram } from "@/lib/telegram";
 import {
   exigirAdminDemoOPersonal,
   exigirAdminOPersonal,
@@ -294,36 +292,6 @@ function obtenerLimitePuntualidad(
   return limite;
 }
 
-async function descargarFotoComoBuffer(
-  fotoUrl: string
-): Promise<Buffer | null> {
-  try {
-    const respuesta = await fetch(fotoUrl, {
-      cache: "no-store",
-    });
-
-    if (!respuesta.ok) {
-      console.error(
-        "No se pudo descargar la foto:",
-        respuesta.status
-      );
-
-      return null;
-    }
-
-    const arrayBuffer = await respuesta.arrayBuffer();
-
-    return Buffer.from(arrayBuffer);
-  } catch (error) {
-    console.error(
-      "Error descargando fotografía desde Blob:",
-      error
-    );
-
-    return null;
-  }
-}
-
 async function notificarTelegram({
   chatId,
   estudiante,
@@ -331,7 +299,6 @@ async function notificarTelegram({
   hora,
   metodo,
   estado,
-  fotoUrl,
 }: {
   chatId: string;
   estudiante: any;
@@ -339,7 +306,6 @@ async function notificarTelegram({
   hora: string;
   metodo: string;
   estado: string;
-  fotoUrl?: string | null;
 }) {
   if (!chatId) return;
 
@@ -354,7 +320,7 @@ ${
     : "👋 SALIDA REGISTRADA"
 }
 
-👨‍🎓 Estudiante:
+👩‍🎓 Estudiante:
 ${estudiante.nombres} ${estudiante.apellidos}
 
 📚 Grado:
@@ -374,22 +340,7 @@ ${hora}
 📌 Método:
 ${metodo}
 
-📷 Foto capturada al momento de marcar asistencia.`;
-
-  if (fotoUrl) {
-    const fotoBuffer =
-      await descargarFotoComoBuffer(fotoUrl);
-
-    if (fotoBuffer) {
-      await enviarFotoTelegram(
-        chatId,
-        fotoBuffer,
-        mensaje
-      );
-
-      return;
-    }
-  }
+📷 Evidencia fotográfica disponible en el Portal Web de Padres.`;
 
   await enviarTelegram(chatId, mensaje);
 }
@@ -419,10 +370,37 @@ export async function POST(request: Request) {
         ? body.metodo.trim()
         : "DNI";
 
-    const fotoUrl =
+    let fotoUrl =
       typeof body.fotoUrl === "string"
         ? body.fotoUrl.trim()
+        : typeof body.foto === "string"
+        ? body.foto.trim()
         : "";
+
+    if (fotoUrl && (fotoUrl.startsWith("data:image/") || (fotoUrl.length > 500 && !fotoUrl.startsWith("http")))) {
+      try {
+        const matches = fotoUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        const buffer = matches
+          ? Buffer.from(matches[2], "base64")
+          : Buffer.from(fotoUrl, "base64");
+        const mime = matches ? matches[1] : "image/jpeg";
+        const ext = mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : "jpg";
+        const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
+        const blob = await put(
+          `asistencias/${Date.now()}-${crypto.randomUUID()}.${ext}`,
+          buffer,
+          {
+            access: "public",
+            contentType: mime,
+            token: token || undefined,
+            addRandomSuffix: false,
+          }
+        );
+        fotoUrl = blob.url;
+      } catch (errorSubida) {
+        console.error("Error subiendo foto base64 a Vercel Blob:", errorSubida);
+      }
+    }
 
     if (!dni && !codigo) {
       return NextResponse.json(
@@ -713,48 +691,39 @@ export async function POST(request: Request) {
             metodo,
             estado: estadoAsistencia,
             fotoUrl,
+            fotoEntrada: fotoUrl,
           },
         });
 
-      if (configuracionCanales?.canalWhatsAppActivo ?? false) {
-        try {
-          await enviarWhatsApp({
-            telefono: estudiante.whatsapp,
-            tutor: estudiante.nombreTutor,
-            estudiante: `${estudiante.nombres} ${estudiante.apellidos}`,
-            tipo: "ENTRADA",
-            hora: horaActual,
-            grado: estudiante.grado,
-            seccion: estudiante.seccion,
-            turno: `${estudiante.turno.nombre} (${estudiante.turno.horaEntrada} - ${estudiante.turno.horaSalida})`,
-            estado: estadoAsistencia,
-            metodo,
-          });
-        } catch (error) {
-          console.error(
-            "Error enviando WhatsApp:",
-            error
-          );
-        }
+      // Notificaciones externas en segundo plano (NO bloqueantes ni obligatorias)
+      if (configuracionCanales?.canalWhatsAppActivo && estudiante.whatsapp) {
+        enviarWhatsApp({
+          telefono: estudiante.whatsapp,
+          tutor: estudiante.nombreTutor,
+          estudiante: `${estudiante.nombres} ${estudiante.apellidos}`,
+          tipo: "ENTRADA",
+          hora: horaActual,
+          grado: estudiante.grado,
+          seccion: estudiante.seccion,
+          turno: `${estudiante.turno.nombre} (${estudiante.turno.horaEntrada} - ${estudiante.turno.horaSalida})`,
+          estado: estadoAsistencia,
+          metodo,
+        }).catch((error) => {
+          console.error("Error no crítico enviando WhatsApp:", error);
+        });
       }
 
-      if (configuracionCanales?.canalTelegramActivo ?? true) {
-        try {
-          await notificarTelegram({
-            chatId: estudiante.telegramChatId,
-            estudiante,
-            tipo: "ENTRADA",
-            hora: horaActual,
-            metodo,
-            estado: estadoAsistencia,
-            fotoUrl,
-          });
-        } catch (error) {
-          console.error(
-            "Error enviando Telegram:",
-            error
-          );
-        }
+      if (configuracionCanales?.canalTelegramActivo && estudiante.telegramChatId) {
+        notificarTelegram({
+          chatId: estudiante.telegramChatId,
+          estudiante,
+          tipo: "ENTRADA",
+          hora: horaActual,
+          metodo,
+          estado: estadoAsistencia,
+        }).catch((error) => {
+          console.error("Error no crítico enviando Telegram:", error);
+        });
       }
 
       return NextResponse.json({
@@ -841,8 +810,7 @@ export async function POST(request: Request) {
 
       /*
        * Se conserva fotoUrl como fotografía de entrada.
-       * La nueva foto de salida se utiliza para Telegram,
-       * pero no reemplaza la foto guardada en la base de datos.
+       * Si se tomó foto al salir, se registra en fotoSalida.
        */
       asistencia =
         await prisma.asistencia.update({
@@ -851,48 +819,40 @@ export async function POST(request: Request) {
           },
           data: {
             horaSalida: ahora,
+            ...(fotoUrl ? { fotoSalida: fotoUrl } : {}),
+            ...(!asistencia.fotoUrl && fotoUrl ? { fotoUrl } : {}),
           },
         });
 
-      if (configuracionCanales?.canalWhatsAppActivo ?? false) {
-        try {
-          await enviarWhatsApp({
-            telefono: estudiante.whatsapp,
-            tutor: estudiante.nombreTutor,
-            estudiante: `${estudiante.nombres} ${estudiante.apellidos}`,
-            tipo: "SALIDA",
-            hora: horaActual,
-            grado: estudiante.grado,
-            seccion: estudiante.seccion,
-            turno: `${estudiante.turno.nombre} (${estudiante.turno.horaEntrada} - ${estudiante.turno.horaSalida})`,
-            estado: asistencia.estado,
-            metodo,
-          });
-        } catch (error) {
-          console.error(
-            "Error enviando WhatsApp:",
-            error
-          );
-        }
+      // Notificaciones externas en segundo plano (NO bloqueantes ni obligatorias)
+      if (configuracionCanales?.canalWhatsAppActivo && estudiante.whatsapp) {
+        enviarWhatsApp({
+          telefono: estudiante.whatsapp,
+          tutor: estudiante.nombreTutor,
+          estudiante: `${estudiante.nombres} ${estudiante.apellidos}`,
+          tipo: "SALIDA",
+          hora: horaActual,
+          grado: estudiante.grado,
+          seccion: estudiante.seccion,
+          turno: `${estudiante.turno.nombre} (${estudiante.turno.horaEntrada} - ${estudiante.turno.horaSalida})`,
+          estado: asistencia.estado,
+          metodo,
+        }).catch((error) => {
+          console.error("Error no crítico enviando WhatsApp:", error);
+        });
       }
 
-      if (configuracionCanales?.canalTelegramActivo ?? true) {
-        try {
-          await notificarTelegram({
-            chatId: estudiante.telegramChatId,
-            estudiante,
-            tipo: "SALIDA",
-            hora: horaActual,
-            metodo,
-            estado: asistencia.estado,
-            fotoUrl,
-          });
-        } catch (error) {
-          console.error(
-            "Error enviando Telegram:",
-            error
-          );
-        }
+      if (configuracionCanales?.canalTelegramActivo && estudiante.telegramChatId) {
+        notificarTelegram({
+          chatId: estudiante.telegramChatId,
+          estudiante,
+          tipo: "SALIDA",
+          hora: horaActual,
+          metodo,
+          estado: asistencia.estado,
+        }).catch((error) => {
+          console.error("Error no crítico enviando Telegram:", error);
+        });
       }
 
       return NextResponse.json({

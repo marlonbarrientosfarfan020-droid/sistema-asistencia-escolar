@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 
@@ -54,7 +54,7 @@ export function CanalesConfiguracion({
               </span>
             </div>
             <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">
-              Envío instantáneo de alertas de entrada y salida con fotografía de evidencia a los padres de familia con Telegram Chat ID registrado.
+              Envío instantáneo de alertas de texto de entrada y salida a los padres de familia con Telegram Chat ID registrado. Las evidencias fotográficas quedan resguardadas en Vercel Blob para consulta en el Portal Web de Padres.
             </p>
           </div>
 
