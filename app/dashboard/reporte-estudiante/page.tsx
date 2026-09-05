@@ -10,7 +10,12 @@ type Detalle = {
   fecha: string;
   entrada: string;
   salida: string;
+  horaEntrada?: string;
+  horaSalida?: string;
   estado: string;
+  estadoEntrada?: string;
+  estadoSalida?: string;
+  estadoJornada?: string;
   metodo: string;
 };
 
@@ -77,10 +82,16 @@ export default function ReporteEstudiantePage() {
 
     const datosExcel = detalle.map((item) => ({
       Fecha: fecha(item.fecha),
-      Entrada: item.entrada,
-      Salida: item.salida,
-      Estado: item.estado,
-      Metodo: item.metodo,
+      "Hora Entrada": item.horaEntrada || item.entrada,
+      "Estado Entrada": item.estadoEntrada || item.estado,
+      "Hora Salida": item.horaSalida || item.salida,
+      "Estado Salida":
+        item.estadoSalida ||
+        (item.salida && item.salida !== "-"
+          ? "REGISTRADA"
+          : "SIN_SALIDA"),
+      "Estado Jornada": item.estadoJornada || (item.salida && item.salida !== "-" ? "CERRADA" : "ABIERTA"),
+      Método: item.metodo,
     }));
 
     const hoja = XLSX.utils.json_to_sheet(datosExcel);
@@ -124,12 +135,25 @@ export default function ReporteEstudiantePage() {
 
     autoTable(doc, {
       startY: 70,
-      head: [["Fecha", "Entrada", "Salida", "Estado", "Método"]],
+      head: [
+        [
+          "Fecha",
+          "Hora Entrada",
+          "Estado Entrada",
+          "Hora Salida",
+          "Estado Salida",
+          "Método",
+        ],
+      ],
       body: detalle.map((item) => [
         fecha(item.fecha),
-        item.entrada,
-        item.salida,
-        item.estado,
+        item.horaEntrada || item.entrada,
+        item.estadoEntrada || item.estado,
+        item.horaSalida || item.salida,
+        item.estadoSalida ||
+          (item.salida && item.salida !== "-"
+            ? "REGISTRADA"
+            : "SIN_SALIDA"),
         item.metodo,
       ]),
       styles: {
@@ -255,41 +279,67 @@ export default function ReporteEstudiantePage() {
         </h3>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[700px]">
+          <table className="w-full text-left min-w-[750px]">
             <thead>
               <tr className="border-b">
                 <th className="py-3">Fecha</th>
-                <th>Entrada</th>
-                <th>Salida</th>
-                <th>Estado</th>
+                <th>Hora Entrada</th>
+                <th>Estado Entrada</th>
+                <th>Hora Salida</th>
+                <th>Estado Salida</th>
                 <th>Método</th>
               </tr>
             </thead>
 
             <tbody>
-              {detalle.map((item) => (
-                <tr key={item.id} className="border-b">
-                  <td className="py-3">{fecha(item.fecha)}</td>
-                  <td>{item.entrada}</td>
-                  <td>{item.salida}</td>
-                  <td>
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-bold ${
-                        item.estado === "TARDE"
-                          ? "bg-orange-100 text-orange-700"
-                          : "bg-green-100 text-green-700"
-                      }`}
-                    >
-                      {item.estado}
-                    </span>
-                  </td>
-                  <td>{item.metodo}</td>
-                </tr>
-              ))}
+              {detalle.map((item) => {
+                const salidaRegistrada = item.salida && item.salida !== "-";
+                const fueraHorario = item.estadoSalida === "FUERA_HORARIO";
+
+                return (
+                  <tr key={item.id} className="border-b">
+                    <td className="py-3 font-semibold">{fecha(item.fecha)}</td>
+                    <td className="font-bold">{item.horaEntrada || item.entrada}</td>
+                    <td>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          item.estado === "TARDE"
+                            ? "bg-orange-100 text-orange-700"
+                            : "bg-green-100 text-green-700"
+                        }`}
+                      >
+                        {item.estadoEntrada || item.estado}
+                      </span>
+                    </td>
+                    <td className="font-bold">{item.horaSalida || item.salida}</td>
+                    <td>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          salidaRegistrada
+                            ? fueraHorario
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-blue-100 text-blue-700"
+                            : item.estadoJornada === "SIN_SALIDA"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-slate-100 text-slate-700"
+                        }`}
+                      >
+                        {item.estadoSalida ||
+                          (salidaRegistrada
+                            ? "REGISTRADA"
+                            : item.estadoJornada === "SIN_SALIDA"
+                              ? "SIN SALIDA"
+                              : "PENDIENTE")}
+                      </span>
+                    </td>
+                    <td className="text-slate-500 font-medium">{item.metodo}</td>
+                  </tr>
+                );
+              })}
 
               {detalle.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-slate-500">
+                  <td colSpan={6} className="py-6 text-center text-slate-500">
                     Busque un estudiante para ver su reporte.
                   </td>
                 </tr>

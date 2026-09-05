@@ -275,15 +275,33 @@ export async function GET(request: Request) {
       (fecha) => !fechasConAsistencia.has(fecha)
     );
 
-    const detalle = asistenciasLectivas.map((asistencia) => ({
-      id: asistencia.id,
-      fecha: asistencia.fecha,
-      fechaTexto: fechaPeruString(asistencia.fecha),
-      entrada: hora(asistencia.horaEntrada),
-      salida: hora(asistencia.horaSalida),
-      estado: asistencia.estado,
-      metodo: asistencia.metodo,
-    }));
+    const detalle = asistenciasLectivas.map((asistencia) => {
+      const horaEntradaStr = hora(asistencia.horaEntrada);
+      const horaSalidaStr = hora(asistencia.horaSalida);
+      const estadoEntrada = asistencia.estado || "PUNTUAL";
+      const estadoSalida =
+        asistencia.estadoSalida ||
+        (asistencia.horaSalida
+          ? "REGISTRADA"
+          : asistencia.estadoJornada === "SIN_SALIDA"
+            ? "SIN_SALIDA"
+            : "PENDIENTE");
+
+      return {
+        id: asistencia.id,
+        fecha: asistencia.fecha,
+        fechaTexto: fechaPeruString(asistencia.fecha),
+        entrada: horaEntradaStr,
+        salida: horaSalidaStr,
+        horaEntrada: horaEntradaStr,
+        horaSalida: horaSalidaStr,
+        estado: asistencia.estado,
+        estadoEntrada,
+        estadoSalida,
+        estadoJornada: asistencia.estadoJornada,
+        metodo: asistencia.metodo,
+      };
+    });
 
     return NextResponse.json({
       estudiante: {

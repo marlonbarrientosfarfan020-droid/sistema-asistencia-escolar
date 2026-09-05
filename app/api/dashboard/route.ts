@@ -32,6 +32,11 @@ type ResumenBase = {
   ingresoPendiente: number;
   tardanzaSinIngreso: number;
   ausentesConfirmados: number;
+  entradas: number;
+  salidas: number;
+  salidasRegistradas: number;
+  pendientesSalida: number;
+  jornadaCompleta: number;
   sinSalida: number;
   alertasIngresoPendiente: number;
   alertasTardanza: number;
@@ -85,6 +90,11 @@ function crearResumenVacio(): ResumenBase {
     ingresoPendiente: 0,
     tardanzaSinIngreso: 0,
     ausentesConfirmados: 0,
+    entradas: 0,
+    salidas: 0,
+    salidasRegistradas: 0,
+    pendientesSalida: 0,
+    jornadaCompleta: 0,
     sinSalida: 0,
     alertasIngresoPendiente: 0,
     alertasTardanza: 0,
@@ -607,38 +617,78 @@ export async function GET() {
     }
 
     /*
-     * Sin salida se calcula únicamente
-     * sobre asistencias reales.
+     * Control Completo de Jornada Escolar:
+     * - Entradas: asistencias con horaEntrada
+     * - Salidas Registradas / Jornada Completa: asistencias con horaSalida registrada
+     * - Pendientes de Salida: con horaEntrada, sin horaSalida y el turno aún no finaliza
+     * - Sin Salida: con horaEntrada, sin horaSalida y ya venció el margen del turno
      */
+    const idsParaSinSalida: number[] = [];
+
     for (const asistencia of asistenciaPorEstudiante.values()) {
-      if (
-        asistencia.horaEntrada &&
-        !asistencia.horaSalida
-      ) {
-        resumenGeneral.sinSalida++;
+      const turnoId = asistencia.estudiante.turnoId;
+      const turno = turnoId ? resumenTurnosMap.get(turnoId) : null;
+      const claveSeccion = `${asistencia.estudiante.grado}__${asistencia.estudiante.seccion}`;
+      const seccion = turno ? turno.seccionesMap.get(claveSeccion) : null;
 
-        const turnoId =
-          asistencia.estudiante.turnoId;
+      let finPermitidoTurno: Date | null = null;
+      if (asistencia.estudiante.turno) {
+        const v = obtenerVentanaTurno({
+          horaEntrada: asistencia.estudiante.turno.horaEntrada,
+          horaSalida: asistencia.estudiante.turno.horaSalida,
+          margenEntradaAnticipadaMinutos:
+            asistencia.estudiante.turno.margenEntradaAnticipadaMinutos,
+          margenSalidaMinutos:
+            asistencia.estudiante.turno.margenSalidaMinutos,
+          ahora,
+        });
+        finPermitidoTurno = v.finPermitido;
+      }
 
-        if (turnoId) {
-          const turno =
-            resumenTurnosMap.get(turnoId);
+      if (asistencia.horaEntrada) {
+        resumenGeneral.entradas++;
+        if (turno) turno.resumen.entradas++;
+        if (seccion) seccion.resumen.entradas++;
+      }
 
-          if (turno) {
-            turno.resumen.sinSalida++;
-
-            const clave =
-              `${asistencia.estudiante.grado}__${asistencia.estudiante.seccion}`;
-
-            const seccion =
-              turno.seccionesMap.get(clave);
-
-            if (seccion) {
-              seccion.resumen.sinSalida++;
-            }
+      if (asistencia.horaSalida) {
+        resumenGeneral.salidas++;
+        resumenGeneral.salidasRegistradas++;
+        resumenGeneral.jornadaCompleta++;
+        if (turno) {
+          turno.resumen.salidas++;
+          turno.resumen.salidasRegistradas++;
+          turno.resumen.jornadaCompleta++;
+        }
+        if (seccion) {
+          seccion.resumen.salidas++;
+          seccion.resumen.salidasRegistradas++;
+          seccion.resumen.jornadaCompleta++;
+        }
+      } else if (asistencia.horaEntrada) {
+        const terminoMargen = finPermitidoTurno ? ahora > finPermitidoTurno : false;
+        if (terminoMargen) {
+          resumenGeneral.sinSalida++;
+          if (turno) turno.resumen.sinSalida++;
+          if (seccion) seccion.resumen.sinSalida++;
+          if (asistencia.estadoJornada === "ABIERTA") {
+            idsParaSinSalida.push(asistencia.id);
           }
+        } else {
+          resumenGeneral.pendientesSalida++;
+          if (turno) turno.resumen.pendientesSalida++;
+          if (seccion) seccion.resumen.pendientesSalida++;
         }
       }
+    }
+
+    if (idsParaSinSalida.length > 0) {
+      void prisma.asistencia
+        .updateMany({
+          where: { id: { in: idsParaSinSalida } },
+          data: { estadoJornada: "SIN_SALIDA" },
+        })
+        .catch((err) => console.error("Error auto-actualizando SIN_SALIDA:", err));
     }
 
     const resumenTurnos =
@@ -1149,7 +1199,7 @@ export async function GET() {
       totalEstudiantes,
 
       /*
-       * Compatibilidad con tarjetas antiguas.
+       * Compatibilidad con tarjetas antiguas y control de jornada escolar
        */
       presentes,
       puntuales:
@@ -1159,8 +1209,16 @@ export async function GET() {
       ausentes:
         resumenGeneral
           .ausentesConfirmados,
-      entradas,
-      salidas,
+      entradas:
+        resumenGeneral.entradas,
+      salidas:
+        resumenGeneral.salidas,
+      salidasRegistradas:
+        resumenGeneral.salidasRegistradas,
+      pendientesSalida:
+        resumenGeneral.pendientesSalida,
+      jornadaCompleta:
+        resumenGeneral.jornadaCompleta,
       sinSalida:
         resumenGeneral.sinSalida,
 
@@ -1287,6 +1345,22 @@ export async function GET() {
       metricasJornada,
       metricasEntrada,
       metricasSalida,
+      graficoJornadaEstudiantes: [
+        { name: "En Colegio", value: resumenGeneral.pendientesSalida, color: "#10b981" },
+        { name: "Jornada Completa", value: resumenGeneral.jornadaCompleta, color: "#3b82f6" },
+        { name: "Sin Salida", value: resumenGeneral.sinSalida, color: "#f97316" },
+        { name: "Sin Ingreso", value: Math.max(totalEstudiantes - resumenGeneral.presentes, 0), color: "#64748b" },
+      ],
+      turnosJornadaGrafico: resumenTurnos.map((t) => ({
+        id: t.id,
+        nombre: t.nombre,
+        entradas: t.entradas,
+        salidas: t.salidas,
+        salidasRegistradas: t.salidasRegistradas,
+        pendientesSalida: t.pendientesSalida,
+        sinSalida: t.sinSalida,
+        jornadaCompleta: t.jornadaCompleta,
+      })),
     });
   } catch (error) {
     console.error(

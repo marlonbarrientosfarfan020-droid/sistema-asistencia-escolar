@@ -30,10 +30,14 @@ type FilaReporte = {
   Estudiante: string;
   DNI: string;
   Grado: string;
-  Entrada: string;
-  Salida: string;
-  Estado: string;
+  "Hora Entrada": string;
+  "Estado Entrada": string;
+  "Hora Salida": string;
+  "Estado Salida": string;
   Metodo: string;
+  Entrada?: string;
+  Salida?: string;
+  Estado?: string;
 };
 
 function fechaPeruString(fecha: Date) {
@@ -470,6 +474,17 @@ export async function GET(
               ) === fecha
           );
 
+        const horaEntrada = hora(asistencia?.horaEntrada);
+        const horaSalida = hora(asistencia?.horaSalida);
+        const estadoEntrada = asistencia?.estado || "AUSENTE";
+        const estadoSalida =
+          asistencia?.estadoSalida ||
+          (asistencia?.horaSalida
+            ? "REGISTRADA"
+            : asistencia
+              ? "SIN_SALIDA"
+              : "-");
+
         datos.push({
           Fecha: formatoFecha(fecha),
 
@@ -484,22 +499,20 @@ export async function GET(
           Grado:
             `${estudiante.grado} - ${estudiante.seccion}`,
 
-          Entrada:
-            hora(
-              asistencia?.horaEntrada
-            ),
+          "Hora Entrada": horaEntrada,
 
-          Salida:
-            hora(
-              asistencia?.horaSalida
-            ),
+          "Estado Entrada": estadoEntrada,
 
-          Estado:
-            asistencia?.estado ||
-            "AUSENTE",
+          "Hora Salida": horaSalida,
+
+          "Estado Salida": estadoSalida,
 
           Metodo:
             asistencia?.metodo || "-",
+
+          Entrada: horaEntrada,
+          Salida: horaSalida,
+          Estado: estadoEntrada,
         });
       }
     }
@@ -884,9 +897,10 @@ ${textoTurnos}
             "Estudiante",
             "DNI",
             "Grado",
-            "Entrada",
-            "Salida",
-            "Estado",
+            "Hora Entrada",
+            "Estado Entrada",
+            "Hora Salida",
+            "Estado Salida",
             "Método",
           ],
         ],
@@ -898,9 +912,10 @@ ${textoTurnos}
             dato.Estudiante,
             dato.DNI,
             dato.Grado,
-            dato.Entrada,
-            dato.Salida,
-            dato.Estado,
+            dato["Hora Entrada"],
+            dato["Estado Entrada"],
+            dato["Hora Salida"],
+            dato["Estado Salida"],
             dato.Metodo,
           ]
         ),

@@ -30,6 +30,11 @@ type ResumenEstado = {
   ingresoPendiente: number;
   tardanzaSinIngreso: number;
   ausentesConfirmados: number;
+  entradas?: number;
+  salidas?: number;
+  salidasRegistradas?: number;
+  pendientesSalida?: number;
+  jornadaCompleta?: number;
   sinSalida: number;
   alertasIngresoPendiente: number;
   alertasTardanza: number;
@@ -157,6 +162,9 @@ type DashboardData = {
   ausentes: number;
   entradas: number;
   salidas: number;
+  salidasRegistradas: number;
+  pendientesSalida: number;
+  jornadaCompleta: number;
   sinSalida: number;
   pendientesInicio: number;
   esperandoIngreso: number;
@@ -214,6 +222,9 @@ const ESTADO_INICIAL: DashboardData = {
   ausentes: 0,
   entradas: 0,
   salidas: 0,
+  salidasRegistradas: 0,
+  pendientesSalida: 0,
+  jornadaCompleta: 0,
   sinSalida: 0,
   pendientesInicio: 0,
   esperandoIngreso: 0,
@@ -311,6 +322,9 @@ export default function Dashboard() {
         ausentes: numero(data.ausentes),
         entradas: numero(data.entradas),
         salidas: numero(data.salidas),
+        salidasRegistradas: numero(data.salidasRegistradas ?? data.salidas),
+        pendientesSalida: numero(data.pendientesSalida),
+        jornadaCompleta: numero(data.jornadaCompleta ?? data.salidas),
         sinSalida: numero(data.sinSalida),
         pendientesInicio: numero(data.pendientesInicio),
         esperandoIngreso: numero(data.esperandoIngreso),
@@ -481,6 +495,30 @@ export default function Dashboard() {
     datos.totalEsperadosHoy > 0
       ? Math.round((datos.presentes / datos.totalEsperadosHoy) * 100)
       : 0;
+
+  const turnosJornadaGrafico = useMemo(
+    () =>
+      turnosFiltrados.map((turno) => ({
+        nombre: turno.nombre,
+        entradas: turno.entradas ?? turno.presentes,
+        salidas: turno.salidasRegistradas ?? (turno.salidas ?? 0),
+        pendientes:
+          turno.pendientesSalida ??
+          Math.max(turno.presentes - (turno.salidasRegistradas ?? turno.salidas ?? 0), 0),
+        sinSalida: turno.sinSalida ?? 0,
+      })),
+    [turnosFiltrados],
+  );
+
+  const graficoEstadoActualEstudiantes = useMemo(
+    () => [
+      { name: "En Colegio", value: datos.pendientesSalida, color: "#10b981" },
+      { name: "Jornada Completa", value: datos.jornadaCompleta, color: "#3b82f6" },
+      { name: "Sin Salida", value: datos.sinSalida, color: "#f97316" },
+      { name: "Sin Ingreso", value: datos.sinIngreso, color: "#64748b" },
+    ],
+    [datos.pendientesSalida, datos.jornadaCompleta, datos.sinSalida, datos.sinIngreso],
+  );
 
   const graficoEstado = [
     { name: "Puntuales", value: datos.puntuales, color: "#10b981" },
@@ -661,6 +699,110 @@ export default function Dashboard() {
             <KpiCard title="Sin ingreso" value={datos.sinIngreso} icon="🟡" tone="yellow" />
             <KpiCard title="Tardanza crítica" value={datos.tardanzaSinIngreso} icon="🟠" tone="orange" />
             <KpiCard title="Ausentes" value={datos.ausentesConfirmados} icon="🔴" tone="red" />
+          </section>
+
+          {/* CONTROL DE JORNADA ESCOLAR (4 TARJETAS REQUERIDAS) */}
+          <div className="mt-4">
+            <div className="mb-2 flex items-center justify-between px-1">
+              <p className="text-xs font-black uppercase tracking-[0.25em] text-cyan-400">
+                Control Completo de Jornada Escolar
+              </p>
+              <span className="text-xs font-semibold text-slate-500">
+                Ciclo: Entrada abierta ➔ Salida cerrada
+              </span>
+            </div>
+            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <KpiCard
+                title="Salidas registradas"
+                value={datos.salidasRegistradas}
+                icon="🚪"
+                tone="blue"
+              />
+              <KpiCard
+                title="Pendientes de salida"
+                value={datos.pendientesSalida}
+                icon="⏳"
+                tone="emerald"
+              />
+              <KpiCard
+                title="Jornada completa"
+                value={datos.jornadaCompleta}
+                icon="🎓"
+                tone="indigo"
+              />
+              <KpiCard
+                title="Sin salida"
+                value={datos.sinSalida}
+                icon="⚠️"
+                tone="red"
+              />
+            </section>
+          </div>
+
+          {/* GRÁFICOS DE JORNADA ESCOLAR (2 GRÁFICOS REQUERIDOS) */}
+          <section className="mt-4 grid gap-4 xl:grid-cols-12">
+            <div className={`${PANEL} p-5 xl:col-span-5`}>
+              <SectionTitle
+                title="Estado actual estudiantes"
+                subtitle="Distribución en tiempo real de la jornada escolar"
+                badge={`${datos.pendientesSalida} en colegio`}
+              />
+
+              <div className="relative mt-3 h-[310px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={graficoEstadoActualEstudiantes}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={75}
+                      outerRadius={115}
+                      paddingAngle={4}
+                      stroke="transparent"
+                    >
+                      {graficoEstadoActualEstudiantes.map((item) => (
+                        <Cell key={item.name} fill={item.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend verticalAlign="bottom" iconType="circle" />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center pb-10">
+                  <div className="text-center">
+                    <p className="text-4xl font-black text-white">
+                      {datos.pendientesSalida}
+                    </p>
+                    <p className="text-xs font-black uppercase tracking-wider text-emerald-400">
+                      en colegio
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`${PANEL} p-5 xl:col-span-7`}>
+              <SectionTitle
+                title="Entrada vs Salida por turno"
+                subtitle="Flujo operativo por turno: entradas, salidas, pendientes y sin salida"
+                badge="Flujo por turno"
+              />
+              <div className="mt-4 h-[310px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={turnosJornadaGrafico}>
+                    <CartesianGrid stroke="#17312b" strokeDasharray="4 4" vertical={false} />
+                    <XAxis dataKey="nombre" tick={{ fill: "#94a3b8", fontWeight: 700 }} />
+                    <YAxis allowDecimals={false} tick={{ fill: "#64748b" }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend />
+                    <Bar dataKey="entradas" name="Entradas" fill="#10b981" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="salidas" name="Salidas" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="pendientes" name="Pendientes salida" fill="#f59e0b" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="sinSalida" name="Sin salida" fill="#f43f5e" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </section>
 
           <section className="mt-4 grid gap-4 xl:grid-cols-12">
@@ -1274,7 +1416,7 @@ function KpiCard({
   title: string;
   value: number;
   icon: string;
-  tone: "violet" | "green" | "emerald" | "yellow" | "orange" | "red";
+  tone: "violet" | "green" | "emerald" | "yellow" | "orange" | "red" | "blue" | "indigo" | "cyan";
 }) {
   const tones = {
     violet: "border-violet-500/30 bg-violet-500/10 text-violet-300",
@@ -1283,6 +1425,9 @@ function KpiCard({
     yellow: "border-yellow-500/30 bg-yellow-500/10 text-yellow-300",
     orange: "border-orange-500/30 bg-orange-500/10 text-orange-300",
     red: "border-rose-500/30 bg-rose-500/10 text-rose-300",
+    blue: "border-blue-500/30 bg-blue-500/10 text-blue-300",
+    indigo: "border-indigo-500/30 bg-indigo-500/10 text-indigo-300",
+    cyan: "border-cyan-500/30 bg-cyan-500/10 text-cyan-300",
   };
 
   return (
