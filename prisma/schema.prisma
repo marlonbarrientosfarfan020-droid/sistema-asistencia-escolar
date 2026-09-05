@@ -53,11 +53,13 @@ model Turno {
 
   estudiantes       Estudiante[]
   calendarioEscolar CalendarioEscolar[]
+  asistencias       Asistencia[]
 }
 
 model Asistencia {
   id          Int       @id @default(autoincrement())
   fecha       DateTime  @default(now())
+  fechaDia    String    @default("")
   horaEntrada DateTime?
   horaSalida  DateTime?
   metodo      String
@@ -69,10 +71,17 @@ model Asistencia {
   estudianteId Int
   estudiante   Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
 
+  turnoId Int?
+  turno   Turno? @relation(fields: [turnoId], references: [id], onDelete: SetNull)
+
+  @@unique([estudianteId, fechaDia, turnoId])
+  @@index([estudianteId, fechaDia])
   @@index([estudianteId])
   @@index([fecha])
+  @@index([fechaDia])
   @@index([estado])
   @@index([metodo])
+  @@index([turnoId])
 }
 
 model Usuario {

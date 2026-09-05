@@ -122,6 +122,7 @@ export type TurnoScalarFieldEnum = (typeof TurnoScalarFieldEnum)[keyof typeof Tu
 export const AsistenciaScalarFieldEnum = {
   id: 'id',
   fecha: 'fecha',
+  fechaDia: 'fechaDia',
   horaEntrada: 'horaEntrada',
   horaSalida: 'horaSalida',
   metodo: 'metodo',
@@ -129,7 +130,8 @@ export const AsistenciaScalarFieldEnum = {
   fotoEntrada: 'fotoEntrada',
   fotoSalida: 'fotoSalida',
   fotoUrl: 'fotoUrl',
-  estudianteId: 'estudianteId'
+  estudianteId: 'estudianteId',
+  turnoId: 'turnoId'
 } as const
 
 export type AsistenciaScalarFieldEnum = (typeof AsistenciaScalarFieldEnum)[keyof typeof AsistenciaScalarFieldEnum]

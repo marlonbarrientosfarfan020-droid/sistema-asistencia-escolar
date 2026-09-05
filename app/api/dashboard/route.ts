@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { exigirAdminDirectivoODemo } from "@/lib/auth";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-const ZONA_HORARIA = "America/Lima";
+import {
+  fechaPeru,
+  ahoraPeru,
+  crearFechaHoraPeru,
+  obtenerLimitesDiaPeru,
+  ZONA_HORARIA,
+} from "@/lib/timezone";
 
 type EstadoOperativo =
   | "PENDIENTE_INICIO"
@@ -36,63 +38,11 @@ type ResumenBase = {
   alertasEnviadas: number;
 };
 
-function fechaPeru() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: ZONA_HORARIA,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
-function ahoraPeru() {
-  const partes = new Intl.DateTimeFormat("en-CA", {
-    timeZone: ZONA_HORARIA,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).formatToParts(new Date());
-
-  const obtener = (
-    tipo: Intl.DateTimeFormatPartTypes
-  ) =>
-    partes.find((parte) => parte.type === tipo)
-      ?.value || "00";
-
-  return new Date(
-    `${obtener("year")}-${obtener("month")}-${obtener(
-      "day"
-    )}T${obtener("hour")}:${obtener(
-      "minute"
-    )}:${obtener("second")}-05:00`
-  );
-}
-
-function fechaPeruDesdeDate(fecha: Date) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: ZONA_HORARIA,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(fecha);
-}
-
 function fechaHoraTurno(
   fecha: string,
   hora: string
 ) {
-  const horaValida =
-    /^([01]\d|2[0-3]):[0-5]\d$/.test(hora)
-      ? hora
-      : "00:00";
-
-  return new Date(
-    `${fecha}T${horaValida}:00-05:00`
-  );
+  return crearFechaHoraPeru(fecha, hora);
 }
 
 function sumarMinutos(
@@ -212,18 +162,8 @@ export async function GET() {
   try {
     const hoy = fechaPeru();
     const ahora = ahoraPeru();
-
-    const inicioDia = new Date(
-      `${hoy}T00:00:00.000-05:00`
-    );
-
-    const finDia = new Date(
-      `${hoy}T23:59:59.999-05:00`
-    );
-
-    const fechaHoyBD = new Date(
-      `${hoy}T00:00:00.000Z`
-    );
+    const { inicioDia, finDia } = obtenerLimitesDiaPeru(hoy);
+    const fechaHoyBD = new Date(`${hoy}T00:00:00.000Z`);
 
     const [
       configuracion,
@@ -273,10 +213,15 @@ export async function GET() {
 
       prisma.asistencia.findMany({
         where: {
-          fecha: {
-            gte: inicioDia,
-            lte: finDia,
-          },
+          OR: [
+            { fechaDia: hoy },
+            {
+              fecha: {
+                gte: inicioDia,
+                lte: finDia,
+              },
+            },
+          ],
         },
 
         include: {
@@ -1072,12 +1017,12 @@ export async function GET() {
           );
 
           const fechaISO =
-            fechaPeruDesdeDate(fecha);
+            fechaPeru(fecha);
 
           const registros =
             asistenciasUltimos7Dias.filter(
               (asistencia) =>
-                fechaPeruDesdeDate(
+                fechaPeru(
                   asistencia.fecha
                 ) === fechaISO
             );

@@ -1,12 +1,21 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { put } from "@vercel/blob";
+import { Prisma } from "@/generated/prisma/client";
 import { enviarWhatsApp } from "@/services/whatsapp";
 import { enviarTelegram } from "@/lib/telegram";
 import {
   exigirAdminDemoOPersonal,
   exigirAdminOPersonal,
 } from "@/lib/auth";
+import {
+  fechaPeru,
+  horaPeru,
+  formatoHora12,
+  formatoHora,
+  obtenerLimitesDiaPeru,
+  obtenerVentanaTurno,
+  calcularEstadoAsistencia,
+} from "@/lib/timezone";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,8 +35,9 @@ export async function GET(request: Request) {
     let finDia: Date | undefined;
 
     if (fecha) {
-      inicioDia = new Date(`${fecha}T00:00:00-05:00`);
-      finDia = new Date(`${fecha}T23:59:59.999-05:00`);
+      const limites = obtenerLimitesDiaPeru(fecha);
+      inicioDia = limites.inicioDia;
+      finDia = limites.finDia;
     }
 
     const asistencias = await prisma.asistencia.findMany({
@@ -49,6 +59,7 @@ export async function GET(request: Request) {
             turno: true,
           },
         },
+        turno: true,
       },
     });
 
@@ -65,35 +76,7 @@ export async function GET(request: Request) {
   }
 }
 
-function formatoHora(fecha: Date) {
-  return fecha.toLocaleTimeString("es-PE", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "America/Lima",
-  });
-}
-
-function fechaPeru() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Lima",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
-function obtenerLimitesDiaPeru() {
-  const hoy = fechaPeru();
-
-  return {
-    inicioDia: new Date(`${hoy}T00:00:00-05:00`),
-    finDia: new Date(`${hoy}T23:59:59.999-05:00`),
-  };
-}
-
-async function obtenerEventoNoLectivo(
-  turnoId: number | null
-) {
+async function obtenerEventoNoLectivo(turnoId: number | null) {
   const { inicioDia, finDia } = obtenerLimitesDiaPeru();
 
   return prisma.calendarioEscolar.findFirst({
@@ -119,177 +102,6 @@ async function obtenerEventoNoLectivo(
       turno: true,
     },
   });
-}
-function crearFechaHoraPeru(
-  fecha: string,
-  hora: string
-) {
-  const horaNormalizada =
-    /^\d{2}:\d{2}$/.test(hora)
-      ? hora
-      : "00:00";
-
-  return new Date(
-    `${fecha}T${horaNormalizada}:00-05:00`
-  );
-}
-
-function sumarDiasFecha(
-  fecha: string,
-  dias: number
-) {
-  const base = new Date(
-    `${fecha}T12:00:00-05:00`
-  );
-
-  base.setDate(
-    base.getDate() + dias
-  );
-
-  return new Intl.DateTimeFormat(
-    "en-CA",
-    {
-      timeZone: "America/Lima",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }
-  ).format(base);
-}
-
-function obtenerVentanaTurno({
-  horaEntrada,
-  horaSalida,
-  margenEntradaAnticipadaMinutos,
-  margenSalidaMinutos,
-  ahora,
-}: {
-  horaEntrada: string;
-  horaSalida: string;
-  margenEntradaAnticipadaMinutos: number;
-  margenSalidaMinutos: number;
-  ahora: Date;
-}) {
-  const fechaActual = fechaPeru();
-
-  let fechaBase =
-    fechaActual;
-
-  let horaEntradaTurno =
-    crearFechaHoraPeru(
-      fechaBase,
-      horaEntrada
-    );
-
-  let horaSalidaTurno =
-    crearFechaHoraPeru(
-      fechaBase,
-      horaSalida
-    );
-
-  const cruzaMedianoche =
-    horaSalidaTurno <=
-    horaEntradaTurno;
-
-  if (cruzaMedianoche) {
-    horaSalidaTurno =
-      crearFechaHoraPeru(
-        sumarDiasFecha(
-          fechaBase,
-          1
-        ),
-        horaSalida
-      );
-
-    /*
-     * Si son, por ejemplo, las 01:00
-     * y el turno es 22:00 → 02:00,
-     * la jornada empezó el día anterior.
-     */
-    if (
-      ahora <
-      crearFechaHoraPeru(
-        fechaActual,
-        horaSalida
-      )
-    ) {
-      fechaBase =
-        sumarDiasFecha(
-          fechaActual,
-          -1
-        );
-
-      horaEntradaTurno =
-        crearFechaHoraPeru(
-          fechaBase,
-          horaEntrada
-        );
-
-      horaSalidaTurno =
-        crearFechaHoraPeru(
-          sumarDiasFecha(
-            fechaBase,
-            1
-          ),
-          horaSalida
-        );
-    }
-  }
-
-  const inicioPermitido =
-    new Date(
-      horaEntradaTurno.getTime()
-    );
-
-  inicioPermitido.setMinutes(
-    inicioPermitido.getMinutes() -
-      Math.max(
-        margenEntradaAnticipadaMinutos,
-        0
-      )
-  );
-
-  const finPermitido =
-    new Date(
-      horaSalidaTurno.getTime()
-    );
-
-  finPermitido.setMinutes(
-    finPermitido.getMinutes() +
-      Math.max(
-        margenSalidaMinutos,
-        0
-      )
-  );
-
-  return {
-    fechaBase,
-    cruzaMedianoche,
-    inicioPermitido,
-    horaEntradaTurno,
-    horaSalidaTurno,
-    finPermitido,
-  };
-}
-
-function obtenerLimitePuntualidad(
-  horaEntradaTurno: Date,
-  margenMinutos: number
-) {
-  const limite =
-    new Date(
-      horaEntradaTurno.getTime()
-    );
-
-  limite.setMinutes(
-    limite.getMinutes() +
-      Math.max(
-        margenMinutos,
-        0
-      )
-  );
-
-  return limite;
 }
 
 async function notificarTelegram({
@@ -371,52 +183,29 @@ export async function POST(request: Request) {
         ? body.metodo.trim()
         : "DNI";
 
-    let fotoUrl =
+    const fotoUrl =
       typeof body.fotoUrl === "string"
         ? body.fotoUrl.trim()
         : typeof body.foto === "string"
         ? body.foto.trim()
         : "";
 
-    if (fotoUrl && (fotoUrl.startsWith("data:image/") || (fotoUrl.length > 500 && !fotoUrl.startsWith("http")))) {
-      try {
-        const matches = fotoUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-        const buffer = matches
-          ? Buffer.from(matches[2], "base64")
-          : Buffer.from(fotoUrl, "base64");
-        const mime = matches ? matches[1] : "image/jpeg";
-        const ext = mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : "jpg";
-        const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
-        const blob = await put(
-          `asistencias/${Date.now()}-${crypto.randomUUID()}.${ext}`,
-          buffer,
-          {
-            access: "public",
-            contentType: mime,
-            token: token || undefined,
-            addRandomSuffix: false,
-          }
-        );
-        fotoUrl = blob.url;
-      } catch (errorSubida) {
-        console.error("Error subiendo foto base64 a Vercel Blob:", errorSubida);
-      }
-    }
-
     if (!dni && !codigo) {
       return NextResponse.json(
         {
-          message:
-            "Debe ingresar el DNI o código del estudiante",
+          ok: false,
+          message: "Debe ingresar el DNI o código del estudiante",
         },
         { status: 400 }
       );
     }
 
-    if (!fotoUrl) {
+    // Validación estricta de evidencia fotográfica (flujo único)
+    if (!fotoUrl || !fotoUrl.startsWith("http")) {
       return NextResponse.json(
         {
-          message: "La fotografía es obligatoria",
+          ok: false,
+          message: "No se pudo guardar evidencia fotográfica",
         },
         { status: 400 }
       );
@@ -455,6 +244,7 @@ export async function POST(request: Request) {
     if (!estudiante) {
       return NextResponse.json(
         {
+          ok: false,
           message: "Estudiante no encontrado",
         },
         { status: 404 }
@@ -464,6 +254,7 @@ export async function POST(request: Request) {
     if (!estudiante.estado) {
       return NextResponse.json(
         {
+          ok: false,
           message: "Estudiante inactivo",
         },
         { status: 400 }
@@ -473,6 +264,7 @@ export async function POST(request: Request) {
     if (!estudiante.turno) {
       return NextResponse.json(
         {
+          ok: false,
           message:
             "El estudiante no tiene turno asignado. Asigne un turno antes de registrar asistencia.",
         },
@@ -480,17 +272,17 @@ export async function POST(request: Request) {
       );
     }
 
+    // Regla: Si un turno está INACTIVO, no debe permitir marcar asistencia
     if (!estudiante.turno.estado) {
       return NextResponse.json(
         {
+          ok: false,
           message:
-            `El turno ${estudiante.turno.nombre} asignado al estudiante se encuentra inactivo.`,
+            `El turno ${estudiante.turno.nombre} no está habilitado actualmente`,
           turnoInactivo: true,
           turno: {
-            id:
-              estudiante.turno.id,
-            nombre:
-              estudiante.turno.nombre,
+            id: estudiante.turno.id,
+            nombre: estudiante.turno.nombre,
           },
         },
         {
@@ -515,197 +307,167 @@ export async function POST(request: Request) {
 
       return NextResponse.json(
         {
+          ok: false,
           message: `Hoy no se registra asistencia porque es un día no lectivo: ${eventoNoLectivo.descripcion}. Aplica para ${alcance}.`,
           diaNoLectivo: true,
           evento: {
             id: eventoNoLectivo.id,
             tipo: eventoNoLectivo.tipo,
-            descripcion:
-              eventoNoLectivo.descripcion,
-            fechaInicio:
-              eventoNoLectivo.fechaInicio,
-            fechaFin: eventoNoLectivo.fechaFin,
-            todosLosTurnos:
-              eventoNoLectivo.todosLosTurnos,
-            turno:
-              eventoNoLectivo.turno?.nombre ||
-              null,
+            descripcion: eventoNoLectivo.descripcion,
           },
         },
         { status: 409 }
       );
     }
 
-    const ahora =
-      new Date();
-
-    const horaActual =
-      formatoHora(ahora);
+    const ahora = new Date();
+    const fechaDia = fechaPeru(ahora);
+    const horaActual12 = formatoHora12(ahora);
 
     const ventanaTurno =
       obtenerVentanaTurno({
-        horaEntrada:
-          estudiante.turno.horaEntrada,
-
-        horaSalida:
-          estudiante.turno.horaSalida,
-
-        margenEntradaAnticipadaMinutos:
-          estudiante.turno
-            .margenEntradaAnticipadaMinutos,
-
-        margenSalidaMinutos:
-          estudiante.turno
-            .margenSalidaMinutos,
-
+        horaEntrada: estudiante.turno.horaEntrada,
+        horaSalida: estudiante.turno.horaSalida,
+        margenEntradaAnticipadaMinutos: estudiante.turno.margenEntradaAnticipadaMinutos,
+        margenSalidaMinutos: estudiante.turno.margenSalidaMinutos,
         ahora,
       });
 
-    /*
-     * Se busca la asistencia dentro de la ventana
-     * real del turno asignado al estudiante.
-     * Esto también funciona para turnos que cruzan
-     * la medianoche.
-     */
+    // 1. Búsqueda por clave de unicidad (estudianteId + fechaDia + turnoId)
     let asistencia =
       await prisma.asistencia.findFirst({
         where: {
-          estudianteId:
-            estudiante.id,
-
-          fecha: {
-            gte:
-              ventanaTurno.inicioPermitido,
-
-            lte:
-              ventanaTurno.finPermitido,
-          },
+          estudianteId: estudiante.id,
+          fechaDia,
+          turnoId: estudiante.turno.id,
         },
-
         orderBy: {
-          fecha: "desc",
+          id: "desc",
         },
       });
 
-    const limitePuntualidad =
-      obtenerLimitePuntualidad(
-        ventanaTurno
-          .horaEntradaTurno,
-
-        estudiante.turno
-          .margenAlertaMinutos
-      );
-
-    const estadoAsistencia =
-      ahora <= limitePuntualidad
-        ? "PUNTUAL"
-        : "TARDE";
-
-    /*
-     * REGISTRO DE ENTRADA
-     */
+    // 2. Fallback por ventana de turno si fechaDia no estuviera asignada
     if (!asistencia) {
-      if (
-        ahora <
-        ventanaTurno.inicioPermitido
-      ) {
-        return NextResponse.json(
-          {
-            message:
-              `Todavía no está habilitado el ingreso para el turno ${estudiante.turno.nombre}. ` +
-              `Puede marcar desde las ${formatoHora(
-                ventanaTurno.inicioPermitido
-              )}. ` +
-              `Hora actual: ${horaActual}.`,
-
-            fueraDeHorario: true,
-
-            tipoRestriccion:
-              "ENTRADA_ANTICIPADA",
-
-            turno: {
-              nombre:
-                estudiante.turno.nombre,
-
-              horaEntrada:
-                estudiante.turno.horaEntrada,
-
-              horaSalida:
-                estudiante.turno.horaSalida,
-
-              margenEntradaAnticipadaMinutos:
-                estudiante.turno
-                  .margenEntradaAnticipadaMinutos,
-
-              margenSalidaMinutos:
-                estudiante.turno
-                  .margenSalidaMinutos,
-            },
-          },
-          {
-            status: 409,
-          }
-        );
-      }
-
-      if (
-        ahora >
-        ventanaTurno.horaSalidaTurno
-      ) {
-        return NextResponse.json(
-          {
-            message:
-              `El horario de entrada del turno ${estudiante.turno.nombre} ya terminó. ` +
-              `La entrada se permite hasta las ${formatoHora(
-                ventanaTurno.horaSalidaTurno
-              )}. ` +
-              `Hora actual: ${horaActual}.`,
-
-            fueraDeHorario: true,
-
-            tipoRestriccion:
-              "ENTRADA_FINALIZADA",
-
-            turno: {
-              nombre:
-                estudiante.turno.nombre,
-
-              horaEntrada:
-                estudiante.turno.horaEntrada,
-
-              horaSalida:
-                estudiante.turno.horaSalida,
-            },
-          },
-          {
-            status: 409,
-          }
-        );
-      }
-
-      console.log("[ASISTENCIA API] creando registro para estudiante:", estudiante.id, "fotoUrl:", fotoUrl);
       asistencia =
-        await prisma.asistencia.create({
-          data: {
+        await prisma.asistencia.findFirst({
+          where: {
             estudianteId: estudiante.id,
-            fecha: ahora,
-            horaEntrada: ahora,
-            metodo,
-            estado: estadoAsistencia,
-            fotoUrl,
-            fotoEntrada: fotoUrl,
+            fecha: {
+              gte: ventanaTurno.inicioPermitido,
+              lte: ventanaTurno.finPermitido,
+            },
+          },
+          orderBy: {
+            id: "desc",
           },
         });
-      console.log("[ASISTENCIA API] registro creado id:", asistencia.id);
+    }
 
-      // Notificaciones externas en segundo plano (NO bloqueantes ni obligatorias)
+    /*
+     * CASO A: REGISTRO DE ENTRADA (Primera marcación del día)
+     */
+    if (!asistencia) {
+      if (ahora < ventanaTurno.inicioPermitido) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              `Todavía no está habilitado el ingreso para el turno ${estudiante.turno.nombre}. ` +
+              `Puede marcar desde las ${formatoHora12(ventanaTurno.inicioPermitido)}. ` +
+              `Hora actual: ${horaActual12}.`,
+            fueraDeHorario: true,
+            tipoRestriccion: "ENTRADA_ANTICIPADA",
+            turno: {
+              nombre: estudiante.turno.nombre,
+              horaEntrada: estudiante.turno.horaEntrada,
+              horaSalida: estudiante.turno.horaSalida,
+            },
+          },
+          { status: 409 }
+        );
+      }
+
+      if (ahora > ventanaTurno.horaSalidaTurno) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              `El horario de entrada del turno ${estudiante.turno.nombre} ya terminó. ` +
+              `La entrada se permite hasta las ${formatoHora12(ventanaTurno.horaSalidaTurno)}. ` +
+              `Hora actual: ${horaActual12}.`,
+            fueraDeHorario: true,
+            tipoRestriccion: "ENTRADA_FINALIZADA",
+            turno: {
+              nombre: estudiante.turno.nombre,
+              horaEntrada: estudiante.turno.horaEntrada,
+              horaSalida: estudiante.turno.horaSalida,
+            },
+          },
+          { status: 409 }
+        );
+      }
+
+      const estadoAsistencia = calcularEstadoAsistencia(
+        ahora,
+        ventanaTurno.horaEntradaTurno,
+        estudiante.turno.margenAlertaMinutos
+      );
+
+      console.log("[ASISTENCIA API] Creando entrada para estudiante:", estudiante.id, "Turno:", estudiante.turno.nombre, "Estado:", estadoAsistencia);
+
+      try {
+        asistencia =
+          await prisma.asistencia.create({
+            data: {
+              estudianteId: estudiante.id,
+              fecha: ahora,
+              fechaDia,
+              turnoId: estudiante.turno.id,
+              horaEntrada: ahora,
+              metodo,
+              estado: estadoAsistencia,
+              fotoUrl,
+              fotoEntrada: fotoUrl,
+            },
+          });
+      } catch (errDb: any) {
+        // Manejo de condición de carrera con restricción única P2002
+        if (errDb instanceof Prisma.PrismaClientKnownRequestError && errDb.code === "P2002") {
+          console.warn("[ASISTENCIA API] Detección de marcación concurrente P2002 para estudiante:", estudiante.id);
+          const yaExiste = await prisma.asistencia.findFirst({
+            where: {
+              estudianteId: estudiante.id,
+              fechaDia,
+              turnoId: estudiante.turno.id,
+            },
+          });
+          const horaReg = formatoHora12(yaExiste?.horaEntrada || yaExiste?.fecha || ahora);
+          return NextResponse.json(
+            {
+              ok: true,
+              yaRegistrado: true,
+              tipo: "ENTRADA",
+              estado: yaExiste?.estado || estadoAsistencia,
+              estudiante,
+              asistencia: yaExiste,
+              message: `El estudiante ${estudiante.nombres} ${estudiante.apellidos} ya registró asistencia hoy a las ${horaReg}`,
+            },
+            { status: 409 }
+          );
+        }
+        throw errDb;
+      }
+
+      console.log("[ASISTENCIA API] Registro de entrada exitoso id:", asistencia.id);
+
+      // Notificaciones externas en segundo plano (NO bloqueantes)
       if (configuracionCanales?.canalWhatsAppActivo && estudiante.whatsapp) {
         enviarWhatsApp({
           telefono: estudiante.whatsapp,
           tutor: estudiante.nombreTutor,
           estudiante: `${estudiante.nombres} ${estudiante.apellidos}`,
           tipo: "ENTRADA",
-          hora: horaActual,
+          hora: horaActual12,
           grado: estudiante.grado,
           seccion: estudiante.seccion,
           turno: `${estudiante.turno.nombre} (${estudiante.turno.horaEntrada} - ${estudiante.turno.horaSalida})`,
@@ -721,7 +483,7 @@ export async function POST(request: Request) {
           chatId: estudiante.telegramChatId,
           estudiante,
           tipo: "ENTRADA",
-          hora: horaActual,
+          hora: horaActual12,
           metodo,
           estado: estadoAsistencia,
         }).catch((error) => {
@@ -730,91 +492,58 @@ export async function POST(request: Request) {
       }
 
       return NextResponse.json({
+        ok: true,
         tipo: "ENTRADA",
+        estado: estadoAsistencia,
         estudiante,
         asistencia,
-        message:
-          "Entrada registrada correctamente",
+        message: "Asistencia registrada correctamente",
       });
     }
 
     /*
-     * REGISTRO DE SALIDA
+     * CASO B: EL ESTUDIANTE YA TIENE REGISTRADA ENTRADA
      */
     if (!asistencia.horaSalida) {
-      if (
-        ahora <
-        ventanaTurno.horaSalidaTurno
-      ) {
+      // Si todavía no es hora de salida, es una marcación repetida
+      if (ahora < ventanaTurno.horaSalidaTurno) {
+        const horaReg = formatoHora12(asistencia.horaEntrada || asistencia.fecha);
         return NextResponse.json(
           {
-            message:
-              `El estudiante ya registró entrada hoy. ` +
-              `La salida estará habilitada desde las ${formatoHora(
-                ventanaTurno.horaSalidaTurno
-              )} del turno ${estudiante.turno.nombre}.`,
-
-            salidaAunNoDisponible:
-              true,
-
+            ok: true,
+            yaRegistrado: true,
+            salidaAunNoDisponible: true,
+            tipo: "ENTRADA",
+            estado: asistencia.estado,
+            estudiante,
+            asistencia,
+            message: `El estudiante ${estudiante.nombres} ${estudiante.apellidos} ya registró asistencia hoy a las ${horaReg}`,
             turno: {
-              nombre:
-                estudiante.turno.nombre,
-
-              horaSalida:
-                estudiante.turno.horaSalida,
-
-              margenSalidaMinutos:
-                estudiante.turno
-                  .margenSalidaMinutos,
+              nombre: estudiante.turno.nombre,
+              horaSalida: estudiante.turno.horaSalida,
             },
           },
-          {
-            status: 409,
-          }
+          { status: 409 }
         );
       }
 
-      if (
-        ahora >
-        ventanaTurno.finPermitido
-      ) {
+      // Si ya pasó el fin permitido para marcar salida
+      if (ahora > ventanaTurno.finPermitido) {
         return NextResponse.json(
           {
+            ok: false,
             message:
               `El horario para registrar salida del turno ${estudiante.turno.nombre} ya terminó. ` +
-              `La salida estuvo habilitada hasta las ${formatoHora(
-                ventanaTurno.finPermitido
-              )}. ` +
-              `Hora actual: ${horaActual}.`,
-
+              `La salida estuvo habilitada hasta las ${formatoHora12(ventanaTurno.finPermitido)}. ` +
+              `Hora actual: ${horaActual12}.`,
             fueraDeHorario: true,
-
-            tipoRestriccion:
-              "SALIDA_FINALIZADA",
-
-            turno: {
-              nombre:
-                estudiante.turno.nombre,
-
-              horaSalida:
-                estudiante.turno.horaSalida,
-
-              margenSalidaMinutos:
-                estudiante.turno
-                  .margenSalidaMinutos,
-            },
+            tipoRestriccion: "SALIDA_FINALIZADA",
           },
-          {
-            status: 409,
-          }
+          { status: 409 }
         );
       }
 
-      /*
-       * Se conserva fotoUrl como fotografía de entrada.
-       * Si se tomó foto al salir, se registra en fotoSalida.
-       */
+      // REGISTRO DE SALIDA
       asistencia =
         await prisma.asistencia.update({
           where: {
@@ -827,14 +556,16 @@ export async function POST(request: Request) {
           },
         });
 
-      // Notificaciones externas en segundo plano (NO bloqueantes ni obligatorias)
+      console.log("[ASISTENCIA API] Registro de salida exitoso id:", asistencia.id);
+
+      // Notificaciones externas en segundo plano (NO bloqueantes)
       if (configuracionCanales?.canalWhatsAppActivo && estudiante.whatsapp) {
         enviarWhatsApp({
           telefono: estudiante.whatsapp,
           tutor: estudiante.nombreTutor,
           estudiante: `${estudiante.nombres} ${estudiante.apellidos}`,
           tipo: "SALIDA",
-          hora: horaActual,
+          hora: horaActual12,
           grado: estudiante.grado,
           seccion: estudiante.seccion,
           turno: `${estudiante.turno.nombre} (${estudiante.turno.horaEntrada} - ${estudiante.turno.horaSalida})`,
@@ -850,7 +581,7 @@ export async function POST(request: Request) {
           chatId: estudiante.telegramChatId,
           estudiante,
           tipo: "SALIDA",
-          hora: horaActual,
+          hora: horaActual12,
           metodo,
           estado: asistencia.estado,
         }).catch((error) => {
@@ -859,20 +590,27 @@ export async function POST(request: Request) {
       }
 
       return NextResponse.json({
+        ok: true,
         tipo: "SALIDA",
+        estado: asistencia.estado,
         estudiante,
         asistencia,
-        message:
-          "Salida registrada correctamente",
+        message: "Salida registrada correctamente",
       });
     }
 
+    /*
+     * CASO C: YA REGISTRÓ ENTRADA Y SALIDA HOY
+     */
     return NextResponse.json(
       {
-        message:
-          "El estudiante ya registró entrada y salida hoy",
+        ok: true,
+        yaRegistrado: true,
+        message: `El estudiante ${estudiante.nombres} ${estudiante.apellidos} ya registró entrada y salida hoy`,
+        asistencia,
+        estudiante,
       },
-      { status: 400 }
+      { status: 409 }
     );
   } catch (error) {
     console.error(
@@ -882,8 +620,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        message:
-          "Error al registrar asistencia",
+        ok: false,
+        message: "Error al registrar asistencia",
       },
       { status: 500 }
     );

@@ -16,16 +16,28 @@ type EstadoVisual =
   | "normal"
   | "entrada"
   | "salida"
-  | "error";
+  | "error"
+  | "aviso";
 
 type ResultadoAsistencia = {
+  ok?: boolean;
+  yaRegistrado?: boolean;
   tipo?: "ENTRADA" | "SALIDA";
   message?: string;
   estudiante?: {
+    id?: number;
     nombres: string;
     apellidos: string;
     grado: string;
     seccion: string;
+    fotoPerfilUrl?: string | null;
+  };
+  asistencia?: {
+    id?: number;
+    estado?: string;
+    hora?: string;
+    horaFormateada?: string;
+    tipo?: string;
   };
 };
 
@@ -824,17 +836,20 @@ export default function MarcarPage() {
             data.message || `No se pudo registrar la asistencia (${respuesta.status})`;
 
           const esAvisoDeEntradaExistente =
-            respuesta.status === 400 &&
-            mensajeRespuesta.includes("ya registró entrada hoy");
+            (respuesta.status === 409 || Boolean(data.yaRegistrado)) &&
+            (mensajeRespuesta.toLowerCase().includes("ya registró") || Boolean(data.yaRegistrado));
 
           if (esAvisoDeEntradaExistente) {
+            setResultado(data);
             setMensaje(`⚠️ ${mensajeRespuesta}`);
-            setEstadoVisual("normal");
+            setEstadoVisual("aviso");
+            setDni("");
             beep("ok");
 
             window.setTimeout(() => {
               setMensaje("");
               setResultado(null);
+              setEstadoVisual("normal");
             }, 5000);
             return;
           }
@@ -1156,6 +1171,8 @@ export default function MarcarPage() {
       ? "Entrada registrada"
       : estadoVisual === "salida"
       ? "Salida registrada"
+      : estadoVisual === "aviso"
+      ? "Asistencia ya registrada"
       : estadoVisual === "error"
       ? "No se pudo registrar"
       : "Marcar asistencia";
@@ -1165,18 +1182,22 @@ export default function MarcarPage() {
       ? "El ingreso fue confirmado correctamente."
       : estadoVisual === "salida"
       ? "La salida fue confirmada correctamente."
+      : estadoVisual === "aviso"
+      ? "El estudiante ya cuenta con registro de asistencia en este turno hoy."
       : estadoVisual === "error"
       ? "Revise el mensaje e inténtelo nuevamente."
       : "Escanee el QR, ingrese el DNI o use reconocimiento facial.";
 
   const colorMensaje =
     estadoVisual === "entrada"
-      ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-100"
+      ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-950 font-black"
       : estadoVisual === "salida"
-      ? "border-blue-500/30 bg-blue-500/15 text-blue-100"
+      ? "border-blue-500/30 bg-blue-500/15 text-blue-950 font-black"
+      : estadoVisual === "aviso"
+      ? "border-amber-500/40 bg-amber-500/20 text-amber-950 font-black"
       : estadoVisual === "error"
-      ? "border-red-500/30 bg-red-500/15 text-red-100"
-      : "border-violet-500/30 bg-violet-500/15 text-violet-100";
+      ? "border-red-500/30 bg-red-500/15 text-red-950 font-black"
+      : "border-violet-500/30 bg-violet-500/15 text-violet-950 font-black";
 
   if (terminalAutorizado === null) {
     return (
@@ -1455,11 +1476,25 @@ export default function MarcarPage() {
             )}
 
             {resultado?.estudiante && (
-              <div className="mb-6 overflow-hidden rounded-3xl border border-emerald-500/25 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 p-5">
+              <div
+                className={`mb-6 overflow-hidden rounded-3xl border p-5 ${
+                  resultado.yaRegistrado
+                    ? "border-amber-500/40 bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-amber-500/10"
+                    : "border-emerald-500/25 bg-gradient-to-r from-emerald-500/10 to-blue-500/10"
+                }`}
+              >
                 <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-widest text-emerald-700">
-                      Registro confirmado
+                    <p
+                      className={`text-xs font-black uppercase tracking-widest ${
+                        resultado.yaRegistrado
+                          ? "text-amber-700"
+                          : "text-emerald-700"
+                      }`}
+                    >
+                      {resultado.yaRegistrado
+                        ? "⚠️ Registro Previo Encontrado"
+                        : "Registro confirmado"}
                     </p>
 
                     <h2 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">
@@ -1491,23 +1526,33 @@ export default function MarcarPage() {
                     </p>
                   </div>
 
-                  <div className="rounded-2xl bg-slate-950 px-5 py-4 text-white shadow-xl">
+                  <div
+                    className={`rounded-2xl px-5 py-4 text-white shadow-xl ${
+                      resultado.yaRegistrado
+                        ? "bg-amber-950"
+                        : "bg-slate-950"
+                    }`}
+                  >
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      Hora registrada
+                      {resultado.yaRegistrado
+                        ? "Hora Registrada Previamente"
+                        : "Hora registrada"}
                     </p>
 
                     <p className="mt-1 text-2xl font-black tabular-nums">
-                      {new Date().toLocaleTimeString(
-                        "es-PE",
-                        {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          second:
-                            "2-digit",
-                          timeZone:
-                            "America/Lima",
-                        }
-                      )}
+                      {resultado.asistencia?.horaFormateada ||
+                        resultado.asistencia?.hora ||
+                        new Date().toLocaleTimeString(
+                          "es-PE",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            second:
+                              "2-digit",
+                            timeZone:
+                              "America/Lima",
+                          }
+                        )}
                     </p>
                   </div>
                 </div>
