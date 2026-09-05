@@ -127,6 +127,8 @@ export const AsistenciaScalarFieldEnum = {
   horaSalida: 'horaSalida',
   metodo: 'metodo',
   estado: 'estado',
+  estadoJornada: 'estadoJornada',
+  estadoSalida: 'estadoSalida',
   fotoEntrada: 'fotoEntrada',
   fotoSalida: 'fotoSalida',
   fotoUrl: 'fotoUrl',

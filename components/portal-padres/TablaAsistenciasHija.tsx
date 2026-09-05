@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { AsistenciaEvidencia } from "./ModalFotoEvidencia";
@@ -60,6 +60,7 @@ export function TablaAsistenciasHija({
               <th className="py-3.5 px-4">Fecha</th>
               <th className="py-3.5 px-4">Hora de Entrada</th>
               <th className="py-3.5 px-4">Hora de Salida</th>
+              <th className="py-3.5 px-4">Estado Jornada</th>
               <th className="py-3.5 px-4">Método</th>
               <th className="py-3.5 px-4 text-center">Evidencia</th>
             </tr>
@@ -67,7 +68,7 @@ export function TablaAsistenciasHija({
           <tbody className="divide-y divide-slate-100">
             {filtradas.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-12 text-center text-slate-400">
+                <td colSpan={6} className="py-12 text-center text-slate-400">
                   <div className="text-3xl mb-2">📅</div>
                   <p className="font-bold text-sm text-slate-600">
                     No se registran asistencias para este filtro
@@ -98,6 +99,8 @@ export function TablaAsistenciasHija({
                       hour: "2-digit",
                       minute: "2-digit",
                     })
+                  : asist.estadoJornada === "SIN_SALIDA"
+                  ? "Sin salida"
                   : "En colegio";
 
                 const tieneFoto = Boolean(
@@ -133,14 +136,49 @@ export function TablaAsistenciasHija({
 
                     {/* Hora de Salida */}
                     <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`font-mono text-xs ${
+                            asist.horaSalida
+                              ? "font-bold text-slate-800"
+                              : "font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md"
+                          }`}
+                        >
+                          {horaSalida}
+                        </span>
+                        {asist.estadoSalida === "FUERA_HORARIO" && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                            Fuera Horario
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Estado de Jornada */}
+                    <td className="py-3.5 px-4">
                       <span
-                        className={`font-mono text-xs ${
-                          asist.horaSalida
-                            ? "font-bold text-slate-800"
-                            : "font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md"
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                          asist.estadoJornada === "CERRADA"
+                            ? "bg-blue-50 text-blue-800 border-blue-200"
+                            : asist.estadoJornada === "SIN_SALIDA"
+                            ? "bg-amber-50 text-amber-800 border-amber-200"
+                            : "bg-emerald-50 text-emerald-800 border-emerald-200"
                         }`}
                       >
-                        {horaSalida}
+                        <span>
+                          {asist.estadoJornada === "CERRADA"
+                            ? "🔵"
+                            : asist.estadoJornada === "SIN_SALIDA"
+                            ? "🟠"
+                            : "🟢"}
+                        </span>
+                        <span>
+                          {asist.estadoJornada === "CERRADA"
+                            ? "Cerrada"
+                            : asist.estadoJornada === "SIN_SALIDA"
+                            ? "Sin Salida"
+                            : "En Colegio"}
+                        </span>
                       </span>
                     </td>
 

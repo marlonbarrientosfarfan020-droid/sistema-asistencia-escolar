@@ -23,6 +23,10 @@ type ResultadoAsistencia = {
   ok?: boolean;
   yaRegistrado?: boolean;
   tipo?: "ENTRADA" | "SALIDA";
+  estado?: string;
+  estadoJornada?: string;
+  estadoSalida?: string;
+  esFueraHorario?: boolean;
   message?: string;
   estudiante?: {
     id?: number;
@@ -35,7 +39,11 @@ type ResultadoAsistencia = {
   asistencia?: {
     id?: number;
     estado?: string;
+    estadoJornada?: string;
+    estadoSalida?: string;
     hora?: string;
+    horaEntrada?: string;
+    horaSalida?: string;
     horaFormateada?: string;
     tipo?: string;
   };
@@ -867,14 +875,14 @@ export default function MarcarPage() {
       }
 
       setResultado(data);
-      setMensaje(`✅ ${data.message || "Asistencia registrada"}`);
+      setMensaje(data.esFueraHorario ? `⚠️ ${data.message}` : `✅ ${data.message || "Asistencia registrada"}`);
       setDni("");
       beep("ok");
 
       if (data.tipo === "ENTRADA") {
         setEstadoVisual("entrada");
       } else if (data.tipo === "SALIDA") {
-        setEstadoVisual("salida");
+        setEstadoVisual(data.esFueraHorario ? "aviso" : "salida");
       }
 
       window.setTimeout(() => {
@@ -1480,6 +1488,10 @@ export default function MarcarPage() {
                 className={`mb-6 overflow-hidden rounded-3xl border p-5 ${
                   resultado.yaRegistrado
                     ? "border-amber-500/40 bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-amber-500/10"
+                    : resultado.tipo === "SALIDA"
+                    ? resultado.esFueraHorario
+                      ? "border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/5"
+                      : "border-blue-500/30 bg-gradient-to-r from-blue-500/15 via-cyan-500/10 to-blue-500/5"
                     : "border-emerald-500/25 bg-gradient-to-r from-emerald-500/10 to-blue-500/10"
                 }`}
               >
@@ -1487,14 +1499,20 @@ export default function MarcarPage() {
                   <div>
                     <p
                       className={`text-xs font-black uppercase tracking-widest ${
-                        resultado.yaRegistrado
+                        resultado.yaRegistrado || resultado.esFueraHorario
                           ? "text-amber-700"
+                          : resultado.tipo === "SALIDA"
+                          ? "text-blue-700"
                           : "text-emerald-700"
                       }`}
                     >
                       {resultado.yaRegistrado
                         ? "⚠️ Registro Previo Encontrado"
-                        : "Registro confirmado"}
+                        : resultado.tipo === "SALIDA"
+                        ? resultado.esFueraHorario
+                          ? "⚠️ Salida Fuera de Horario (Jornada Cerrada)"
+                          : "👋 Salida Registrada (Jornada Cerrada)"
+                        : "✅ Entrada Registrada (Jornada Abierta)"}
                     </p>
 
                     <h2 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">
@@ -1528,15 +1546,19 @@ export default function MarcarPage() {
 
                   <div
                     className={`rounded-2xl px-5 py-4 text-white shadow-xl ${
-                      resultado.yaRegistrado
+                      resultado.yaRegistrado || resultado.esFueraHorario
                         ? "bg-amber-950"
+                        : resultado.tipo === "SALIDA"
+                        ? "bg-blue-950"
                         : "bg-slate-950"
                     }`}
                   >
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                       {resultado.yaRegistrado
                         ? "Hora Registrada Previamente"
-                        : "Hora registrada"}
+                        : resultado.tipo === "SALIDA"
+                        ? "Hora de Salida"
+                        : "Hora de Entrada"}
                     </p>
 
                     <p className="mt-1 text-2xl font-black tabular-nums">

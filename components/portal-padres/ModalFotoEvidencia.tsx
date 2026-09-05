@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import Image from "next/image";
@@ -6,10 +6,13 @@ import Image from "next/image";
 export interface AsistenciaEvidencia {
   id: number;
   fecha: string;
+  fechaDia?: string;
   horaEntrada: string | null;
   horaSalida: string | null;
   metodo: string;
   estado: string;
+  estadoJornada?: string | null;
+  estadoSalida?: string | null;
   fotoEntrada: string | null;
   fotoSalida: string | null;
   fotoUrl: string | null;
@@ -28,11 +31,16 @@ export function ModalFotoEvidencia({
 }: ModalFotoEvidenciaProps) {
   if (!asistencia) return null;
 
-  // Determinar la mejor URL de foto (fotoEntrada, fotoSalida o fotoUrl)
-  const urlFoto =
-    asistencia.fotoEntrada ||
-    asistencia.fotoSalida ||
-    asistencia.fotoUrl;
+  const tieneFotoEntrada = Boolean(asistencia.fotoEntrada || (!asistencia.fotoSalida && asistencia.fotoUrl));
+  const tieneFotoSalida = Boolean(asistencia.fotoSalida);
+
+  const [tabFoto, setTabFoto] = React.useState<"ENTRADA" | "SALIDA">(
+    tieneFotoEntrada ? "ENTRADA" : tieneFotoSalida ? "SALIDA" : "ENTRADA"
+  );
+
+  const urlFoto = tabFoto === "ENTRADA"
+    ? (asistencia.fotoEntrada || asistencia.fotoUrl)
+    : (asistencia.fotoSalida || asistencia.fotoUrl);
 
   const fechaFormateada = new Date(asistencia.fecha).toLocaleDateString("es-PE", {
     weekday: "long",
@@ -55,7 +63,16 @@ export function ModalFotoEvidencia({
         minute: "2-digit",
         second: "2-digit",
       })
-    : "Sin marcación de salida";
+    : asistencia.estadoJornada === "SIN_SALIDA"
+    ? "Sin marcación (No registrada)"
+    : "En colegio (Pendiente)";
+
+  const jornadaBadgeColor =
+    asistencia.estadoJornada === "CERRADA"
+      ? "bg-blue-100 text-blue-800 border-blue-300"
+      : asistencia.estadoJornada === "SIN_SALIDA"
+      ? "bg-amber-100 text-amber-800 border-amber-300"
+      : "bg-emerald-100 text-emerald-800 border-emerald-300";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto">
@@ -82,12 +99,40 @@ export function ModalFotoEvidencia({
 
         {/* Cuerpo con la Fotografía */}
         <div className="p-6 space-y-4">
+          {/* Selector de foto Entrada / Salida si ambas existen */}
+          {tieneFotoEntrada && tieneFotoSalida && (
+            <div className="flex rounded-xl bg-slate-100 p-1 text-xs font-black">
+              <button
+                type="button"
+                onClick={() => setTabFoto("ENTRADA")}
+                className={`flex-1 py-1.5 rounded-lg transition ${
+                  tabFoto === "ENTRADA"
+                    ? "bg-white text-slate-950 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                📸 Foto de Entrada
+              </button>
+              <button
+                type="button"
+                onClick={() => setTabFoto("SALIDA")}
+                className={`flex-1 py-1.5 rounded-lg transition ${
+                  tabFoto === "SALIDA"
+                    ? "bg-white text-slate-950 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                👋 Foto de Salida
+              </button>
+            </div>
+          )}
+
           {/* Contenedor de la Foto */}
           <div className="relative w-full aspect-[4/3] bg-slate-950 rounded-2xl overflow-hidden border border-slate-200 shadow-inner flex items-center justify-center">
             {urlFoto ? (
               <img
                 src={urlFoto}
-                alt={`Evidencia de asistencia de ${nombreEstudiante}`}
+                alt={`Evidencia de asistencia (${tabFoto}) de ${nombreEstudiante}`}
                 className="w-full h-full object-contain"
               />
             ) : (
@@ -95,7 +140,7 @@ export function ModalFotoEvidencia({
                 <span className="text-4xl block mb-2">📷</span>
                 <p className="font-bold text-sm">Fotografía no disponible</p>
                 <p className="text-xs text-slate-500 mt-1">
-                  Este registro fue validado por método manual o biometría sin captura de foto.
+                  Este registro fue validado sin captura de foto en este movimiento.
                 </p>
               </div>
             )}
@@ -104,10 +149,10 @@ export function ModalFotoEvidencia({
             {urlFoto && (
               <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between bg-slate-950/80 backdrop-blur-sm px-3 py-1.5 rounded-xl text-white text-xs border border-white/10">
                 <span className="font-mono text-[11px] text-amber-300">
-                  🕒 {horaEntradaStr}
+                  🕒 {tabFoto === "ENTRADA" ? horaEntradaStr : horaSalidaStr}
                 </span>
                 <span className="font-black text-[10px] uppercase tracking-wider text-emerald-400">
-                  {asistencia.metodo} · {asistencia.estado}
+                  {tabFoto === "ENTRADA" ? `ENTRADA · ${asistencia.estado}` : `SALIDA · ${asistencia.estadoSalida || "REGISTRADA"}`}
                 </span>
               </div>
             )}
@@ -122,27 +167,31 @@ export function ModalFotoEvidencia({
               </p>
             </div>
             <div>
-              <p className="text-[10px] uppercase font-bold text-slate-400">Estado de Ingreso</p>
+              <p className="text-[10px] uppercase font-bold text-slate-400">Estado de Jornada</p>
               <span
-                className={`inline-block mt-0.5 px-2 py-0.5 rounded-full font-black text-[10px] uppercase ${
-                  asistencia.estado === "PUNTUAL"
-                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                    : "bg-amber-100 text-amber-800 border border-amber-300"
-                }`}
+                className={`inline-block mt-0.5 px-2 py-0.5 rounded-full font-black text-[10px] uppercase border ${jornadaBadgeColor}`}
               >
-                {asistencia.estado}
+                {asistencia.estadoJornada || "ABIERTA"}
               </span>
             </div>
             <div>
               <p className="text-[10px] uppercase font-bold text-slate-400">Hora de Entrada</p>
               <p className="font-mono font-bold text-slate-900 mt-0.5">
-                {horaEntradaStr}
+                {horaEntradaStr}{" "}
+                <span className="text-[10px] font-black text-emerald-600">({asistencia.estado})</span>
               </p>
             </div>
             <div>
               <p className="text-[10px] uppercase font-bold text-slate-400">Hora de Salida</p>
               <p className="font-mono font-bold text-slate-900 mt-0.5">
-                {horaSalidaStr}
+                {horaSalidaStr}{" "}
+                {asistencia.estadoSalida && (
+                  <span className={`text-[10px] font-black ${
+                    asistencia.estadoSalida === "FUERA_HORARIO" ? "text-amber-600" : "text-blue-600"
+                  }`}>
+                    ({asistencia.estadoSalida})
+                  </span>
+                )}
               </p>
             </div>
           </div>

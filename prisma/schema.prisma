@@ -57,16 +57,18 @@ model Turno {
 }
 
 model Asistencia {
-  id          Int       @id @default(autoincrement())
-  fecha       DateTime  @default(now())
-  fechaDia    String    @default("")
-  horaEntrada DateTime?
-  horaSalida  DateTime?
-  metodo      String
-  estado      String    @default("PUNTUAL")
-  fotoEntrada String?
-  fotoSalida  String?
-  fotoUrl     String?
+  id            Int       @id @default(autoincrement())
+  fecha         DateTime  @default(now())
+  fechaDia      String    @default("")
+  horaEntrada   DateTime?
+  horaSalida    DateTime?
+  metodo        String
+  estado        String    @default("PUNTUAL")
+  estadoJornada String    @default("ABIERTA")
+  estadoSalida  String?
+  fotoEntrada   String?
+  fotoSalida    String?
+  fotoUrl       String?
 
   estudianteId Int
   estudiante   Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
@@ -80,6 +82,7 @@ model Asistencia {
   @@index([fecha])
   @@index([fechaDia])
   @@index([estado])
+  @@index([estadoJornada])
   @@index([metodo])
   @@index([turnoId])
 }

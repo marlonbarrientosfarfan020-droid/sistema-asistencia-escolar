@@ -171,3 +171,59 @@ export function calcularEstadoAsistencia(
   );
   return ahora <= limite ? "PUNTUAL" : "TARDE";
 }
+
+/**
+ * Calcula el estado de salida: "REGISTRADA" si está dentro del margen de salida,
+ * o "FUERA_HORARIO" si la marcación se realiza después de (horaSalidaTurno + margenSalidaMinutos).
+ */
+export function calcularEstadoSalida({
+  ahora = new Date(),
+  horaSalidaTurno,
+  margenSalidaMinutos,
+}: {
+  ahora?: Date;
+  horaSalidaTurno: Date;
+  margenSalidaMinutos: number;
+}): {
+  estadoSalida: "REGISTRADA" | "FUERA_HORARIO";
+  esFueraHorario: boolean;
+  limiteSalida: Date;
+} {
+  const limiteSalida = new Date(horaSalidaTurno.getTime());
+  limiteSalida.setMinutes(
+    limiteSalida.getMinutes() + Math.max(margenSalidaMinutos, 0)
+  );
+
+  const esFueraHorario = ahora > limiteSalida;
+  return {
+    estadoSalida: esFueraHorario ? "FUERA_HORARIO" : "REGISTRADA",
+    esFueraHorario,
+    limiteSalida,
+  };
+}
+
+/**
+ * Evalúa dinámicamente el estado de la jornada para un registro de asistencia:
+ * - "CERRADA": Si ya tiene registrada horaSalida.
+ * - "ABIERTA": Si tiene horaEntrada y todavía no pasa el fin permitido del turno.
+ * - "SIN_SALIDA": Si tiene horaEntrada pero ya concluyó el fin permitido sin registrar salida.
+ */
+export function evaluarJornadaVigente({
+  horaEntrada,
+  horaSalida,
+  finPermitido,
+  ahora = new Date(),
+}: {
+  horaEntrada?: Date | null;
+  horaSalida?: Date | null;
+  finPermitido: Date;
+  ahora?: Date;
+}): "ABIERTA" | "CERRADA" | "SIN_SALIDA" {
+  if (horaSalida) {
+    return "CERRADA";
+  }
+  if (horaEntrada) {
+    return ahora <= finPermitido ? "ABIERTA" : "SIN_SALIDA";
+  }
+  return "SIN_SALIDA";
+}

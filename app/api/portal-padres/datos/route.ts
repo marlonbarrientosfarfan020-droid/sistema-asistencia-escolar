@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { exigirSesionPadre } from "@/lib/auth-padres";
 
@@ -92,10 +92,13 @@ export async function GET(request: Request) {
       select: {
         id: true,
         fecha: true,
+        fechaDia: true,
         horaEntrada: true,
         horaSalida: true,
         metodo: true,
         estado: true,
+        estadoJornada: true,
+        estadoSalida: true,
         fotoEntrada: true,
         fotoSalida: true,
         fotoUrl: true,

@@ -46,6 +46,8 @@ export type AsistenciaMinAggregateOutputType = {
   horaSalida: Date | null
   metodo: string | null
   estado: string | null
+  estadoJornada: string | null
+  estadoSalida: string | null
   fotoEntrada: string | null
   fotoSalida: string | null
   fotoUrl: string | null
@@ -61,6 +63,8 @@ export type AsistenciaMaxAggregateOutputType = {
   horaSalida: Date | null
   metodo: string | null
   estado: string | null
+  estadoJornada: string | null
+  estadoSalida: string | null
   fotoEntrada: string | null
   fotoSalida: string | null
   fotoUrl: string | null
@@ -76,6 +80,8 @@ export type AsistenciaCountAggregateOutputType = {
   horaSalida: number
   metodo: number
   estado: number
+  estadoJornada: number
+  estadoSalida: number
   fotoEntrada: number
   fotoSalida: number
   fotoUrl: number
@@ -105,6 +111,8 @@ export type AsistenciaMinAggregateInputType = {
   horaSalida?: true
   metodo?: true
   estado?: true
+  estadoJornada?: true
+  estadoSalida?: true
   fotoEntrada?: true
   fotoSalida?: true
   fotoUrl?: true
@@ -120,6 +128,8 @@ export type AsistenciaMaxAggregateInputType = {
   horaSalida?: true
   metodo?: true
   estado?: true
+  estadoJornada?: true
+  estadoSalida?: true
   fotoEntrada?: true
   fotoSalida?: true
   fotoUrl?: true
@@ -135,6 +145,8 @@ export type AsistenciaCountAggregateInputType = {
   horaSalida?: true
   metodo?: true
   estado?: true
+  estadoJornada?: true
+  estadoSalida?: true
   fotoEntrada?: true
   fotoSalida?: true
   fotoUrl?: true
@@ -237,6 +249,8 @@ export type AsistenciaGroupByOutputType = {
   horaSalida: Date | null
   metodo: string
   estado: string
+  estadoJornada: string
+  estadoSalida: string | null
   fotoEntrada: string | null
   fotoSalida: string | null
   fotoUrl: string | null
@@ -275,6 +289,8 @@ export type AsistenciaWhereInput = {
   horaSalida?: Prisma.DateTimeNullableFilter<"Asistencia"> | Date | string | null
   metodo?: Prisma.StringFilter<"Asistencia"> | string
   estado?: Prisma.StringFilter<"Asistencia"> | string
+  estadoJornada?: Prisma.StringFilter<"Asistencia"> | string
+  estadoSalida?: Prisma.StringNullableFilter<"Asistencia"> | string | null
   fotoEntrada?: Prisma.StringNullableFilter<"Asistencia"> | string | null
   fotoSalida?: Prisma.StringNullableFilter<"Asistencia"> | string | null
   fotoUrl?: Prisma.StringNullableFilter<"Asistencia"> | string | null
@@ -292,6 +308,8 @@ export type AsistenciaOrderByWithRelationInput = {
   horaSalida?: Prisma.SortOrderInput | Prisma.SortOrder
   metodo?: Prisma.SortOrder
   estado?: Prisma.SortOrder
+  estadoJornada?: Prisma.SortOrder
+  estadoSalida?: Prisma.SortOrderInput | Prisma.SortOrder
   fotoEntrada?: Prisma.SortOrderInput | Prisma.SortOrder
   fotoSalida?: Prisma.SortOrderInput | Prisma.SortOrder
   fotoUrl?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -313,6 +331,8 @@ export type AsistenciaWhereUniqueInput = Prisma.AtLeast<{
   horaSalida?: Prisma.DateTimeNullableFilter<"Asistencia"> | Date | string | null
   metodo?: Prisma.StringFilter<"Asistencia"> | string
   estado?: Prisma.StringFilter<"Asistencia"> | string
+  estadoJornada?: Prisma.StringFilter<"Asistencia"> | string
+  estadoSalida?: Prisma.StringNullableFilter<"Asistencia"> | string | null
   fotoEntrada?: Prisma.StringNullableFilter<"Asistencia"> | string | null
   fotoSalida?: Prisma.StringNullableFilter<"Asistencia"> | string | null
   fotoUrl?: Prisma.StringNullableFilter<"Asistencia"> | string | null
@@ -330,6 +350,8 @@ export type AsistenciaOrderByWithAggregationInput = {
   horaSalida?: Prisma.SortOrderInput | Prisma.SortOrder
   metodo?: Prisma.SortOrder
   estado?: Prisma.SortOrder
+  estadoJornada?: Prisma.SortOrder
+  estadoSalida?: Prisma.SortOrderInput | Prisma.SortOrder
   fotoEntrada?: Prisma.SortOrderInput | Prisma.SortOrder
   fotoSalida?: Prisma.SortOrderInput | Prisma.SortOrder
   fotoUrl?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -353,6 +375,8 @@ export type AsistenciaScalarWhereWithAggregatesInput = {
   horaSalida?: Prisma.DateTimeNullableWithAggregatesFilter<"Asistencia"> | Date | string | null
   metodo?: Prisma.StringWithAggregatesFilter<"Asistencia"> | string
   estado?: Prisma.StringWithAggregatesFilter<"Asistencia"> | string
+  estadoJornada?: Prisma.StringWithAggregatesFilter<"Asistencia"> | string
+  estadoSalida?: Prisma.StringNullableWithAggregatesFilter<"Asistencia"> | string | null
   fotoEntrada?: Prisma.StringNullableWithAggregatesFilter<"Asistencia"> | string | null
   fotoSalida?: Prisma.StringNullableWithAggregatesFilter<"Asistencia"> | string | null
   fotoUrl?: Prisma.StringNullableWithAggregatesFilter<"Asistencia"> | string | null
@@ -367,6 +391,8 @@ export type AsistenciaCreateInput = {
   horaSalida?: Date | string | null
   metodo: string
   estado?: string
+  estadoJornada?: string
+  estadoSalida?: string | null
   fotoEntrada?: string | null
   fotoSalida?: string | null
   fotoUrl?: string | null
@@ -382,6 +408,8 @@ export type AsistenciaUncheckedCreateInput = {
   horaSalida?: Date | string | null
   metodo: string
   estado?: string
+  estadoJornada?: string
+  estadoSalida?: string | null
   fotoEntrada?: string | null
   fotoSalida?: string | null
   fotoUrl?: string | null
@@ -396,6 +424,8 @@ export type AsistenciaUpdateInput = {
   horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metodo?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoJornada?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoEntrada?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -411,6 +441,8 @@ export type AsistenciaUncheckedUpdateInput = {
   horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metodo?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoJornada?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoEntrada?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -426,6 +458,8 @@ export type AsistenciaCreateManyInput = {
   horaSalida?: Date | string | null
   metodo: string
   estado?: string
+  estadoJornada?: string
+  estadoSalida?: string | null
   fotoEntrada?: string | null
   fotoSalida?: string | null
   fotoUrl?: string | null
@@ -440,6 +474,8 @@ export type AsistenciaUpdateManyMutationInput = {
   horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metodo?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoJornada?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoEntrada?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -453,6 +489,8 @@ export type AsistenciaUncheckedUpdateManyInput = {
   horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metodo?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoJornada?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoEntrada?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -484,6 +522,8 @@ export type AsistenciaCountOrderByAggregateInput = {
   horaSalida?: Prisma.SortOrder
   metodo?: Prisma.SortOrder
   estado?: Prisma.SortOrder
+  estadoJornada?: Prisma.SortOrder
+  estadoSalida?: Prisma.SortOrder
   fotoEntrada?: Prisma.SortOrder
   fotoSalida?: Prisma.SortOrder
   fotoUrl?: Prisma.SortOrder
@@ -505,6 +545,8 @@ export type AsistenciaMaxOrderByAggregateInput = {
   horaSalida?: Prisma.SortOrder
   metodo?: Prisma.SortOrder
   estado?: Prisma.SortOrder
+  estadoJornada?: Prisma.SortOrder
+  estadoSalida?: Prisma.SortOrder
   fotoEntrada?: Prisma.SortOrder
   fotoSalida?: Prisma.SortOrder
   fotoUrl?: Prisma.SortOrder
@@ -520,6 +562,8 @@ export type AsistenciaMinOrderByAggregateInput = {
   horaSalida?: Prisma.SortOrder
   metodo?: Prisma.SortOrder
   estado?: Prisma.SortOrder
+  estadoJornada?: Prisma.SortOrder
+  estadoSalida?: Prisma.SortOrder
   fotoEntrada?: Prisma.SortOrder
   fotoSalida?: Prisma.SortOrder
   fotoUrl?: Prisma.SortOrder
@@ -632,6 +676,8 @@ export type AsistenciaCreateWithoutEstudianteInput = {
   horaSalida?: Date | string | null
   metodo: string
   estado?: string
+  estadoJornada?: string
+  estadoSalida?: string | null
   fotoEntrada?: string | null
   fotoSalida?: string | null
   fotoUrl?: string | null
@@ -646,6 +692,8 @@ export type AsistenciaUncheckedCreateWithoutEstudianteInput = {
   horaSalida?: Date | string | null
   metodo: string
   estado?: string
+  estadoJornada?: string
+  estadoSalida?: string | null
   fotoEntrada?: string | null
   fotoSalida?: string | null
   fotoUrl?: string | null
@@ -689,6 +737,8 @@ export type AsistenciaScalarWhereInput = {
   horaSalida?: Prisma.DateTimeNullableFilter<"Asistencia"> | Date | string | null
   metodo?: Prisma.StringFilter<"Asistencia"> | string
   estado?: Prisma.StringFilter<"Asistencia"> | string
+  estadoJornada?: Prisma.StringFilter<"Asistencia"> | string
+  estadoSalida?: Prisma.StringNullableFilter<"Asistencia"> | string | null
   fotoEntrada?: Prisma.StringNullableFilter<"Asistencia"> | string | null
   fotoSalida?: Prisma.StringNullableFilter<"Asistencia"> | string | null
   fotoUrl?: Prisma.StringNullableFilter<"Asistencia"> | string | null
@@ -703,6 +753,8 @@ export type AsistenciaCreateWithoutTurnoInput = {
   horaSalida?: Date | string | null
   metodo: string
   estado?: string
+  estadoJornada?: string
+  estadoSalida?: string | null
   fotoEntrada?: string | null
   fotoSalida?: string | null
   fotoUrl?: string | null
@@ -717,6 +769,8 @@ export type AsistenciaUncheckedCreateWithoutTurnoInput = {
   horaSalida?: Date | string | null
   metodo: string
   estado?: string
+  estadoJornada?: string
+  estadoSalida?: string | null
   fotoEntrada?: string | null
   fotoSalida?: string | null
   fotoUrl?: string | null
@@ -757,6 +811,8 @@ export type AsistenciaCreateManyEstudianteInput = {
   horaSalida?: Date | string | null
   metodo: string
   estado?: string
+  estadoJornada?: string
+  estadoSalida?: string | null
   fotoEntrada?: string | null
   fotoSalida?: string | null
   fotoUrl?: string | null
@@ -770,6 +826,8 @@ export type AsistenciaUpdateWithoutEstudianteInput = {
   horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metodo?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoJornada?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoEntrada?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -784,6 +842,8 @@ export type AsistenciaUncheckedUpdateWithoutEstudianteInput = {
   horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metodo?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoJornada?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoEntrada?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -798,6 +858,8 @@ export type AsistenciaUncheckedUpdateManyWithoutEstudianteInput = {
   horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metodo?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoJornada?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoEntrada?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -812,6 +874,8 @@ export type AsistenciaCreateManyTurnoInput = {
   horaSalida?: Date | string | null
   metodo: string
   estado?: string
+  estadoJornada?: string
+  estadoSalida?: string | null
   fotoEntrada?: string | null
   fotoSalida?: string | null
   fotoUrl?: string | null
@@ -825,6 +889,8 @@ export type AsistenciaUpdateWithoutTurnoInput = {
   horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metodo?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoJornada?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoEntrada?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -839,6 +905,8 @@ export type AsistenciaUncheckedUpdateWithoutTurnoInput = {
   horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metodo?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoJornada?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoEntrada?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -853,6 +921,8 @@ export type AsistenciaUncheckedUpdateManyWithoutTurnoInput = {
   horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metodo?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoJornada?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoEntrada?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -869,6 +939,8 @@ export type AsistenciaSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   horaSalida?: boolean
   metodo?: boolean
   estado?: boolean
+  estadoJornada?: boolean
+  estadoSalida?: boolean
   fotoEntrada?: boolean
   fotoSalida?: boolean
   fotoUrl?: boolean
@@ -886,6 +958,8 @@ export type AsistenciaSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   horaSalida?: boolean
   metodo?: boolean
   estado?: boolean
+  estadoJornada?: boolean
+  estadoSalida?: boolean
   fotoEntrada?: boolean
   fotoSalida?: boolean
   fotoUrl?: boolean
@@ -903,6 +977,8 @@ export type AsistenciaSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   horaSalida?: boolean
   metodo?: boolean
   estado?: boolean
+  estadoJornada?: boolean
+  estadoSalida?: boolean
   fotoEntrada?: boolean
   fotoSalida?: boolean
   fotoUrl?: boolean
@@ -920,6 +996,8 @@ export type AsistenciaSelectScalar = {
   horaSalida?: boolean
   metodo?: boolean
   estado?: boolean
+  estadoJornada?: boolean
+  estadoSalida?: boolean
   fotoEntrada?: boolean
   fotoSalida?: boolean
   fotoUrl?: boolean
@@ -927,7 +1005,7 @@ export type AsistenciaSelectScalar = {
   turnoId?: boolean
 }
 
-export type AsistenciaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "fecha" | "fechaDia" | "horaEntrada" | "horaSalida" | "metodo" | "estado" | "fotoEntrada" | "fotoSalida" | "fotoUrl" | "estudianteId" | "turnoId", ExtArgs["result"]["asistencia"]>
+export type AsistenciaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "fecha" | "fechaDia" | "horaEntrada" | "horaSalida" | "metodo" | "estado" | "estadoJornada" | "estadoSalida" | "fotoEntrada" | "fotoSalida" | "fotoUrl" | "estudianteId" | "turnoId", ExtArgs["result"]["asistencia"]>
 export type AsistenciaInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   estudiante?: boolean | Prisma.EstudianteDefaultArgs<ExtArgs>
   turno?: boolean | Prisma.Asistencia$turnoArgs<ExtArgs>
@@ -955,6 +1033,8 @@ export type $AsistenciaPayload<ExtArgs extends runtime.Types.Extensions.Internal
     horaSalida: Date | null
     metodo: string
     estado: string
+    estadoJornada: string
+    estadoSalida: string | null
     fotoEntrada: string | null
     fotoSalida: string | null
     fotoUrl: string | null
@@ -1392,6 +1472,8 @@ export interface AsistenciaFieldRefs {
   readonly horaSalida: Prisma.FieldRef<"Asistencia", 'DateTime'>
   readonly metodo: Prisma.FieldRef<"Asistencia", 'String'>
   readonly estado: Prisma.FieldRef<"Asistencia", 'String'>
+  readonly estadoJornada: Prisma.FieldRef<"Asistencia", 'String'>
+  readonly estadoSalida: Prisma.FieldRef<"Asistencia", 'String'>
   readonly fotoEntrada: Prisma.FieldRef<"Asistencia", 'String'>
   readonly fotoSalida: Prisma.FieldRef<"Asistencia", 'String'>
   readonly fotoUrl: Prisma.FieldRef<"Asistencia", 'String'>

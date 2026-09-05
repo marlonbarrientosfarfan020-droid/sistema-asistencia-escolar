@@ -15,6 +15,8 @@ import {
   obtenerLimitesDiaPeru,
   obtenerVentanaTurno,
   calcularEstadoAsistencia,
+  calcularEstadoSalida,
+  evaluarJornadaVigente,
 } from "@/lib/timezone";
 
 export const runtime = "nodejs";
@@ -426,6 +428,8 @@ export async function POST(request: Request) {
               horaEntrada: ahora,
               metodo,
               estado: estadoAsistencia,
+              estadoJornada: "ABIERTA",
+              estadoSalida: "PENDIENTE",
               fotoUrl,
               fotoEntrada: fotoUrl,
             },
@@ -448,6 +452,8 @@ export async function POST(request: Request) {
               yaRegistrado: true,
               tipo: "ENTRADA",
               estado: yaExiste?.estado || estadoAsistencia,
+              estadoJornada: yaExiste?.estadoJornada || "ABIERTA",
+              estadoSalida: yaExiste?.estadoSalida || "PENDIENTE",
               estudiante,
               asistencia: yaExiste,
               message: `El estudiante ${estudiante.nombres} ${estudiante.apellidos} ya registró asistencia hoy a las ${horaReg}`,
@@ -495,18 +501,24 @@ export async function POST(request: Request) {
         ok: true,
         tipo: "ENTRADA",
         estado: estadoAsistencia,
+        estadoJornada: "ABIERTA",
+        estadoSalida: "PENDIENTE",
         estudiante,
         asistencia,
-        message: "Asistencia registrada correctamente",
+        message: "Entrada registrada correctamente",
       });
     }
 
     /*
-     * CASO B: EL ESTUDIANTE YA TIENE REGISTRADA ENTRADA
+     * CASO B: EL ESTUDIANTE YA TIENE REGISTRADA ENTRADA (JORNADA ABIERTA)
      */
     if (!asistencia.horaSalida) {
-      // Si todavía no es hora de salida, es una marcación repetida
-      if (ahora < ventanaTurno.horaSalidaTurno) {
+      // 1. Protección contra doble-escaneo accidental (menos de 3 minutos de haber entrado)
+      const tiempoDesdeEntradaMs = asistencia.horaEntrada
+        ? ahora.getTime() - new Date(asistencia.horaEntrada).getTime()
+        : 0;
+
+      if (tiempoDesdeEntradaMs < 3 * 60 * 1000) {
         const horaReg = formatoHora12(asistencia.horaEntrada || asistencia.fecha);
         return NextResponse.json(
           {
@@ -515,9 +527,11 @@ export async function POST(request: Request) {
             salidaAunNoDisponible: true,
             tipo: "ENTRADA",
             estado: asistencia.estado,
+            estadoJornada: "ABIERTA",
+            estadoSalida: "PENDIENTE",
             estudiante,
             asistencia,
-            message: `El estudiante ${estudiante.nombres} ${estudiante.apellidos} ya registró asistencia hoy a las ${horaReg}`,
+            message: `El estudiante ${estudiante.nombres} ${estudiante.apellidos} ya registró entrada hoy a las ${horaReg}. La jornada escolar está ABIERTA.`,
             turno: {
               nombre: estudiante.turno.nombre,
               horaSalida: estudiante.turno.horaSalida,
@@ -527,36 +541,58 @@ export async function POST(request: Request) {
         );
       }
 
-      // Si ya pasó el fin permitido para marcar salida
-      if (ahora > ventanaTurno.finPermitido) {
+      // 2. Cálculo del estado de salida (REGISTRADA vs FUERA_HORARIO)
+      const { estadoSalida, esFueraHorario, limiteSalida } = calcularEstadoSalida({
+        ahora,
+        horaSalidaTurno: ventanaTurno.horaSalidaTurno,
+        margenSalidaMinutos: estudiante.turno.margenSalidaMinutos,
+      });
+
+      const mensajeSalida = esFueraHorario
+        ? `Salida registrada con advertencia: fuera del horario permitido (Hora límite: ${formatoHora12(limiteSalida)})`
+        : "Salida registrada correctamente";
+
+      // 3. Actualización atómica en base de datos con guardia de concurrencia
+      const resultadoUpdate = await prisma.asistencia.updateMany({
+        where: {
+          id: asistencia.id,
+          horaSalida: null, // Evita colisiones de 2 salidas simultáneas
+        },
+        data: {
+          horaSalida: ahora,
+          estadoJornada: "CERRADA",
+          estadoSalida,
+          fotoSalida: fotoUrl,
+        },
+      });
+
+      // Si otro proceso concurrente ya actualizó la salida primero
+      if (resultadoUpdate.count === 0) {
+        const yaActualizada = await prisma.asistencia.findUnique({
+          where: { id: asistencia.id },
+        });
+        const horaSalidaReg = formatoHora12(yaActualizada?.horaSalida || ahora);
         return NextResponse.json(
           {
-            ok: false,
-            message:
-              `El horario para registrar salida del turno ${estudiante.turno.nombre} ya terminó. ` +
-              `La salida estuvo habilitada hasta las ${formatoHora12(ventanaTurno.finPermitido)}. ` +
-              `Hora actual: ${horaActual12}.`,
-            fueraDeHorario: true,
-            tipoRestriccion: "SALIDA_FINALIZADA",
+            ok: true,
+            yaRegistrado: true,
+            tipo: "SALIDA",
+            estadoJornada: "CERRADA",
+            estadoSalida: yaActualizada?.estadoSalida || estadoSalida,
+            estudiante,
+            asistencia: yaActualizada,
+            message: `El estudiante ${estudiante.nombres} ${estudiante.apellidos} ya registró su salida a las ${horaSalidaReg}`,
           },
           { status: 409 }
         );
       }
 
-      // REGISTRO DE SALIDA
-      asistencia =
-        await prisma.asistencia.update({
-          where: {
-            id: asistencia.id,
-          },
-          data: {
-            horaSalida: ahora,
-            ...(fotoUrl ? { fotoSalida: fotoUrl } : {}),
-            ...(!asistencia.fotoUrl && fotoUrl ? { fotoUrl } : {}),
-          },
-        });
+      // Recuperar el registro actualizado completo
+      const asistenciaCerrada = await prisma.asistencia.findUnique({
+        where: { id: asistencia.id },
+      });
 
-      console.log("[ASISTENCIA API] Registro de salida exitoso id:", asistencia.id);
+      console.log("[ASISTENCIA API] Registro de salida exitoso id:", asistencia.id, "Estado salida:", estadoSalida);
 
       // Notificaciones externas en segundo plano (NO bloqueantes)
       if (configuracionCanales?.canalWhatsAppActivo && estudiante.whatsapp) {
@@ -569,7 +605,7 @@ export async function POST(request: Request) {
           grado: estudiante.grado,
           seccion: estudiante.seccion,
           turno: `${estudiante.turno.nombre} (${estudiante.turno.horaEntrada} - ${estudiante.turno.horaSalida})`,
-          estado: asistencia.estado,
+          estado: estadoSalida,
           metodo,
         }).catch((error) => {
           console.error("Error no crítico enviando WhatsApp:", error);
@@ -583,7 +619,7 @@ export async function POST(request: Request) {
           tipo: "SALIDA",
           hora: horaActual12,
           metodo,
-          estado: asistencia.estado,
+          estado: estadoSalida,
         }).catch((error) => {
           console.error("Error no crítico enviando Telegram:", error);
         });
@@ -593,20 +629,29 @@ export async function POST(request: Request) {
         ok: true,
         tipo: "SALIDA",
         estado: asistencia.estado,
+        estadoJornada: "CERRADA",
+        estadoSalida,
+        esFueraHorario,
         estudiante,
-        asistencia,
-        message: "Salida registrada correctamente",
+        asistencia: asistenciaCerrada,
+        message: mensajeSalida,
       });
     }
 
     /*
-     * CASO C: YA REGISTRÓ ENTRADA Y SALIDA HOY
+     * CASO C: YA REGISTRÓ ENTRADA Y SALIDA HOY (JORNADA CERRADA)
      */
+    const horaEntradaReg = formatoHora12(asistencia.horaEntrada || asistencia.fecha);
+    const horaSalidaReg = formatoHora12(asistencia.horaSalida);
     return NextResponse.json(
       {
         ok: true,
         yaRegistrado: true,
-        message: `El estudiante ${estudiante.nombres} ${estudiante.apellidos} ya registró entrada y salida hoy`,
+        tipo: "SALIDA",
+        jornadaCerrada: true,
+        estadoJornada: "CERRADA",
+        estadoSalida: asistencia.estadoSalida || "REGISTRADA",
+        message: `El estudiante ${estudiante.nombres} ${estudiante.apellidos} ya completó su jornada escolar hoy (Entrada: ${horaEntradaReg}, Salida: ${horaSalidaReg})`,
         asistencia,
         estudiante,
       },

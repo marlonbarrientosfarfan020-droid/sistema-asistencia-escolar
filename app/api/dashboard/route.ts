@@ -6,6 +6,7 @@ import {
   ahoraPeru,
   crearFechaHoraPeru,
   obtenerLimitesDiaPeru,
+  obtenerVentanaTurno,
   ZONA_HORARIA,
 } from "@/lib/timezone";
 
@@ -963,6 +964,56 @@ export async function GET() {
           asistencia.horaSalida !== null
       ).length;
 
+    // Métricas del Modelo Profesional de Jornada Escolar (Requerimiento 5)
+    const metricasEntrada = {
+      puntuales: resumenGeneral.puntuales,
+      tardanzas: resumenGeneral.tardanzas,
+      sinIngreso: Math.max(totalEstudiantes - resumenGeneral.presentes, 0),
+    };
+
+    let salieron = 0;
+    let pendientes = 0;
+    let fueraHorario = 0;
+
+    for (const asistencia of asistenciaPorEstudiante.values()) {
+      if (asistencia.horaSalida) {
+        if (asistencia.estadoSalida === "FUERA_HORARIO") {
+          fueraHorario++;
+        } else {
+          salieron++;
+        }
+      } else if (asistencia.horaEntrada) {
+        const turno = asistencia.estudiante.turno;
+        if (turno) {
+          const ventana = obtenerVentanaTurno({
+            horaEntrada: turno.horaEntrada,
+            horaSalida: turno.horaSalida,
+            margenEntradaAnticipadaMinutos: turno.margenEntradaAnticipadaMinutos,
+            margenSalidaMinutos: turno.margenSalidaMinutos,
+            ahora,
+          });
+          if (ahora > ventana.finPermitido) {
+            fueraHorario++;
+          } else {
+            pendientes++;
+          }
+        } else {
+          pendientes++;
+        }
+      }
+    }
+
+    const metricasSalida = {
+      salieron,
+      pendientes,
+      fueraHorario,
+    };
+
+    const metricasJornada = {
+      entrada: metricasEntrada,
+      salida: metricasSalida,
+    };
+
     const textoIA =
       ultimoAnalisisIA?.resultado || "";
 
@@ -1233,6 +1284,9 @@ export async function GET() {
       resumenIA,
       topRiesgoIA,
       tendenciaSemanal,
+      metricasJornada,
+      metricasEntrada,
+      metricasSalida,
     });
   } catch (error) {
     console.error(
