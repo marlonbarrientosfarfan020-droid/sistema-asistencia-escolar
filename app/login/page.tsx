@@ -4,6 +4,7 @@ import { useConfiguracionColegio } from "@/hooks/useConfiguracionColegio";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import LoginTransition3D, { LoginTransition3DProps } from "@/components/LoginTransition3D";
 
 type LoginResponse = {
   ok?: boolean;
@@ -25,6 +26,7 @@ export default function LoginPage() {
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [modalOlvido, setModalOlvido] = useState(false);
   const [cargando, setCargando] = useState(false);
+  const [transicionLogin, setTransicionLogin] = useState<LoginTransition3DProps | null>(null);
 
  useEffect(() => {
   let activo = true;
@@ -184,13 +186,19 @@ localStorage.setItem(
 
 localStorage.setItem("rol", rol);
 
-router.replace(
+const destino = rol === "PERSONAL" ? "/marcar" : "/dashboard";
+const tipo =
   rol === "PERSONAL"
-    ? "/marcar"
-    : "/dashboard"
-);
+    ? "PERSONAL DE CONTROL"
+    : rol === "ADMIN"
+      ? "ADMINISTRADOR"
+      : "DIRECTIVO";
 
-router.refresh();
+setTransicionLogin({
+  usuario: data.usuario.nombre,
+  tipoUsuario: tipo,
+  rutaDestino: destino,
+});
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
       setError("No se pudo conectar con el servidor");
@@ -200,7 +208,15 @@ router.refresh();
   }
 
   return (
-    <main
+    <>
+      {transicionLogin && (
+        <LoginTransition3D
+          usuario={transicionLogin.usuario}
+          tipoUsuario={transicionLogin.tipoUsuario}
+          rutaDestino={transicionLogin.rutaDestino}
+        />
+      )}
+      <main
   className="relative min-h-dvh overflow-y-auto bg-cover bg-center px-4 py-6 sm:flex sm:items-center sm:justify-center"
       style={{
         backgroundImage: "url('/img/colegio-santa-rita.jpg')",
@@ -366,5 +382,6 @@ router.refresh();
         </div>
       )}
     </main>
+    </>
   );
 }

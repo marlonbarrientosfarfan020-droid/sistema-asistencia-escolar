@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import LoginTransition3D, { LoginTransition3DProps } from "@/components/LoginTransition3D";
 
 export default function PortalPadresLoginPage() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function PortalPadresLoginPage() {
   const [cargando, setCargando] = useState(false);
   const [comprobando, setComprobando] = useState(true);
   const [error, setError] = useState("");
+  const [transicionLogin, setTransicionLogin] = useState<LoginTransition3DProps | null>(null);
 
   // Verificar si ya tiene sesión activa
   useEffect(() => {
@@ -65,7 +67,16 @@ export default function PortalPadresLoginPage() {
         return;
       }
 
-      router.push("/portal-padres/dashboard");
+      const nombreHija = data?.familia?.estudiante?.nombres
+        ? `Familia de ${data.familia.estudiante.nombres}`
+        : `Familia (${codigoFamiliar.trim().toUpperCase()})`;
+
+      setTransicionLogin({
+        usuario: data?.familia?.tutorTitular || "Familia Santarritina",
+        tipoUsuario: "FAMILIA / APODERADO",
+        nombreEstudiante: nombreHija,
+        rutaDestino: "/portal-padres/dashboard",
+      });
     } catch (err) {
       console.error("Error en login:", err);
       setError("Error de conexión con el servidor. Intente nuevamente.");
@@ -86,7 +97,16 @@ export default function PortalPadresLoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center relative bg-slate-950 overflow-hidden p-4 sm:p-6">
+    <>
+      {transicionLogin && (
+        <LoginTransition3D
+          usuario={transicionLogin.usuario}
+          tipoUsuario={transicionLogin.tipoUsuario}
+          nombreEstudiante={transicionLogin.nombreEstudiante}
+          rutaDestino={transicionLogin.rutaDestino}
+        />
+      )}
+      <main className="min-h-screen flex items-center justify-center relative bg-slate-950 overflow-hidden p-4 sm:p-6">
       {/* Fondo con imagen institucional y degradado */}
       <div
         className="absolute inset-0 bg-cover bg-center opacity-20 scale-105"
@@ -225,5 +245,6 @@ export default function PortalPadresLoginPage() {
         </div>
       </div>
     </main>
+    </>
   );
 }
