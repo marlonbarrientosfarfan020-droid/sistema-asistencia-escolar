@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import Escudo3DCanvas from "./Escudo3DCanvas";
 
 export interface LoginTransition3DProps {
   usuario: string;
@@ -22,100 +23,141 @@ export default function LoginTransition3D({
   onComplete,
 }: LoginTransition3DProps) {
   const router = useRouter();
-  const [progreso, setProgreso] = useState(5);
+  const [progreso, setProgreso] = useState(6);
   const [faseTexto, setFaseTexto] = useState(0);
   const [desvanecerSalida, setDesvanecerSalida] = useState(false);
 
+  const esPadre = tipoUsuario === "FAMILIA" || tipoUsuario === "PADRE" || Boolean(nombreEstudiante);
+
   const textosEstado = [
-    { texto: "Iniciando tu sesión...", subtexto: "Verificando credenciales institucionales..." },
-    { texto: "Iniciando tu sesión...", subtexto: "Cargando módulo de asistencia escolar..." },
-    { texto: "Iniciando tu sesión...", subtexto: "Preparando panel institucional inteligente..." },
-    { texto: "¡Acceso autorizado!", subtexto: "Bienvenido al Sistema de Asistencia Escolar" },
+    {
+      titulo: (
+        <>
+          Iniciando tu <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">sesión...</span>
+        </>
+      ),
+      subtexto: "Conectando con el sistema de asistencia escolar",
+    },
+    {
+      titulo: (
+        <>
+          Iniciando tu <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">sesión...</span>
+        </>
+      ),
+      subtexto: "Validando credenciales institucionales y seguridad 360°...",
+    },
+    {
+      titulo: (
+        <>
+          ¡Acceso <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Autorizado!</span>
+        </>
+      ),
+      subtexto: "Cargando registros escolares en tiempo real...",
+    },
+    {
+      titulo: (
+        <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-200 drop-shadow-[0_0_20px_rgba(245,158,11,0.6)]">
+          {esPadre ? "¡Bienvenido a la Familia Santa Rita!" : "Bienvenido al Centro de Control Escolar"}
+        </span>
+      ),
+      subtexto: esPadre
+        ? `Portal oficial para la ${nombreEstudiante || `Familia de ${usuario}`}`
+        : "Acceso verificado exitosamente · Abriendo panel de control...",
+    },
   ];
 
   useEffect(() => {
-    // Incremento de la barra de progreso
-    const intervaloProgreso = setInterval(() => {
-      setProgreso((prev) => {
-        if (prev >= 100) {
-          clearInterval(intervaloProgreso);
-          return 100;
-        }
-        const delta = Math.floor(Math.random() * 4) + 2;
-        return Math.min(prev + delta, 100);
-      });
-    }, (duracionSegundos * 1000) / 45);
+    // 0. Prefetch de la ruta de destino para carga instantánea
+    if (rutaDestino) {
+      router.prefetch(rutaDestino);
+    }
 
-    // Cambios de estado de texto
-    const t1 = setTimeout(() => setFaseTexto(1), (duracionSegundos * 1000) * 0.25);
-    const t2 = setTimeout(() => setFaseTexto(2), (duracionSegundos * 1000) * 0.55);
-    const t3 = setTimeout(() => setFaseTexto(3), (duracionSegundos * 1000) * 0.85);
+    // 1. Barra de progreso fluida de 0% a 100%
+    const totalMs = duracionSegundos * 1000;
+    const startTime = performance.now();
 
-    // Desvanecimiento de salida antes de redirigir
-    const tSalida = setTimeout(() => {
-      setDesvanecerSalida(true);
-    }, (duracionSegundos * 1000) - 400);
+    const interval = setInterval(() => {
+      const elapsed = performance.now() - startTime;
+      const pct = Math.min(Math.round((elapsed / (totalMs - 350)) * 100), 100);
+      setProgreso(pct);
 
-    // Redirección final
+      if (pct >= 100) {
+        clearInterval(interval);
+      }
+    }, 45);
+
+    // 2. Fases dinámicas de texto
+    const t1 = setTimeout(() => setFaseTexto(1), totalMs * 0.28);
+    const t2 = setTimeout(() => setFaseTexto(2), totalMs * 0.58);
+    const t3 = setTimeout(() => setFaseTexto(3), totalMs * 0.78); // "Bienvenido al Centro de Control Escolar"
+
+    // 3. Desvanecimiento suave al finalizar (solo cuando se utiliza callback manual onComplete)
+    let tSalida: NodeJS.Timeout | null = null;
+    if (onComplete) {
+      tSalida = setTimeout(() => {
+        setDesvanecerSalida(true);
+      }, totalMs - 450);
+    }
+
+    // 4. Redirección final
     const tFin = setTimeout(() => {
       if (onComplete) {
         onComplete();
       } else {
         router.replace(rutaDestino);
-        router.refresh();
       }
-    }, duracionSegundos * 1000);
+    }, totalMs);
 
     return () => {
-      clearInterval(intervaloProgreso);
+      clearInterval(interval);
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
-      clearTimeout(tSalida);
+      if (tSalida) clearTimeout(tSalida);
       clearTimeout(tFin);
     };
   }, [duracionSegundos, onComplete, router, rutaDestino]);
 
   const subtituloHeader =
     nombreEstudiante ||
-    (tipoUsuario === "FAMILIA" || tipoUsuario === "PADRE"
+    (esPadre
       ? `Familia de ${usuario}`
       : `${usuario} · ${tipoUsuario}`);
 
   return (
     <div
-      className={`fixed inset-0 z-[99999] flex flex-col justify-between overflow-hidden bg-[#030a16] text-white select-none transition-opacity duration-500 ${
+      className={`fixed inset-0 z-[99999] flex flex-col justify-between overflow-hidden bg-[#030a16] text-white select-none transition-all duration-500 ${
         desvanecerSalida ? "opacity-0 scale-105 pointer-events-none" : "opacity-100 scale-100"
       }`}
       style={{
-        backgroundImage: "radial-gradient(ellipse at center, rgba(10, 34, 64, 0.7) 0%, rgba(3, 10, 22, 0.95) 75%, #02060f 100%), url('/img/login-transition-bg.jpg')",
+        backgroundImage: "radial-gradient(ellipse at center, rgba(10, 34, 64, 0.72) 0%, rgba(3, 10, 22, 0.94) 75%, #02060f 100%), url('/img/login-transition-bg.jpg')",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
     >
-      {/* CAPA DE AMBIENTE CINEMATOGRÁFICO Y PARTÍCULAS */}
+      {/* CAPA DE AMBIENTE CINEMATOGRÁFICO Y RESPLANDOR */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Haz de luz central vertical */}
-        <div className="absolute left-1/2 bottom-[25%] -translate-x-1/2 w-[240px] h-[580px] bg-gradient-to-t from-cyan-400/35 via-blue-500/15 to-transparent blur-3xl rounded-full" />
+        {/* Haz de luz central vertical hacia el pedestal */}
+        <div className="absolute left-1/2 bottom-[20%] -translate-x-1/2 w-[220px] sm:w-[320px] h-[550px] bg-gradient-to-t from-cyan-400/30 via-blue-500/15 to-transparent blur-3xl rounded-full" />
         
-        {/* Resplandor rojo institucional y dorado en las esquinas */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-red-600/15 blur-[120px] rounded-full" />
-        <div className="absolute top-1/3 -right-24 w-96 h-96 bg-amber-500/10 blur-[130px] rounded-full" />
-        <div className="absolute -bottom-20 left-1/4 w-[500px] h-64 bg-cyan-600/20 blur-[100px] rounded-full" />
+        {/* Resplandores ambientales en las esquinas */}
+        <div className="absolute -top-20 -left-20 w-80 h-80 bg-red-600/15 blur-[100px] rounded-full" />
+        <div className="absolute top-1/4 -right-20 w-80 h-80 bg-amber-500/15 blur-[120px] rounded-full" />
+        <div className="absolute -bottom-20 left-1/3 w-[450px] h-60 bg-cyan-500/15 blur-[90px] rounded-full" />
 
-        {/* Partículas flotantes de luz */}
-        <div className="particula p1" />
-        <div className="particula p2" />
-        <div className="particula p3" />
-        <div className="particula p4" />
-        <div className="particula p5" />
-        <div className="particula p6" />
+        {/* Partículas de luz CSS */}
+        <div className="particula-css p1" />
+        <div className="particula-css p2" />
+        <div className="particula-css p3" />
+        <div className="particula-css p4" />
       </div>
 
-      {/* 1. HEADER SUPERIOR */}
-      <header className="relative z-20 flex items-center justify-between px-6 py-5 sm:px-12 sm:py-6 backdrop-blur-sm bg-slate-950/20 border-b border-white/5">
+      {/* ======================================================== */}
+      {/* 1. HEADER SUPERIOR INSTITUCIONAL                         */}
+      {/* ======================================================== */}
+      <header className="relative z-20 flex items-center justify-between px-4 py-3 sm:px-12 sm:py-5 backdrop-blur-md bg-slate-950/30 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <div className="relative w-10 h-12 shrink-0 drop-shadow-[0_0_12px_rgba(234,179,8,0.4)]">
+          <div className="relative w-9 h-11 sm:w-11 sm:h-13 shrink-0 drop-shadow-[0_0_12px_rgba(234,179,8,0.5)]">
             <Image
               src="/img/logo-santa-rita.png"
               alt="Insignia Santa Rita de Cassia"
@@ -125,60 +167,45 @@ export default function LoginTransition3D({
             />
           </div>
           <div>
-            <h2 className="text-sm sm:text-base font-black tracking-wider text-white uppercase drop-shadow">
+            <h2 className="text-xs sm:text-base font-black tracking-wider text-white uppercase drop-shadow">
               SANTA RITA DE CASSIA
             </h2>
-            <p className="text-[11px] sm:text-xs font-semibold text-slate-300/80">
+            <p className="text-[10px] sm:text-xs font-semibold text-slate-300/85">
               {subtituloHeader}
             </p>
           </div>
         </div>
 
         <div className="text-right">
-          <p className="text-[10px] sm:text-xs font-black tracking-[0.25em] text-slate-300/90 uppercase">
+          <p className="text-[9px] sm:text-xs font-black tracking-[0.2em] sm:tracking-[0.25em] text-slate-300/90 uppercase">
             EDUCACIÓN &bull; DISCIPLINA &bull; FUTURO
           </p>
-          <div className="mt-1 h-0.5 w-12 ml-auto rounded-full bg-gradient-to-r from-cyan-400 to-blue-600" />
+          <div className="mt-1 h-0.5 w-10 sm:w-12 ml-auto rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
         </div>
       </header>
 
-      {/* 2. ESCENARIO CENTRAL 3D */}
-      <main className="relative z-20 flex flex-1 flex-col items-center justify-center px-4 py-2 my-auto">
+      {/* ======================================================== */}
+      {/* 2. ESCENARIO CENTRAL: ESCUDO 3D THREE.JS + ESTADO        */}
+      {/* ======================================================== */}
+      <main className="relative z-20 flex flex-1 flex-col items-center justify-center px-4 py-1 sm:py-3 my-auto overflow-visible">
         <div className="relative flex flex-col items-center justify-center w-full max-w-lg">
           
-          {/* Contenedor con Perspectiva 3D */}
-          <div className="relative w-[280px] h-[300px] sm:w-[320px] sm:h-[340px] flex items-center justify-center [perspective:1400px]">
+          {/* Contenedor 3D del Escudo de Santa Rita */}
+          <div className="relative w-[260px] h-[260px] sm:w-[340px] sm:h-[340px] flex items-center justify-center">
             
-            {/* Anillos Holográficos en Órbita 3D */}
-            <div className="anillo-holografico-azul" />
-            <div className="anillo-holografico-dorado" />
+            {/* Resplandor áureo dinámico detrás del escudo */}
+            <div className="absolute inset-0 m-auto w-44 h-44 sm:w-60 sm:h-60 rounded-full bg-gradient-to-tr from-amber-400/20 via-yellow-200/15 to-cyan-400/20 blur-3xl animate-pulse pointer-events-none" />
 
-            {/* Resplandor áureo detrás del escudo */}
-            <div className="absolute inset-0 m-auto w-48 h-48 sm:w-56 sm:h-56 rounded-full bg-gradient-to-tr from-amber-400/25 via-yellow-200/20 to-cyan-400/25 blur-2xl animate-pulse" />
+            {/* CANVAS 3D REAL (THREE.JS) CON VOLUMETRÍA, ORO Y GIRO 360° */}
+            <Escudo3DCanvas className="w-full h-full z-10" progreso={progreso} />
 
-            {/* Escudo 3D con Rotación 360° en el Eje Y */}
-            <div className="escudo-3d-wrapper">
-              <div className="escudo-3d-rotador">
-                <div className="relative w-[210px] h-[250px] sm:w-[240px] sm:h-[290px] drop-shadow-[0_20px_40px_rgba(0,0,0,0.85)] filter">
-                  <Image
-                    src="/img/escudo-3d-gold.png"
-                    alt="Escudo 3D Santa Rita de Cassia"
-                    fill
-                    sizes="(max-width: 640px) 210px, 240px"
-                    className="object-contain pointer-events-none drop-shadow-[0_0_25px_rgba(234,179,8,0.5)]"
-                    priority
-                  />
-                  {/* Destello de brillo metálico que barre el escudo */}
-                  <div className="brillo-especular" />
-                </div>
-              </div>
-            </div>
-
-            {/* Indicador Flotante 360° */}
-            <div className="absolute right-0 sm:-right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-950/60 border border-white/10 backdrop-blur-md shadow-lg pointer-events-none animate-in fade-in duration-700">
-              <span className="text-xs font-black text-white tracking-widest">360°</span>
+            {/* BADGE FLOTANTE "360°" EXACTO AL DISEÑO */}
+            <div className="absolute right-0 sm:-right-2 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-0.5 sm:gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl bg-slate-950/70 border border-cyan-400/40 backdrop-blur-md shadow-[0_0_15px_rgba(6,182,212,0.3)] pointer-events-none animate-in fade-in zoom-in duration-500">
+              <span className="text-[10px] sm:text-xs font-black text-white tracking-widest drop-shadow">
+                360°
+              </span>
               <svg
-                className="w-5 h-3 text-cyan-400 animate-pulse"
+                className="w-4 h-2.5 sm:w-5 sm:h-3 text-cyan-400 animate-pulse"
                 fill="none"
                 viewBox="0 0 24 12"
                 stroke="currentColor"
@@ -188,192 +215,84 @@ export default function LoginTransition3D({
               </svg>
             </div>
 
-            {/* Base / Plataforma tecnológica en el suelo */}
-            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-64 h-16 pointer-events-none">
-              <div className="w-full h-full rounded-full border border-cyan-400/40 bg-gradient-to-t from-cyan-500/20 to-transparent shadow-[0_0_30px_rgba(6,182,212,0.4)] [transform:rotateX(75deg)]" />
-              <div className="absolute inset-x-6 top-3 h-10 rounded-full border border-blue-400/50 [transform:rotateX(75deg)] animate-ping" />
+            {/* Base holográfica de luz en el suelo del pedestal */}
+            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-56 sm:w-72 h-14 pointer-events-none">
+              <div className="w-full h-full rounded-full border border-cyan-400/50 bg-gradient-to-t from-cyan-500/25 to-transparent shadow-[0_0_35px_rgba(6,182,212,0.5)] [transform:rotateX(75deg)]" />
+              <div className="absolute inset-x-5 top-2 h-8 rounded-full border border-blue-400/60 [transform:rotateX(75deg)] animate-ping opacity-40" />
             </div>
           </div>
 
-          {/* Textos de Estado de Bienvenida */}
-          <div className="mt-8 text-center px-4">
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Iniciando tu <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">sesión...</span>
+          {/* Textos de Estado con Animación de Transición */}
+          <div className="mt-4 sm:mt-6 text-center px-3 min-h-[70px] sm:min-h-[85px] flex flex-col items-center justify-center">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight transition-all duration-300">
+              {textosEstado[faseTexto].titulo}
             </h1>
-            <p className="mt-2 text-xs sm:text-sm font-medium text-slate-300/85 max-w-md mx-auto transition-all duration-300">
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm font-medium text-slate-300/90 max-w-md mx-auto transition-all duration-300">
               {textosEstado[faseTexto].subtexto}
             </p>
           </div>
 
-          {/* Barra de Progreso Neón */}
-          <div className="mt-5 w-full max-w-xs sm:max-w-sm flex items-center gap-3">
-            <div className="relative flex-1 h-2 sm:h-2.5 rounded-full bg-slate-900/80 border border-white/10 overflow-hidden shadow-inner backdrop-blur-sm">
+          {/* Barra de Progreso Neón con Porcentaje */}
+          <div className="mt-3 sm:mt-4 w-full max-w-[260px] sm:max-w-sm flex items-center gap-3">
+            <div className="relative flex-1 h-2 sm:h-2.5 rounded-full bg-slate-950/80 border border-cyan-400/30 overflow-hidden shadow-[inset_0_1px_3px_rgba(0,0,0,0.8)] backdrop-blur-sm p-0.5">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-400 transition-all duration-150 ease-out shadow-[0_0_12px_rgba(6,182,212,0.7)]"
+                className="h-full rounded-full bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-400 transition-all duration-100 ease-out shadow-[0_0_14px_rgba(6,182,212,0.8)]"
                 style={{ width: `${progreso}%` }}
               />
             </div>
-            <span className="text-xs sm:text-sm font-black text-cyan-300 tabular-nums w-10 text-right drop-shadow">
+            <span className="text-xs sm:text-sm font-black text-cyan-300 tabular-nums w-11 text-right drop-shadow font-mono">
               {progreso}%
             </span>
           </div>
         </div>
       </main>
 
-      {/* 3. FOOTER CON 4 TARJETAS INSTITUCIONALES */}
-      <footer className="relative z-20 px-4 py-4 sm:py-6 backdrop-blur-sm bg-slate-950/30 border-t border-white/5">
-        <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
+      {/* ======================================================== */}
+      {/* 3. FOOTER CON 4 TARJETAS INSTITUCIONALES                 */}
+      {/* ======================================================== */}
+      <footer className="relative z-20 px-3 py-3 sm:px-6 sm:py-5 backdrop-blur-md bg-slate-950/40 border-t border-white/5">
+        <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3.5">
           <TarjetaIcono
             icono="🛡️"
             titulo="Seguridad"
             subtitulo="en cada acceso"
-            bordeColor="hover:border-cyan-500/40"
+            bordeColor="border-cyan-500/30 hover:border-cyan-400/60"
+            glowColor="from-cyan-500/20"
           />
           <TarjetaIcono
             icono="👥"
             titulo="Compromiso"
             subtitulo="con la educación"
-            bordeColor="hover:border-blue-500/40"
+            bordeColor="border-blue-500/30 hover:border-blue-400/60"
+            glowColor="from-blue-500/20"
           />
           <TarjetaIcono
             icono="📊"
             titulo="Tecnología"
             subtitulo="para tu futuro"
-            bordeColor="hover:border-amber-500/40"
+            bordeColor="border-amber-500/30 hover:border-amber-400/60"
+            glowColor="from-amber-500/20"
           />
           <TarjetaIcono
             icono="💙"
             titulo="Una gran familia"
             subtitulo="Santa Rita de Cassia"
-            bordeColor="hover:border-red-500/40"
+            bordeColor="border-red-500/30 hover:border-red-400/60"
+            glowColor="from-red-500/20"
           />
         </div>
 
-        <div className="mt-4 text-center">
-          <p className="text-[10px] sm:text-xs font-black tracking-[0.3em] text-slate-400/80 uppercase">
+        <div className="mt-2.5 sm:mt-3.5 text-center">
+          <p className="text-[9px] sm:text-xs font-black tracking-[0.25em] sm:tracking-[0.3em] text-slate-400/90 uppercase">
             &ldquo;DISCIPLINA HOY, GRANDES LOGROS MAÑANA&rdquo;
           </p>
-          <div className="mt-1 h-0.5 w-16 mx-auto rounded-full bg-gradient-to-r from-blue-500 to-cyan-400" />
+          <div className="mt-1 h-0.5 w-14 sm:w-16 mx-auto rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
         </div>
       </footer>
 
-      {/* ESTILOS CSS 3D Y ANIMACIONES FLUIDAS A 60 FPS */}
+      {/* ESTILOS DE PARTÍCULAS CSS */}
       <style jsx>{`
-        /* Rotación 3D en el Eje Y del escudo (duración 6 segundos) */
-        .escudo-3d-wrapper {
-          transform-style: preserve-3d;
-          animation: entradaEscudo 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        .escudo-3d-rotador {
-          transform-style: preserve-3d;
-          animation: rotarYCompleto 6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
-
-        @keyframes entradaEscudo {
-          0% {
-            opacity: 0;
-            transform: scale(0.65) translateY(30px);
-          }
-          100% {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-
-        @keyframes rotarYCompleto {
-          0% {
-            transform: rotateY(0deg);
-          }
-          15% {
-            transform: rotateY(0deg);
-          }
-          65% {
-            transform: rotateY(360deg);
-          }
-          100% {
-            transform: rotateY(360deg);
-          }
-        }
-
-        /* Destello especular metálico sobre el escudo */
-        .brillo-especular {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(
-            105deg,
-            transparent 20%,
-            rgba(255, 255, 255, 0.35) 50%,
-            transparent 80%
-          );
-          mix-blend-mode: overlay;
-          pointer-events: none;
-          animation: brilloBarrido 3s ease-in-out infinite 1s;
-        }
-
-        @keyframes brilloBarrido {
-          0% {
-            transform: translateX(-150%);
-            opacity: 0;
-          }
-          30% {
-            opacity: 1;
-          }
-          60% {
-            transform: translateX(150%);
-            opacity: 0;
-          }
-          100% {
-            transform: translateX(150%);
-            opacity: 0;
-          }
-        }
-
-        /* Anillos holográficos que orbitan alrededor del escudo */
-        .anillo-holografico-azul {
-          position: absolute;
-          width: 320px;
-          height: 120px;
-          border-radius: 50%;
-          border: 2px solid rgba(6, 182, 212, 0.7);
-          box-shadow: 0 0 20px rgba(6, 182, 212, 0.5), inset 0 0 15px rgba(6, 182, 212, 0.3);
-          transform: rotateX(72deg) rotateY(-12deg);
-          pointer-events: none;
-          animation: orbitarAzul 5s linear infinite;
-        }
-
-        .anillo-holografico-dorado {
-          position: absolute;
-          width: 330px;
-          height: 130px;
-          border-radius: 50%;
-          border: 1.5px solid rgba(245, 158, 11, 0.65);
-          box-shadow: 0 0 20px rgba(245, 158, 11, 0.45);
-          transform: rotateX(70deg) rotateY(18deg);
-          pointer-events: none;
-          animation: orbitarDorado 7s linear infinite reverse;
-        }
-
-        @keyframes orbitarAzul {
-          0% {
-            transform: rotateX(72deg) rotateZ(0deg);
-          }
-          100% {
-            transform: rotateX(72deg) rotateZ(360deg);
-          }
-        }
-
-        @keyframes orbitarDorado {
-          0% {
-            transform: rotateX(70deg) rotateZ(0deg);
-          }
-          100% {
-            transform: rotateX(70deg) rotateZ(360deg);
-          }
-        }
-
-        /* Partículas flotantes */
-        .particula {
+        .particula-css {
           position: absolute;
           border-radius: 50%;
           background: radial-gradient(circle, #38bdf8 0%, rgba(56, 189, 248, 0) 70%);
@@ -381,59 +300,45 @@ export default function LoginTransition3D({
           filter: blur(1px);
         }
         .p1 {
-          width: 6px;
-          height: 6px;
-          left: 20%;
+          width: 5px;
+          height: 5px;
+          left: 18%;
           bottom: 25%;
-          animation: flotar 4s ease-in-out infinite;
+          animation: flotarParticula 4s ease-in-out infinite;
         }
         .p2 {
-          width: 8px;
-          height: 8px;
+          width: 7px;
+          height: 7px;
           left: 45%;
           bottom: 35%;
-          animation: flotar 5s ease-in-out infinite 1s;
+          animation: flotarParticula 5s ease-in-out infinite 1s;
         }
         .p3 {
           width: 5px;
           height: 5px;
-          right: 25%;
-          bottom: 20%;
-          animation: flotar 4.5s ease-in-out infinite 2s;
+          right: 22%;
+          bottom: 22%;
+          animation: flotarParticula 4.5s ease-in-out infinite 2s;
         }
         .p4 {
-          width: 7px;
-          height: 7px;
-          right: 40%;
-          bottom: 30%;
-          animation: flotar 6s ease-in-out infinite 0.5s;
-        }
-        .p5 {
-          width: 4px;
-          height: 4px;
-          left: 32%;
-          bottom: 15%;
-          animation: flotar 3.5s ease-in-out infinite 1.5s;
-        }
-        .p6 {
           width: 6px;
           height: 6px;
-          right: 18%;
-          bottom: 40%;
-          animation: flotar 5.5s ease-in-out infinite 2.5s;
+          right: 38%;
+          bottom: 32%;
+          animation: flotarParticula 6s ease-in-out infinite 0.5s;
         }
 
-        @keyframes flotar {
+        @keyframes flotarParticula {
           0% {
             transform: translateY(0) scale(0.8);
-            opacity: 0.3;
+            opacity: 0.2;
           }
           50% {
-            transform: translateY(-50px) scale(1.2);
-            opacity: 0.9;
+            transform: translateY(-45px) scale(1.2);
+            opacity: 0.8;
           }
           100% {
-            transform: translateY(-100px) scale(0.6);
+            transform: translateY(-90px) scale(0.6);
             opacity: 0;
           }
         }
@@ -447,23 +352,27 @@ function TarjetaIcono({
   titulo,
   subtitulo,
   bordeColor,
+  glowColor,
 }: {
   icono: string;
   titulo: string;
   subtitulo: string;
   bordeColor: string;
+  glowColor: string;
 }) {
   return (
     <div
-      className={`group flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl bg-slate-900/60 border border-white/10 backdrop-blur-md shadow-lg transition-all duration-300 hover:scale-[1.03] ${bordeColor}`}
+      className={`group flex flex-col items-center justify-center p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-slate-900/60 border ${bordeColor} backdrop-blur-md shadow-lg transition-all duration-300 hover:scale-[1.02]`}
     >
-      <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-tr from-blue-600/30 to-cyan-500/20 flex items-center justify-center text-lg sm:text-xl shadow-inner border border-white/10 group-hover:border-cyan-400/40 transition">
+      <div
+        className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-tr ${glowColor} to-transparent flex items-center justify-center text-base sm:text-xl shadow-inner border border-white/10`}
+      >
         {icono}
       </div>
-      <p className="mt-2 text-xs sm:text-sm font-black text-white text-center leading-tight">
+      <p className="mt-1.5 text-[11px] sm:text-xs md:text-sm font-black text-white text-center leading-tight">
         {titulo}
       </p>
-      <p className="text-[10px] sm:text-[11px] font-medium text-slate-400 text-center leading-tight mt-0.5">
+      <p className="text-[9px] sm:text-[10px] md:text-[11px] font-medium text-slate-400 text-center leading-tight mt-0.5">
         {subtitulo}
       </p>
     </div>

@@ -96,17 +96,19 @@ export default function PortalPadresLoginPage() {
     );
   }
 
+  if (transicionLogin) {
+    return (
+      <LoginTransition3D
+        usuario={transicionLogin.usuario}
+        tipoUsuario={transicionLogin.tipoUsuario}
+        nombreEstudiante={transicionLogin.nombreEstudiante}
+        rutaDestino={transicionLogin.rutaDestino}
+      />
+    );
+  }
+
   return (
-    <>
-      {transicionLogin && (
-        <LoginTransition3D
-          usuario={transicionLogin.usuario}
-          tipoUsuario={transicionLogin.tipoUsuario}
-          nombreEstudiante={transicionLogin.nombreEstudiante}
-          rutaDestino={transicionLogin.rutaDestino}
-        />
-      )}
-      <main className="min-h-screen flex items-center justify-center relative bg-slate-950 overflow-hidden p-4 sm:p-6">
+    <main className="min-h-screen flex items-center justify-center relative bg-slate-950 overflow-hidden p-4 sm:p-6">
       {/* Fondo con imagen institucional y degradado */}
       <div
         className="absolute inset-0 bg-cover bg-center opacity-20 scale-105"
@@ -245,6 +247,5 @@ export default function PortalPadresLoginPage() {
         </div>
       </div>
     </main>
-    </>
   );
 }

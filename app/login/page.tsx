@@ -27,6 +27,7 @@ export default function LoginPage() {
   const [modalOlvido, setModalOlvido] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [transicionLogin, setTransicionLogin] = useState<LoginTransition3DProps | null>(null);
+  const [comprobandoSesion, setComprobandoSesion] = useState(true);
 
  useEffect(() => {
   let activo = true;
@@ -86,10 +87,16 @@ export default function LoginPage() {
       localStorage.removeItem("logueado");
       localStorage.removeItem("usuario");
       localStorage.removeItem("rol");
+      if (activo) {
+        setComprobandoSesion(false);
+      }
     } catch {
       localStorage.removeItem("logueado");
       localStorage.removeItem("usuario");
       localStorage.removeItem("rol");
+      if (activo) {
+        setComprobandoSesion(false);
+      }
     }
   }
 
@@ -207,17 +214,36 @@ setTransicionLogin({
     }
   }
 
-  return (
-    <>
-      {transicionLogin && (
-        <LoginTransition3D
-          usuario={transicionLogin.usuario}
-          tipoUsuario={transicionLogin.tipoUsuario}
-          rutaDestino={transicionLogin.rutaDestino}
-        />
-      )}
+  if (transicionLogin) {
+    return (
+      <LoginTransition3D
+        usuario={transicionLogin.usuario}
+        tipoUsuario={transicionLogin.tipoUsuario}
+        rutaDestino={transicionLogin.rutaDestino}
+      />
+    );
+  }
+
+  if (comprobandoSesion) {
+    return (
       <main
-  className="relative min-h-dvh overflow-y-auto bg-cover bg-center px-4 py-6 sm:flex sm:items-center sm:justify-center"
+        className="relative min-h-dvh flex items-center justify-center bg-cover bg-center px-4"
+        style={{
+          backgroundImage: "url('/img/colegio-santa-rita.jpg')",
+        }}
+      >
+        <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" />
+        <div className="relative z-10 flex items-center gap-3 bg-slate-900/90 text-white px-6 py-4 rounded-2xl border border-slate-700/80 shadow-2xl backdrop-blur-md">
+          <span className="animate-spin text-xl">⏳</span>
+          <span className="font-bold text-sm text-slate-200">Verificando sesión...</span>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main
+      className="relative min-h-dvh overflow-y-auto bg-cover bg-center px-4 py-6 sm:flex sm:items-center sm:justify-center"
       style={{
         backgroundImage: "url('/img/colegio-santa-rita.jpg')",
       }}
@@ -382,6 +408,5 @@ setTransicionLogin({
         </div>
       )}
     </main>
-    </>
   );
 }
