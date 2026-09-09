@@ -45,3 +45,8 @@ next-env.d.ts
 .vercel
 
 scratch/
+backups/
+*.sql
+*.dump
+*.backup
+*.bak

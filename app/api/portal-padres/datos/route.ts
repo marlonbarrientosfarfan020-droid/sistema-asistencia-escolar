@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { exigirSesionPadre } from "@/lib/auth-padres";
+import {
+  verificarModuloActivo,
+  registrarAuditoriaBloqueo,
+} from "@/lib/supermotor-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,6 +13,26 @@ export async function GET(request: Request) {
   const acceso = await exigirSesionPadre();
   if (!acceso.autorizado) {
     return acceso.respuesta;
+  }
+
+  // FASE 4.4: Validar portalActivo en SuperMotor
+  const validacionPortal = await verificarModuloActivo("portal");
+  if (!validacionPortal.autorizado) {
+    await registrarAuditoriaBloqueo({
+      modulo: "PORTAL",
+      motivo: validacionPortal.motivo || "MODULO_DESACTIVADO",
+      usuario: `Padre ID ${acceso.sesion.codigoFamiliarId}`,
+    });
+
+    return NextResponse.json(
+      {
+        ok: false,
+        estado: "bloqueado",
+        message: "Portal temporalmente suspendido por administración.",
+        mensaje: "Portal temporalmente suspendido por administración.",
+      },
+      { status: 403 }
+    );
   }
 
   const { codigoFamiliarId } = acceso.sesion;

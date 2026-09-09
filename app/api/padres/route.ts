@@ -1,10 +1,11 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { registrarAuditoria } from "@/lib/auditoria";
 import {
   exigirAdminODirectivo,
   exigirAdminDirectivoDemoOPersonal,
 } from "@/lib/auth";
+import { resolverColegio } from "@/lib/tenant";
 import { generarCodigoFamiliar, formatoCodigoValido } from "@/lib/codigo-familiar";
 
 export const runtime = "nodejs";
@@ -147,10 +148,13 @@ export async function GET(request: Request) {
 
 // POST /api/padres
 export async function POST(request: Request) {
-  const acceso = await exigirAdminODirectivo();
+  const acceso = await exigirAdminODirectivo(request);
   if (!acceso.autorizado) {
     return acceso.respuesta;
   }
+
+  const tenant = resolverColegio(acceso.sesion, request);
+  const colegioId = tenant.ok ? tenant.context.colegioId : "SANTA_RITA_001";
 
   try {
     const body = await request.json();
@@ -175,7 +179,12 @@ export async function POST(request: Request) {
         );
       }
       const existe = await prisma.codigoFamiliar.findUnique({
-        where: { codigo: codigoAsignar },
+        where: {
+          colegioId_codigo: {
+            colegioId,
+            codigo: codigoAsignar,
+          },
+        },
       });
       if (existe) {
         return NextResponse.json(
@@ -190,7 +199,12 @@ export async function POST(request: Request) {
         intentos++;
         const candidato = generarCodigoFamiliar();
         const existe = await prisma.codigoFamiliar.findUnique({
-          where: { codigo: candidato },
+          where: {
+            colegioId_codigo: {
+              colegioId,
+              codigo: candidato,
+            },
+          },
         });
         if (!existe) {
           codigoAsignar = candidato;
@@ -220,6 +234,7 @@ export async function POST(request: Request) {
     const resultado = await prisma.$transaction(async (tx) => {
       const nuevaFamilia = await tx.codigoFamiliar.create({
         data: {
+          colegioId,
           codigo: codigoAsignar,
           tutorTitular,
           telefonoContacto,

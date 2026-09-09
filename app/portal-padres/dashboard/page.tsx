@@ -8,6 +8,7 @@ import { SelectorHijas, EstudianteHija } from "@/components/portal-padres/Select
 import { GraficosPadre } from "@/components/portal-padres/GraficosPadre";
 import { TablaAsistenciasHija } from "@/components/portal-padres/TablaAsistenciasHija";
 import { ModalFotoEvidencia, AsistenciaEvidencia } from "@/components/portal-padres/ModalFotoEvidencia";
+import { useRealtimeEvents } from "@/hooks/useRealtimeEvents";
 
 interface FamiliaInfo {
   id: number;
@@ -46,6 +47,15 @@ export default function PortalPadresDashboardPage() {
   const [cargando, setCargando] = useState(true);
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
   const [evidenciaSeleccionada, setEvidenciaSeleccionada] = useState<AsistenciaEvidencia | null>(null);
+  const [notificacionEnVivo, setNotificacionEnVivo] = useState<{
+    tipo: "ENTRADA" | "SALIDA";
+    estudianteNombre: string;
+    hora: string;
+    fecha: string;
+    estado: string;
+    fotoUrl?: string;
+    mensaje: string;
+  } | null>(null);
 
   const cargarDatos = useCallback(async (estudianteId?: number) => {
     try {
@@ -90,6 +100,38 @@ export default function PortalPadresDashboardPage() {
     setEstudianteIdSeleccionada(id);
     cargarDatos(id);
   }
+
+  // FASE 6.5: Conectar eventos en tiempo real para el portal de familias
+  const handleAsistenciaEnVivo = useCallback(
+    (evento: any) => {
+      const nombreEstudiante = `${evento.estudiante?.nombres || ""} ${evento.estudiante?.apellidos || ""}`.trim();
+      const estadoStr = evento.estado === "TARDE" ? "TARDANZA" : "PUNTUAL";
+      const esEntrada = evento.tipo === "ENTRADA" || !evento.tipo;
+
+      setNotificacionEnVivo({
+        tipo: esEntrada ? "ENTRADA" : "SALIDA",
+        estudianteNombre: nombreEstudiante || "Su hija",
+        hora: evento.hora || evento.hora24 || new Date().toLocaleTimeString("es-PE", { hour12: true }),
+        fecha: evento.fecha || new Date().toLocaleDateString("es-PE"),
+        estado: estadoStr,
+        fotoUrl: evento.fotoUrl,
+        mensaje: esEntrada ? "🟢 Ingresó al colegio" : "👋 Salió del colegio",
+      });
+
+      // Actualizar datos de fondo para sincronizar gráficos y tabla
+      if (estudianteIdSeleccionada && Number(evento.estudianteId) === estudianteIdSeleccionada) {
+        cargarDatos(estudianteIdSeleccionada);
+      } else {
+        cargarDatos();
+      }
+    },
+    [estudianteIdSeleccionada, cargarDatos]
+  );
+
+  const { conectado: sseConectado } = useRealtimeEvents({
+    onAsistencia: handleAsistenciaEnVivo,
+    onSalida: handleAsistenciaEnVivo,
+  });
 
   async function handleLogout() {
     try {
@@ -176,6 +218,73 @@ export default function PortalPadresDashboardPage() {
 
       {/* 2. Contenido Principal */}
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-6">
+        {/* Banner de Monitoreo en Vivo */}
+        {notificacionEnVivo && (
+          <div className="rounded-2xl border-2 border-emerald-500/80 bg-gradient-to-r from-emerald-900/95 via-slate-900 to-emerald-950/95 p-4 text-white shadow-xl flex flex-wrap items-center justify-between gap-4 animate-in fade-in slide-in-from-top duration-300">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-2xl">
+                {notificacionEnVivo.tipo === "ENTRADA" ? "🟢" : "👋"}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-emerald-300 uppercase tracking-wide text-xs">
+                    {notificacionEnVivo.mensaje}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-400/20 text-emerald-200 border border-emerald-400/40">
+                    {notificacionEnVivo.estado}
+                  </span>
+                </div>
+                <p className="font-extrabold text-base text-white mt-0.5">
+                  {notificacionEnVivo.estudianteNombre}
+                </p>
+                <p className="text-xs text-slate-300">
+                  Hora: <strong className="text-white">{notificacionEnVivo.hora}</strong> · Fecha: {notificacionEnVivo.fecha}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {notificacionEnVivo.fotoUrl && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEvidenciaSeleccionada({
+                      id: Date.now(),
+                      fecha: notificacionEnVivo.fecha,
+                      horaEntrada: notificacionEnVivo.tipo === "ENTRADA" ? notificacionEnVivo.hora : null,
+                      horaSalida: notificacionEnVivo.tipo === "SALIDA" ? notificacionEnVivo.hora : null,
+                      metodo: "EN VIVO",
+                      estado: notificacionEnVivo.estado,
+                      fotoEntrada: notificacionEnVivo.fotoUrl || null,
+                      fotoSalida: null,
+                      fotoUrl: notificacionEnVivo.fotoUrl || null,
+                    })
+                  }
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition flex items-center gap-1.5"
+                >
+                  <span>📸</span>
+                  <span>Ver Foto Evidencia</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setNotificacionEnVivo(null)}
+                className="text-slate-400 hover:text-white text-xs px-2 py-1 rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Indicador de conexión SSE discreto */}
+        {sseConectado && (
+          <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-3 py-1.5 rounded-xl w-fit">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Canal en vivo activo · Las asistencias se actualizan automáticamente</span>
+          </div>
+        )}
+
         {/* Selector de Hijas */}
         <SelectorHijas
           estudiantes={datos.estudiantes}

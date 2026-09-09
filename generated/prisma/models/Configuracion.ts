@@ -48,6 +48,7 @@ export type ConfiguracionSumAggregateOutputType = {
 
 export type ConfiguracionMinAggregateOutputType = {
   id: number | null
+  colegioId: string | null
   nombreColegio: string | null
   logoUrl: string | null
   direccion: string | null
@@ -92,6 +93,7 @@ export type ConfiguracionMinAggregateOutputType = {
 
 export type ConfiguracionMaxAggregateOutputType = {
   id: number | null
+  colegioId: string | null
   nombreColegio: string | null
   logoUrl: string | null
   direccion: string | null
@@ -136,6 +138,7 @@ export type ConfiguracionMaxAggregateOutputType = {
 
 export type ConfiguracionCountAggregateOutputType = {
   id: number
+  colegioId: number
   nombreColegio: number
   logoUrl: number
   direccion: number
@@ -202,6 +205,7 @@ export type ConfiguracionSumAggregateInputType = {
 
 export type ConfiguracionMinAggregateInputType = {
   id?: true
+  colegioId?: true
   nombreColegio?: true
   logoUrl?: true
   direccion?: true
@@ -246,6 +250,7 @@ export type ConfiguracionMinAggregateInputType = {
 
 export type ConfiguracionMaxAggregateInputType = {
   id?: true
+  colegioId?: true
   nombreColegio?: true
   logoUrl?: true
   direccion?: true
@@ -290,6 +295,7 @@ export type ConfiguracionMaxAggregateInputType = {
 
 export type ConfiguracionCountAggregateInputType = {
   id?: true
+  colegioId?: true
   nombreColegio?: true
   logoUrl?: true
   direccion?: true
@@ -421,6 +427,7 @@ export type ConfiguracionGroupByArgs<ExtArgs extends runtime.Types.Extensions.In
 
 export type ConfiguracionGroupByOutputType = {
   id: number
+  colegioId: string
   nombreColegio: string
   logoUrl: string
   direccion: string
@@ -488,6 +495,7 @@ export type ConfiguracionWhereInput = {
   OR?: Prisma.ConfiguracionWhereInput[]
   NOT?: Prisma.ConfiguracionWhereInput | Prisma.ConfiguracionWhereInput[]
   id?: Prisma.IntFilter<"Configuracion"> | number
+  colegioId?: Prisma.StringFilter<"Configuracion"> | string
   nombreColegio?: Prisma.StringFilter<"Configuracion"> | string
   logoUrl?: Prisma.StringFilter<"Configuracion"> | string
   direccion?: Prisma.StringFilter<"Configuracion"> | string
@@ -528,10 +536,12 @@ export type ConfiguracionWhereInput = {
   canalTelegramActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
   canalWhatsAppActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
   canalPortalWebActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
+  colegio?: Prisma.XOR<Prisma.ColegioScalarRelationFilter, Prisma.ColegioWhereInput>
 }
 
 export type ConfiguracionOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   nombreColegio?: Prisma.SortOrder
   logoUrl?: Prisma.SortOrder
   direccion?: Prisma.SortOrder
@@ -572,10 +582,12 @@ export type ConfiguracionOrderByWithRelationInput = {
   canalTelegramActivo?: Prisma.SortOrder
   canalWhatsAppActivo?: Prisma.SortOrder
   canalPortalWebActivo?: Prisma.SortOrder
+  colegio?: Prisma.ColegioOrderByWithRelationInput
 }
 
 export type ConfiguracionWhereUniqueInput = Prisma.AtLeast<{
   id?: number
+  colegioId?: string
   AND?: Prisma.ConfiguracionWhereInput | Prisma.ConfiguracionWhereInput[]
   OR?: Prisma.ConfiguracionWhereInput[]
   NOT?: Prisma.ConfiguracionWhereInput | Prisma.ConfiguracionWhereInput[]
@@ -619,10 +631,12 @@ export type ConfiguracionWhereUniqueInput = Prisma.AtLeast<{
   canalTelegramActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
   canalWhatsAppActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
   canalPortalWebActivo?: Prisma.BoolFilter<"Configuracion"> | boolean
-}, "id">
+  colegio?: Prisma.XOR<Prisma.ColegioScalarRelationFilter, Prisma.ColegioWhereInput>
+}, "id" | "colegioId">
 
 export type ConfiguracionOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   nombreColegio?: Prisma.SortOrder
   logoUrl?: Prisma.SortOrder
   direccion?: Prisma.SortOrder
@@ -675,6 +689,7 @@ export type ConfiguracionScalarWhereWithAggregatesInput = {
   OR?: Prisma.ConfiguracionScalarWhereWithAggregatesInput[]
   NOT?: Prisma.ConfiguracionScalarWhereWithAggregatesInput | Prisma.ConfiguracionScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"Configuracion"> | number
+  colegioId?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
   nombreColegio?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
   logoUrl?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
   direccion?: Prisma.StringWithAggregatesFilter<"Configuracion"> | string
@@ -758,10 +773,12 @@ export type ConfiguracionCreateInput = {
   canalTelegramActivo?: boolean
   canalWhatsAppActivo?: boolean
   canalPortalWebActivo?: boolean
+  colegio?: Prisma.ColegioCreateNestedOneWithoutConfiguracionInput
 }
 
 export type ConfiguracionUncheckedCreateInput = {
   id?: number
+  colegioId?: string
   nombreColegio?: string
   logoUrl?: string
   direccion?: string
@@ -845,10 +862,12 @@ export type ConfiguracionUpdateInput = {
   canalTelegramActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
   canalWhatsAppActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
   canalPortalWebActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  colegio?: Prisma.ColegioUpdateOneRequiredWithoutConfiguracionNestedInput
 }
 
 export type ConfiguracionUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   nombreColegio?: Prisma.StringFieldUpdateOperationsInput | string
   logoUrl?: Prisma.StringFieldUpdateOperationsInput | string
   direccion?: Prisma.StringFieldUpdateOperationsInput | string
@@ -893,6 +912,7 @@ export type ConfiguracionUncheckedUpdateInput = {
 
 export type ConfiguracionCreateManyInput = {
   id?: number
+  colegioId?: string
   nombreColegio?: string
   logoUrl?: string
   direccion?: string
@@ -980,6 +1000,7 @@ export type ConfiguracionUpdateManyMutationInput = {
 
 export type ConfiguracionUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   nombreColegio?: Prisma.StringFieldUpdateOperationsInput | string
   logoUrl?: Prisma.StringFieldUpdateOperationsInput | string
   direccion?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1022,8 +1043,14 @@ export type ConfiguracionUncheckedUpdateManyInput = {
   canalPortalWebActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
+export type ConfiguracionNullableScalarRelationFilter = {
+  is?: Prisma.ConfiguracionWhereInput | null
+  isNot?: Prisma.ConfiguracionWhereInput | null
+}
+
 export type ConfiguracionCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   nombreColegio?: Prisma.SortOrder
   logoUrl?: Prisma.SortOrder
   direccion?: Prisma.SortOrder
@@ -1078,6 +1105,7 @@ export type ConfiguracionAvgOrderByAggregateInput = {
 
 export type ConfiguracionMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   nombreColegio?: Prisma.SortOrder
   logoUrl?: Prisma.SortOrder
   direccion?: Prisma.SortOrder
@@ -1122,6 +1150,7 @@ export type ConfiguracionMaxOrderByAggregateInput = {
 
 export type ConfiguracionMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   nombreColegio?: Prisma.SortOrder
   logoUrl?: Prisma.SortOrder
   direccion?: Prisma.SortOrder
@@ -1174,10 +1203,233 @@ export type ConfiguracionSumOrderByAggregateInput = {
   frecuenciaRevisionMinutos?: Prisma.SortOrder
 }
 
+export type ConfiguracionCreateNestedOneWithoutColegioInput = {
+  create?: Prisma.XOR<Prisma.ConfiguracionCreateWithoutColegioInput, Prisma.ConfiguracionUncheckedCreateWithoutColegioInput>
+  connectOrCreate?: Prisma.ConfiguracionCreateOrConnectWithoutColegioInput
+  connect?: Prisma.ConfiguracionWhereUniqueInput
+}
+
+export type ConfiguracionUncheckedCreateNestedOneWithoutColegioInput = {
+  create?: Prisma.XOR<Prisma.ConfiguracionCreateWithoutColegioInput, Prisma.ConfiguracionUncheckedCreateWithoutColegioInput>
+  connectOrCreate?: Prisma.ConfiguracionCreateOrConnectWithoutColegioInput
+  connect?: Prisma.ConfiguracionWhereUniqueInput
+}
+
+export type ConfiguracionUpdateOneWithoutColegioNestedInput = {
+  create?: Prisma.XOR<Prisma.ConfiguracionCreateWithoutColegioInput, Prisma.ConfiguracionUncheckedCreateWithoutColegioInput>
+  connectOrCreate?: Prisma.ConfiguracionCreateOrConnectWithoutColegioInput
+  upsert?: Prisma.ConfiguracionUpsertWithoutColegioInput
+  disconnect?: Prisma.ConfiguracionWhereInput | boolean
+  delete?: Prisma.ConfiguracionWhereInput | boolean
+  connect?: Prisma.ConfiguracionWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ConfiguracionUpdateToOneWithWhereWithoutColegioInput, Prisma.ConfiguracionUpdateWithoutColegioInput>, Prisma.ConfiguracionUncheckedUpdateWithoutColegioInput>
+}
+
+export type ConfiguracionUncheckedUpdateOneWithoutColegioNestedInput = {
+  create?: Prisma.XOR<Prisma.ConfiguracionCreateWithoutColegioInput, Prisma.ConfiguracionUncheckedCreateWithoutColegioInput>
+  connectOrCreate?: Prisma.ConfiguracionCreateOrConnectWithoutColegioInput
+  upsert?: Prisma.ConfiguracionUpsertWithoutColegioInput
+  disconnect?: Prisma.ConfiguracionWhereInput | boolean
+  delete?: Prisma.ConfiguracionWhereInput | boolean
+  connect?: Prisma.ConfiguracionWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ConfiguracionUpdateToOneWithWhereWithoutColegioInput, Prisma.ConfiguracionUpdateWithoutColegioInput>, Prisma.ConfiguracionUncheckedUpdateWithoutColegioInput>
+}
+
+export type ConfiguracionCreateWithoutColegioInput = {
+  nombreColegio?: string
+  logoUrl?: string
+  direccion?: string
+  telefono?: string
+  correo?: string
+  director?: string
+  createdAt?: Date | string
+  reporteTelegramActivo?: boolean
+  horaReporteDiario?: string
+  telegramDirectorChatId?: string
+  enviarReporteExcel?: boolean
+  enviarReportePdf?: boolean
+  ultimoReporteTelegramAt?: Date | string | null
+  ultimoReporteTelegramEstado?: string
+  reporteDirectorActivo?: boolean
+  frecuenciaReporteDirector?: string
+  diaReporteDirector?: number
+  diaMesReporteDirector?: number
+  horaReporteDirector?: string
+  ultimoReporteDirectorAt?: Date | string | null
+  reportePadresActivo?: boolean
+  frecuenciaReportePadres?: string
+  diaReportePadres?: number
+  diaMesReportePadres?: number
+  horaReportePadres?: string
+  incluirRiesgoIAReportePadres?: boolean
+  ultimoReportePadresAt?: Date | string | null
+  automatizacionesActivas?: boolean
+  alertaIngresoPendienteActiva?: boolean
+  minutosAlertaInicial?: number
+  alertaTardanzaActiva?: boolean
+  alertaAusenciaActiva?: boolean
+  modoPruebaAlertas?: boolean
+  telegramPruebaChatId?: string
+  frecuenciaRevisionMinutos?: number
+  ultimaEjecucionAutomatizaciones?: Date | string | null
+  ultimaEjecucionEstado?: string
+  canalTelegramActivo?: boolean
+  canalWhatsAppActivo?: boolean
+  canalPortalWebActivo?: boolean
+}
+
+export type ConfiguracionUncheckedCreateWithoutColegioInput = {
+  id?: number
+  nombreColegio?: string
+  logoUrl?: string
+  direccion?: string
+  telefono?: string
+  correo?: string
+  director?: string
+  createdAt?: Date | string
+  reporteTelegramActivo?: boolean
+  horaReporteDiario?: string
+  telegramDirectorChatId?: string
+  enviarReporteExcel?: boolean
+  enviarReportePdf?: boolean
+  ultimoReporteTelegramAt?: Date | string | null
+  ultimoReporteTelegramEstado?: string
+  reporteDirectorActivo?: boolean
+  frecuenciaReporteDirector?: string
+  diaReporteDirector?: number
+  diaMesReporteDirector?: number
+  horaReporteDirector?: string
+  ultimoReporteDirectorAt?: Date | string | null
+  reportePadresActivo?: boolean
+  frecuenciaReportePadres?: string
+  diaReportePadres?: number
+  diaMesReportePadres?: number
+  horaReportePadres?: string
+  incluirRiesgoIAReportePadres?: boolean
+  ultimoReportePadresAt?: Date | string | null
+  automatizacionesActivas?: boolean
+  alertaIngresoPendienteActiva?: boolean
+  minutosAlertaInicial?: number
+  alertaTardanzaActiva?: boolean
+  alertaAusenciaActiva?: boolean
+  modoPruebaAlertas?: boolean
+  telegramPruebaChatId?: string
+  frecuenciaRevisionMinutos?: number
+  ultimaEjecucionAutomatizaciones?: Date | string | null
+  ultimaEjecucionEstado?: string
+  canalTelegramActivo?: boolean
+  canalWhatsAppActivo?: boolean
+  canalPortalWebActivo?: boolean
+}
+
+export type ConfiguracionCreateOrConnectWithoutColegioInput = {
+  where: Prisma.ConfiguracionWhereUniqueInput
+  create: Prisma.XOR<Prisma.ConfiguracionCreateWithoutColegioInput, Prisma.ConfiguracionUncheckedCreateWithoutColegioInput>
+}
+
+export type ConfiguracionUpsertWithoutColegioInput = {
+  update: Prisma.XOR<Prisma.ConfiguracionUpdateWithoutColegioInput, Prisma.ConfiguracionUncheckedUpdateWithoutColegioInput>
+  create: Prisma.XOR<Prisma.ConfiguracionCreateWithoutColegioInput, Prisma.ConfiguracionUncheckedCreateWithoutColegioInput>
+  where?: Prisma.ConfiguracionWhereInput
+}
+
+export type ConfiguracionUpdateToOneWithWhereWithoutColegioInput = {
+  where?: Prisma.ConfiguracionWhereInput
+  data: Prisma.XOR<Prisma.ConfiguracionUpdateWithoutColegioInput, Prisma.ConfiguracionUncheckedUpdateWithoutColegioInput>
+}
+
+export type ConfiguracionUpdateWithoutColegioInput = {
+  nombreColegio?: Prisma.StringFieldUpdateOperationsInput | string
+  logoUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  direccion?: Prisma.StringFieldUpdateOperationsInput | string
+  telefono?: Prisma.StringFieldUpdateOperationsInput | string
+  correo?: Prisma.StringFieldUpdateOperationsInput | string
+  director?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  reporteTelegramActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  horaReporteDiario?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramDirectorChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  enviarReporteExcel?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  enviarReportePdf?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  ultimoReporteTelegramAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ultimoReporteTelegramEstado?: Prisma.StringFieldUpdateOperationsInput | string
+  reporteDirectorActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frecuenciaReporteDirector?: Prisma.StringFieldUpdateOperationsInput | string
+  diaReporteDirector?: Prisma.IntFieldUpdateOperationsInput | number
+  diaMesReporteDirector?: Prisma.IntFieldUpdateOperationsInput | number
+  horaReporteDirector?: Prisma.StringFieldUpdateOperationsInput | string
+  ultimoReporteDirectorAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reportePadresActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frecuenciaReportePadres?: Prisma.StringFieldUpdateOperationsInput | string
+  diaReportePadres?: Prisma.IntFieldUpdateOperationsInput | number
+  diaMesReportePadres?: Prisma.IntFieldUpdateOperationsInput | number
+  horaReportePadres?: Prisma.StringFieldUpdateOperationsInput | string
+  incluirRiesgoIAReportePadres?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  ultimoReportePadresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  automatizacionesActivas?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alertaIngresoPendienteActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  minutosAlertaInicial?: Prisma.IntFieldUpdateOperationsInput | number
+  alertaTardanzaActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alertaAusenciaActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  modoPruebaAlertas?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramPruebaChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  frecuenciaRevisionMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  ultimaEjecucionAutomatizaciones?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ultimaEjecucionEstado?: Prisma.StringFieldUpdateOperationsInput | string
+  canalTelegramActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  canalWhatsAppActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  canalPortalWebActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+}
+
+export type ConfiguracionUncheckedUpdateWithoutColegioInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  nombreColegio?: Prisma.StringFieldUpdateOperationsInput | string
+  logoUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  direccion?: Prisma.StringFieldUpdateOperationsInput | string
+  telefono?: Prisma.StringFieldUpdateOperationsInput | string
+  correo?: Prisma.StringFieldUpdateOperationsInput | string
+  director?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  reporteTelegramActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  horaReporteDiario?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramDirectorChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  enviarReporteExcel?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  enviarReportePdf?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  ultimoReporteTelegramAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ultimoReporteTelegramEstado?: Prisma.StringFieldUpdateOperationsInput | string
+  reporteDirectorActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frecuenciaReporteDirector?: Prisma.StringFieldUpdateOperationsInput | string
+  diaReporteDirector?: Prisma.IntFieldUpdateOperationsInput | number
+  diaMesReporteDirector?: Prisma.IntFieldUpdateOperationsInput | number
+  horaReporteDirector?: Prisma.StringFieldUpdateOperationsInput | string
+  ultimoReporteDirectorAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reportePadresActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frecuenciaReportePadres?: Prisma.StringFieldUpdateOperationsInput | string
+  diaReportePadres?: Prisma.IntFieldUpdateOperationsInput | number
+  diaMesReportePadres?: Prisma.IntFieldUpdateOperationsInput | number
+  horaReportePadres?: Prisma.StringFieldUpdateOperationsInput | string
+  incluirRiesgoIAReportePadres?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  ultimoReportePadresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  automatizacionesActivas?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alertaIngresoPendienteActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  minutosAlertaInicial?: Prisma.IntFieldUpdateOperationsInput | number
+  alertaTardanzaActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alertaAusenciaActiva?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  modoPruebaAlertas?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramPruebaChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  frecuenciaRevisionMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  ultimaEjecucionAutomatizaciones?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ultimaEjecucionEstado?: Prisma.StringFieldUpdateOperationsInput | string
+  canalTelegramActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  canalWhatsAppActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  canalPortalWebActivo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+}
+
 
 
 export type ConfiguracionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   nombreColegio?: boolean
   logoUrl?: boolean
   direccion?: boolean
@@ -1218,10 +1470,12 @@ export type ConfiguracionSelect<ExtArgs extends runtime.Types.Extensions.Interna
   canalTelegramActivo?: boolean
   canalWhatsAppActivo?: boolean
   canalPortalWebActivo?: boolean
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["configuracion"]>
 
 export type ConfiguracionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   nombreColegio?: boolean
   logoUrl?: boolean
   direccion?: boolean
@@ -1262,10 +1516,12 @@ export type ConfiguracionSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   canalTelegramActivo?: boolean
   canalWhatsAppActivo?: boolean
   canalPortalWebActivo?: boolean
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["configuracion"]>
 
 export type ConfiguracionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   nombreColegio?: boolean
   logoUrl?: boolean
   direccion?: boolean
@@ -1306,10 +1562,12 @@ export type ConfiguracionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   canalTelegramActivo?: boolean
   canalWhatsAppActivo?: boolean
   canalPortalWebActivo?: boolean
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["configuracion"]>
 
 export type ConfiguracionSelectScalar = {
   id?: boolean
+  colegioId?: boolean
   nombreColegio?: boolean
   logoUrl?: boolean
   direccion?: boolean
@@ -1352,13 +1610,25 @@ export type ConfiguracionSelectScalar = {
   canalPortalWebActivo?: boolean
 }
 
-export type ConfiguracionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nombreColegio" | "logoUrl" | "direccion" | "telefono" | "correo" | "director" | "createdAt" | "reporteTelegramActivo" | "horaReporteDiario" | "telegramDirectorChatId" | "enviarReporteExcel" | "enviarReportePdf" | "ultimoReporteTelegramAt" | "ultimoReporteTelegramEstado" | "reporteDirectorActivo" | "frecuenciaReporteDirector" | "diaReporteDirector" | "diaMesReporteDirector" | "horaReporteDirector" | "ultimoReporteDirectorAt" | "reportePadresActivo" | "frecuenciaReportePadres" | "diaReportePadres" | "diaMesReportePadres" | "horaReportePadres" | "incluirRiesgoIAReportePadres" | "ultimoReportePadresAt" | "automatizacionesActivas" | "alertaIngresoPendienteActiva" | "minutosAlertaInicial" | "alertaTardanzaActiva" | "alertaAusenciaActiva" | "modoPruebaAlertas" | "telegramPruebaChatId" | "frecuenciaRevisionMinutos" | "ultimaEjecucionAutomatizaciones" | "ultimaEjecucionEstado" | "canalTelegramActivo" | "canalWhatsAppActivo" | "canalPortalWebActivo", ExtArgs["result"]["configuracion"]>
+export type ConfiguracionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "colegioId" | "nombreColegio" | "logoUrl" | "direccion" | "telefono" | "correo" | "director" | "createdAt" | "reporteTelegramActivo" | "horaReporteDiario" | "telegramDirectorChatId" | "enviarReporteExcel" | "enviarReportePdf" | "ultimoReporteTelegramAt" | "ultimoReporteTelegramEstado" | "reporteDirectorActivo" | "frecuenciaReporteDirector" | "diaReporteDirector" | "diaMesReporteDirector" | "horaReporteDirector" | "ultimoReporteDirectorAt" | "reportePadresActivo" | "frecuenciaReportePadres" | "diaReportePadres" | "diaMesReportePadres" | "horaReportePadres" | "incluirRiesgoIAReportePadres" | "ultimoReportePadresAt" | "automatizacionesActivas" | "alertaIngresoPendienteActiva" | "minutosAlertaInicial" | "alertaTardanzaActiva" | "alertaAusenciaActiva" | "modoPruebaAlertas" | "telegramPruebaChatId" | "frecuenciaRevisionMinutos" | "ultimaEjecucionAutomatizaciones" | "ultimaEjecucionEstado" | "canalTelegramActivo" | "canalWhatsAppActivo" | "canalPortalWebActivo", ExtArgs["result"]["configuracion"]>
+export type ConfiguracionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
+}
+export type ConfiguracionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
+}
+export type ConfiguracionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
+}
 
 export type $ConfiguracionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Configuracion"
-  objects: {}
+  objects: {
+    colegio: Prisma.$ColegioPayload<ExtArgs>
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
+    colegioId: string
     nombreColegio: string
     logoUrl: string
     direccion: string
@@ -1793,6 +2063,7 @@ readonly fields: ConfiguracionFieldRefs;
  */
 export interface Prisma__ConfiguracionClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  colegio<T extends Prisma.ColegioDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ColegioDefaultArgs<ExtArgs>>): Prisma.Prisma__ColegioClient<runtime.Types.Result.GetResult<Prisma.$ColegioPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1823,6 +2094,7 @@ export interface Prisma__ConfiguracionClient<T, Null = never, ExtArgs extends ru
  */
 export interface ConfiguracionFieldRefs {
   readonly id: Prisma.FieldRef<"Configuracion", 'Int'>
+  readonly colegioId: Prisma.FieldRef<"Configuracion", 'String'>
   readonly nombreColegio: Prisma.FieldRef<"Configuracion", 'String'>
   readonly logoUrl: Prisma.FieldRef<"Configuracion", 'String'>
   readonly direccion: Prisma.FieldRef<"Configuracion", 'String'>
@@ -1880,6 +2152,10 @@ export type ConfiguracionFindUniqueArgs<ExtArgs extends runtime.Types.Extensions
    */
   omit?: Prisma.ConfiguracionOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ConfiguracionInclude<ExtArgs> | null
+  /**
    * Filter, which Configuracion to fetch.
    */
   where: Prisma.ConfiguracionWhereUniqueInput
@@ -1898,6 +2174,10 @@ export type ConfiguracionFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Ext
    */
   omit?: Prisma.ConfiguracionOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ConfiguracionInclude<ExtArgs> | null
+  /**
    * Filter, which Configuracion to fetch.
    */
   where: Prisma.ConfiguracionWhereUniqueInput
@@ -1915,6 +2195,10 @@ export type ConfiguracionFindFirstArgs<ExtArgs extends runtime.Types.Extensions.
    * Omit specific fields from the Configuracion
    */
   omit?: Prisma.ConfiguracionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ConfiguracionInclude<ExtArgs> | null
   /**
    * Filter, which Configuracion to fetch.
    */
@@ -1964,6 +2248,10 @@ export type ConfiguracionFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Exte
    */
   omit?: Prisma.ConfiguracionOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ConfiguracionInclude<ExtArgs> | null
+  /**
    * Filter, which Configuracion to fetch.
    */
   where?: Prisma.ConfiguracionWhereInput
@@ -2011,6 +2299,10 @@ export type ConfiguracionFindManyArgs<ExtArgs extends runtime.Types.Extensions.I
    * Omit specific fields from the Configuracion
    */
   omit?: Prisma.ConfiguracionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ConfiguracionInclude<ExtArgs> | null
   /**
    * Filter, which Configuracions to fetch.
    */
@@ -2060,9 +2352,13 @@ export type ConfiguracionCreateArgs<ExtArgs extends runtime.Types.Extensions.Int
    */
   omit?: Prisma.ConfiguracionOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ConfiguracionInclude<ExtArgs> | null
+  /**
    * The data needed to create a Configuracion.
    */
-  data?: Prisma.XOR<Prisma.ConfiguracionCreateInput, Prisma.ConfiguracionUncheckedCreateInput>
+  data: Prisma.XOR<Prisma.ConfiguracionCreateInput, Prisma.ConfiguracionUncheckedCreateInput>
 }
 
 /**
@@ -2093,6 +2389,10 @@ export type ConfiguracionCreateManyAndReturnArgs<ExtArgs extends runtime.Types.E
    */
   data: Prisma.ConfiguracionCreateManyInput | Prisma.ConfiguracionCreateManyInput[]
   skipDuplicates?: boolean
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ConfiguracionIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -2107,6 +2407,10 @@ export type ConfiguracionUpdateArgs<ExtArgs extends runtime.Types.Extensions.Int
    * Omit specific fields from the Configuracion
    */
   omit?: Prisma.ConfiguracionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ConfiguracionInclude<ExtArgs> | null
   /**
    * The data needed to update a Configuracion.
    */
@@ -2159,6 +2463,10 @@ export type ConfiguracionUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.E
    * Limit how many Configuracions to update.
    */
   limit?: number
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ConfiguracionIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -2173,6 +2481,10 @@ export type ConfiguracionUpsertArgs<ExtArgs extends runtime.Types.Extensions.Int
    * Omit specific fields from the Configuracion
    */
   omit?: Prisma.ConfiguracionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ConfiguracionInclude<ExtArgs> | null
   /**
    * The filter to search for the Configuracion to update in case it exists.
    */
@@ -2199,6 +2511,10 @@ export type ConfiguracionDeleteArgs<ExtArgs extends runtime.Types.Extensions.Int
    * Omit specific fields from the Configuracion
    */
   omit?: Prisma.ConfiguracionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ConfiguracionInclude<ExtArgs> | null
   /**
    * Filter which Configuracion to delete.
    */
@@ -2231,4 +2547,8 @@ export type ConfiguracionDefaultArgs<ExtArgs extends runtime.Types.Extensions.In
    * Omit specific fields from the Configuracion
    */
   omit?: Prisma.ConfiguracionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ConfiguracionInclude<ExtArgs> | null
 }

@@ -51,6 +51,7 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
+  Colegio: 'Colegio',
   Estudiante: 'Estudiante',
   Turno: 'Turno',
   Asistencia: 'Asistencia',
@@ -64,7 +65,9 @@ export const ModelName = {
   HistorialReporteAutomatico: 'HistorialReporteAutomatico',
   BiometriaFacial: 'BiometriaFacial',
   RostroFacial: 'RostroFacial',
-  CodigoFamiliar: 'CodigoFamiliar'
+  CodigoFamiliar: 'CodigoFamiliar',
+  SistemaControl: 'SistemaControl',
+  SystemHealthLog: 'SystemHealthLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -83,8 +86,26 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
+export const ColegioScalarFieldEnum = {
+  id: 'id',
+  codigo: 'codigo',
+  nombre: 'nombre',
+  nombreCorto: 'nombreCorto',
+  direccion: 'direccion',
+  telefono: 'telefono',
+  logo: 'logo',
+  estado: 'estado',
+  fechaRegistro: 'fechaRegistro',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ColegioScalarFieldEnum = (typeof ColegioScalarFieldEnum)[keyof typeof ColegioScalarFieldEnum]
+
+
 export const EstudianteScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   codigo: 'codigo',
   dni: 'dni',
   nombres: 'nombres',
@@ -105,6 +126,7 @@ export type EstudianteScalarFieldEnum = (typeof EstudianteScalarFieldEnum)[keyof
 
 export const TurnoScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   nombre: 'nombre',
   horaEntrada: 'horaEntrada',
   horaSalida: 'horaSalida',
@@ -121,6 +143,7 @@ export type TurnoScalarFieldEnum = (typeof TurnoScalarFieldEnum)[keyof typeof Tu
 
 export const AsistenciaScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   fecha: 'fecha',
   fechaDia: 'fechaDia',
   horaEntrada: 'horaEntrada',
@@ -141,6 +164,7 @@ export type AsistenciaScalarFieldEnum = (typeof AsistenciaScalarFieldEnum)[keyof
 
 export const UsuarioScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   usuario: 'usuario',
   password: 'password',
   rol: 'rol',
@@ -153,6 +177,7 @@ export type UsuarioScalarFieldEnum = (typeof UsuarioScalarFieldEnum)[keyof typeo
 
 export const ConfiguracionScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   nombreColegio: 'nombreColegio',
   logoUrl: 'logoUrl',
   direccion: 'direccion',
@@ -200,6 +225,7 @@ export type ConfiguracionScalarFieldEnum = (typeof ConfiguracionScalarFieldEnum)
 
 export const AuditoriaScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   usuario: 'usuario',
   rol: 'rol',
   accion: 'accion',
@@ -224,6 +250,7 @@ export type AlertaAsistenciaScalarFieldEnum = (typeof AlertaAsistenciaScalarFiel
 
 export const AnalisisIAScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   tipo: 'tipo',
   dni: 'dni',
   resultado: 'resultado',
@@ -249,6 +276,7 @@ export type RiesgoEstudianteIAScalarFieldEnum = (typeof RiesgoEstudianteIAScalar
 
 export const CalendarioEscolarScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   fechaInicio: 'fechaInicio',
   fechaFin: 'fechaFin',
   tipo: 'tipo',
@@ -264,6 +292,7 @@ export type CalendarioEscolarScalarFieldEnum = (typeof CalendarioEscolarScalarFi
 
 export const HistorialReporteAutomaticoScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   tipo: 'tipo',
   destinatario: 'destinatario',
   chatId: 'chatId',
@@ -307,6 +336,7 @@ export type RostroFacialScalarFieldEnum = (typeof RostroFacialScalarFieldEnum)[k
 
 export const CodigoFamiliarScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   codigo: 'codigo',
   tutorTitular: 'tutorTitular',
   telefonoContacto: 'telefonoContacto',
@@ -318,6 +348,47 @@ export const CodigoFamiliarScalarFieldEnum = {
 } as const
 
 export type CodigoFamiliarScalarFieldEnum = (typeof CodigoFamiliarScalarFieldEnum)[keyof typeof CodigoFamiliarScalarFieldEnum]
+
+
+export const SistemaControlScalarFieldEnum = {
+  id: 'id',
+  colegioId: 'colegioId',
+  motorActivo: 'motorActivo',
+  asistenciaActivo: 'asistenciaActivo',
+  portalActivo: 'portalActivo',
+  telegramActivo: 'telegramActivo',
+  whatsappActivo: 'whatsappActivo',
+  reportesActivo: 'reportesActivo',
+  iaActivo: 'iaActivo',
+  alertasActivo: 'alertasActivo',
+  fotosActivo: 'fotosActivo',
+  estadoJornada: 'estadoJornada',
+  modoOperacion: 'modoOperacion',
+  horaAperturaJornada: 'horaAperturaJornada',
+  horaCierreJornada: 'horaCierreJornada',
+  minutosAnticipacionEntrada: 'minutosAnticipacionEntrada',
+  minutosCierreAutomatico: 'minutosCierreAutomatico',
+  ultimaActivacion: 'ultimaActivacion',
+  ultimoUsuario: 'ultimoUsuario',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SistemaControlScalarFieldEnum = (typeof SistemaControlScalarFieldEnum)[keyof typeof SistemaControlScalarFieldEnum]
+
+
+export const SystemHealthLogScalarFieldEnum = {
+  id: 'id',
+  colegioId: 'colegioId',
+  servicio: 'servicio',
+  estado: 'estado',
+  mensaje: 'mensaje',
+  tiempoRespuesta: 'tiempoRespuesta',
+  detalles: 'detalles',
+  fechaHora: 'fechaHora'
+} as const
+
+export type SystemHealthLogScalarFieldEnum = (typeof SystemHealthLogScalarFieldEnum)[keyof typeof SystemHealthLogScalarFieldEnum]
 
 
 export const SortOrder = {

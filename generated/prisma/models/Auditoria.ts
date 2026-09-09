@@ -36,6 +36,7 @@ export type AuditoriaSumAggregateOutputType = {
 
 export type AuditoriaMinAggregateOutputType = {
   id: number | null
+  colegioId: string | null
   usuario: string | null
   rol: string | null
   accion: string | null
@@ -46,6 +47,7 @@ export type AuditoriaMinAggregateOutputType = {
 
 export type AuditoriaMaxAggregateOutputType = {
   id: number | null
+  colegioId: string | null
   usuario: string | null
   rol: string | null
   accion: string | null
@@ -56,6 +58,7 @@ export type AuditoriaMaxAggregateOutputType = {
 
 export type AuditoriaCountAggregateOutputType = {
   id: number
+  colegioId: number
   usuario: number
   rol: number
   accion: number
@@ -76,6 +79,7 @@ export type AuditoriaSumAggregateInputType = {
 
 export type AuditoriaMinAggregateInputType = {
   id?: true
+  colegioId?: true
   usuario?: true
   rol?: true
   accion?: true
@@ -86,6 +90,7 @@ export type AuditoriaMinAggregateInputType = {
 
 export type AuditoriaMaxAggregateInputType = {
   id?: true
+  colegioId?: true
   usuario?: true
   rol?: true
   accion?: true
@@ -96,6 +101,7 @@ export type AuditoriaMaxAggregateInputType = {
 
 export type AuditoriaCountAggregateInputType = {
   id?: true
+  colegioId?: true
   usuario?: true
   rol?: true
   accion?: true
@@ -193,6 +199,7 @@ export type AuditoriaGroupByArgs<ExtArgs extends runtime.Types.Extensions.Intern
 
 export type AuditoriaGroupByOutputType = {
   id: number
+  colegioId: string | null
   usuario: string
   rol: string
   accion: string
@@ -226,22 +233,26 @@ export type AuditoriaWhereInput = {
   OR?: Prisma.AuditoriaWhereInput[]
   NOT?: Prisma.AuditoriaWhereInput | Prisma.AuditoriaWhereInput[]
   id?: Prisma.IntFilter<"Auditoria"> | number
+  colegioId?: Prisma.StringNullableFilter<"Auditoria"> | string | null
   usuario?: Prisma.StringFilter<"Auditoria"> | string
   rol?: Prisma.StringFilter<"Auditoria"> | string
   accion?: Prisma.StringFilter<"Auditoria"> | string
   modulo?: Prisma.StringFilter<"Auditoria"> | string
   detalle?: Prisma.StringFilter<"Auditoria"> | string
   createdAt?: Prisma.DateTimeFilter<"Auditoria"> | Date | string
+  colegio?: Prisma.XOR<Prisma.ColegioNullableScalarRelationFilter, Prisma.ColegioWhereInput> | null
 }
 
 export type AuditoriaOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrderInput | Prisma.SortOrder
   usuario?: Prisma.SortOrder
   rol?: Prisma.SortOrder
   accion?: Prisma.SortOrder
   modulo?: Prisma.SortOrder
   detalle?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  colegio?: Prisma.ColegioOrderByWithRelationInput
 }
 
 export type AuditoriaWhereUniqueInput = Prisma.AtLeast<{
@@ -249,16 +260,19 @@ export type AuditoriaWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.AuditoriaWhereInput | Prisma.AuditoriaWhereInput[]
   OR?: Prisma.AuditoriaWhereInput[]
   NOT?: Prisma.AuditoriaWhereInput | Prisma.AuditoriaWhereInput[]
+  colegioId?: Prisma.StringNullableFilter<"Auditoria"> | string | null
   usuario?: Prisma.StringFilter<"Auditoria"> | string
   rol?: Prisma.StringFilter<"Auditoria"> | string
   accion?: Prisma.StringFilter<"Auditoria"> | string
   modulo?: Prisma.StringFilter<"Auditoria"> | string
   detalle?: Prisma.StringFilter<"Auditoria"> | string
   createdAt?: Prisma.DateTimeFilter<"Auditoria"> | Date | string
+  colegio?: Prisma.XOR<Prisma.ColegioNullableScalarRelationFilter, Prisma.ColegioWhereInput> | null
 }, "id">
 
 export type AuditoriaOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrderInput | Prisma.SortOrder
   usuario?: Prisma.SortOrder
   rol?: Prisma.SortOrder
   accion?: Prisma.SortOrder
@@ -277,6 +291,7 @@ export type AuditoriaScalarWhereWithAggregatesInput = {
   OR?: Prisma.AuditoriaScalarWhereWithAggregatesInput[]
   NOT?: Prisma.AuditoriaScalarWhereWithAggregatesInput | Prisma.AuditoriaScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"Auditoria"> | number
+  colegioId?: Prisma.StringNullableWithAggregatesFilter<"Auditoria"> | string | null
   usuario?: Prisma.StringWithAggregatesFilter<"Auditoria"> | string
   rol?: Prisma.StringWithAggregatesFilter<"Auditoria"> | string
   accion?: Prisma.StringWithAggregatesFilter<"Auditoria"> | string
@@ -292,10 +307,12 @@ export type AuditoriaCreateInput = {
   modulo: string
   detalle: string
   createdAt?: Date | string
+  colegio?: Prisma.ColegioCreateNestedOneWithoutAuditoriasInput
 }
 
 export type AuditoriaUncheckedCreateInput = {
   id?: number
+  colegioId?: string | null
   usuario: string
   rol: string
   accion: string
@@ -311,10 +328,12 @@ export type AuditoriaUpdateInput = {
   modulo?: Prisma.StringFieldUpdateOperationsInput | string
   detalle?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  colegio?: Prisma.ColegioUpdateOneWithoutAuditoriasNestedInput
 }
 
 export type AuditoriaUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   usuario?: Prisma.StringFieldUpdateOperationsInput | string
   rol?: Prisma.StringFieldUpdateOperationsInput | string
   accion?: Prisma.StringFieldUpdateOperationsInput | string
@@ -325,6 +344,7 @@ export type AuditoriaUncheckedUpdateInput = {
 
 export type AuditoriaCreateManyInput = {
   id?: number
+  colegioId?: string | null
   usuario: string
   rol: string
   accion: string
@@ -344,6 +364,7 @@ export type AuditoriaUpdateManyMutationInput = {
 
 export type AuditoriaUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   usuario?: Prisma.StringFieldUpdateOperationsInput | string
   rol?: Prisma.StringFieldUpdateOperationsInput | string
   accion?: Prisma.StringFieldUpdateOperationsInput | string
@@ -352,8 +373,19 @@ export type AuditoriaUncheckedUpdateManyInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
+export type AuditoriaListRelationFilter = {
+  every?: Prisma.AuditoriaWhereInput
+  some?: Prisma.AuditoriaWhereInput
+  none?: Prisma.AuditoriaWhereInput
+}
+
+export type AuditoriaOrderByRelationAggregateInput = {
+  _count?: Prisma.SortOrder
+}
+
 export type AuditoriaCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   usuario?: Prisma.SortOrder
   rol?: Prisma.SortOrder
   accion?: Prisma.SortOrder
@@ -368,6 +400,7 @@ export type AuditoriaAvgOrderByAggregateInput = {
 
 export type AuditoriaMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   usuario?: Prisma.SortOrder
   rol?: Prisma.SortOrder
   accion?: Prisma.SortOrder
@@ -378,6 +411,7 @@ export type AuditoriaMaxOrderByAggregateInput = {
 
 export type AuditoriaMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   usuario?: Prisma.SortOrder
   rol?: Prisma.SortOrder
   accion?: Prisma.SortOrder
@@ -390,40 +424,187 @@ export type AuditoriaSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
 }
 
+export type AuditoriaCreateNestedManyWithoutColegioInput = {
+  create?: Prisma.XOR<Prisma.AuditoriaCreateWithoutColegioInput, Prisma.AuditoriaUncheckedCreateWithoutColegioInput> | Prisma.AuditoriaCreateWithoutColegioInput[] | Prisma.AuditoriaUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.AuditoriaCreateOrConnectWithoutColegioInput | Prisma.AuditoriaCreateOrConnectWithoutColegioInput[]
+  createMany?: Prisma.AuditoriaCreateManyColegioInputEnvelope
+  connect?: Prisma.AuditoriaWhereUniqueInput | Prisma.AuditoriaWhereUniqueInput[]
+}
+
+export type AuditoriaUncheckedCreateNestedManyWithoutColegioInput = {
+  create?: Prisma.XOR<Prisma.AuditoriaCreateWithoutColegioInput, Prisma.AuditoriaUncheckedCreateWithoutColegioInput> | Prisma.AuditoriaCreateWithoutColegioInput[] | Prisma.AuditoriaUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.AuditoriaCreateOrConnectWithoutColegioInput | Prisma.AuditoriaCreateOrConnectWithoutColegioInput[]
+  createMany?: Prisma.AuditoriaCreateManyColegioInputEnvelope
+  connect?: Prisma.AuditoriaWhereUniqueInput | Prisma.AuditoriaWhereUniqueInput[]
+}
+
+export type AuditoriaUpdateManyWithoutColegioNestedInput = {
+  create?: Prisma.XOR<Prisma.AuditoriaCreateWithoutColegioInput, Prisma.AuditoriaUncheckedCreateWithoutColegioInput> | Prisma.AuditoriaCreateWithoutColegioInput[] | Prisma.AuditoriaUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.AuditoriaCreateOrConnectWithoutColegioInput | Prisma.AuditoriaCreateOrConnectWithoutColegioInput[]
+  upsert?: Prisma.AuditoriaUpsertWithWhereUniqueWithoutColegioInput | Prisma.AuditoriaUpsertWithWhereUniqueWithoutColegioInput[]
+  createMany?: Prisma.AuditoriaCreateManyColegioInputEnvelope
+  set?: Prisma.AuditoriaWhereUniqueInput | Prisma.AuditoriaWhereUniqueInput[]
+  disconnect?: Prisma.AuditoriaWhereUniqueInput | Prisma.AuditoriaWhereUniqueInput[]
+  delete?: Prisma.AuditoriaWhereUniqueInput | Prisma.AuditoriaWhereUniqueInput[]
+  connect?: Prisma.AuditoriaWhereUniqueInput | Prisma.AuditoriaWhereUniqueInput[]
+  update?: Prisma.AuditoriaUpdateWithWhereUniqueWithoutColegioInput | Prisma.AuditoriaUpdateWithWhereUniqueWithoutColegioInput[]
+  updateMany?: Prisma.AuditoriaUpdateManyWithWhereWithoutColegioInput | Prisma.AuditoriaUpdateManyWithWhereWithoutColegioInput[]
+  deleteMany?: Prisma.AuditoriaScalarWhereInput | Prisma.AuditoriaScalarWhereInput[]
+}
+
+export type AuditoriaUncheckedUpdateManyWithoutColegioNestedInput = {
+  create?: Prisma.XOR<Prisma.AuditoriaCreateWithoutColegioInput, Prisma.AuditoriaUncheckedCreateWithoutColegioInput> | Prisma.AuditoriaCreateWithoutColegioInput[] | Prisma.AuditoriaUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.AuditoriaCreateOrConnectWithoutColegioInput | Prisma.AuditoriaCreateOrConnectWithoutColegioInput[]
+  upsert?: Prisma.AuditoriaUpsertWithWhereUniqueWithoutColegioInput | Prisma.AuditoriaUpsertWithWhereUniqueWithoutColegioInput[]
+  createMany?: Prisma.AuditoriaCreateManyColegioInputEnvelope
+  set?: Prisma.AuditoriaWhereUniqueInput | Prisma.AuditoriaWhereUniqueInput[]
+  disconnect?: Prisma.AuditoriaWhereUniqueInput | Prisma.AuditoriaWhereUniqueInput[]
+  delete?: Prisma.AuditoriaWhereUniqueInput | Prisma.AuditoriaWhereUniqueInput[]
+  connect?: Prisma.AuditoriaWhereUniqueInput | Prisma.AuditoriaWhereUniqueInput[]
+  update?: Prisma.AuditoriaUpdateWithWhereUniqueWithoutColegioInput | Prisma.AuditoriaUpdateWithWhereUniqueWithoutColegioInput[]
+  updateMany?: Prisma.AuditoriaUpdateManyWithWhereWithoutColegioInput | Prisma.AuditoriaUpdateManyWithWhereWithoutColegioInput[]
+  deleteMany?: Prisma.AuditoriaScalarWhereInput | Prisma.AuditoriaScalarWhereInput[]
+}
+
+export type AuditoriaCreateWithoutColegioInput = {
+  usuario: string
+  rol: string
+  accion: string
+  modulo: string
+  detalle: string
+  createdAt?: Date | string
+}
+
+export type AuditoriaUncheckedCreateWithoutColegioInput = {
+  id?: number
+  usuario: string
+  rol: string
+  accion: string
+  modulo: string
+  detalle: string
+  createdAt?: Date | string
+}
+
+export type AuditoriaCreateOrConnectWithoutColegioInput = {
+  where: Prisma.AuditoriaWhereUniqueInput
+  create: Prisma.XOR<Prisma.AuditoriaCreateWithoutColegioInput, Prisma.AuditoriaUncheckedCreateWithoutColegioInput>
+}
+
+export type AuditoriaCreateManyColegioInputEnvelope = {
+  data: Prisma.AuditoriaCreateManyColegioInput | Prisma.AuditoriaCreateManyColegioInput[]
+  skipDuplicates?: boolean
+}
+
+export type AuditoriaUpsertWithWhereUniqueWithoutColegioInput = {
+  where: Prisma.AuditoriaWhereUniqueInput
+  update: Prisma.XOR<Prisma.AuditoriaUpdateWithoutColegioInput, Prisma.AuditoriaUncheckedUpdateWithoutColegioInput>
+  create: Prisma.XOR<Prisma.AuditoriaCreateWithoutColegioInput, Prisma.AuditoriaUncheckedCreateWithoutColegioInput>
+}
+
+export type AuditoriaUpdateWithWhereUniqueWithoutColegioInput = {
+  where: Prisma.AuditoriaWhereUniqueInput
+  data: Prisma.XOR<Prisma.AuditoriaUpdateWithoutColegioInput, Prisma.AuditoriaUncheckedUpdateWithoutColegioInput>
+}
+
+export type AuditoriaUpdateManyWithWhereWithoutColegioInput = {
+  where: Prisma.AuditoriaScalarWhereInput
+  data: Prisma.XOR<Prisma.AuditoriaUpdateManyMutationInput, Prisma.AuditoriaUncheckedUpdateManyWithoutColegioInput>
+}
+
+export type AuditoriaScalarWhereInput = {
+  AND?: Prisma.AuditoriaScalarWhereInput | Prisma.AuditoriaScalarWhereInput[]
+  OR?: Prisma.AuditoriaScalarWhereInput[]
+  NOT?: Prisma.AuditoriaScalarWhereInput | Prisma.AuditoriaScalarWhereInput[]
+  id?: Prisma.IntFilter<"Auditoria"> | number
+  colegioId?: Prisma.StringNullableFilter<"Auditoria"> | string | null
+  usuario?: Prisma.StringFilter<"Auditoria"> | string
+  rol?: Prisma.StringFilter<"Auditoria"> | string
+  accion?: Prisma.StringFilter<"Auditoria"> | string
+  modulo?: Prisma.StringFilter<"Auditoria"> | string
+  detalle?: Prisma.StringFilter<"Auditoria"> | string
+  createdAt?: Prisma.DateTimeFilter<"Auditoria"> | Date | string
+}
+
+export type AuditoriaCreateManyColegioInput = {
+  id?: number
+  usuario: string
+  rol: string
+  accion: string
+  modulo: string
+  detalle: string
+  createdAt?: Date | string
+}
+
+export type AuditoriaUpdateWithoutColegioInput = {
+  usuario?: Prisma.StringFieldUpdateOperationsInput | string
+  rol?: Prisma.StringFieldUpdateOperationsInput | string
+  accion?: Prisma.StringFieldUpdateOperationsInput | string
+  modulo?: Prisma.StringFieldUpdateOperationsInput | string
+  detalle?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type AuditoriaUncheckedUpdateWithoutColegioInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  usuario?: Prisma.StringFieldUpdateOperationsInput | string
+  rol?: Prisma.StringFieldUpdateOperationsInput | string
+  accion?: Prisma.StringFieldUpdateOperationsInput | string
+  modulo?: Prisma.StringFieldUpdateOperationsInput | string
+  detalle?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type AuditoriaUncheckedUpdateManyWithoutColegioInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  usuario?: Prisma.StringFieldUpdateOperationsInput | string
+  rol?: Prisma.StringFieldUpdateOperationsInput | string
+  accion?: Prisma.StringFieldUpdateOperationsInput | string
+  modulo?: Prisma.StringFieldUpdateOperationsInput | string
+  detalle?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 
 
 export type AuditoriaSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   usuario?: boolean
   rol?: boolean
   accion?: boolean
   modulo?: boolean
   detalle?: boolean
   createdAt?: boolean
+  colegio?: boolean | Prisma.Auditoria$colegioArgs<ExtArgs>
 }, ExtArgs["result"]["auditoria"]>
 
 export type AuditoriaSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   usuario?: boolean
   rol?: boolean
   accion?: boolean
   modulo?: boolean
   detalle?: boolean
   createdAt?: boolean
+  colegio?: boolean | Prisma.Auditoria$colegioArgs<ExtArgs>
 }, ExtArgs["result"]["auditoria"]>
 
 export type AuditoriaSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   usuario?: boolean
   rol?: boolean
   accion?: boolean
   modulo?: boolean
   detalle?: boolean
   createdAt?: boolean
+  colegio?: boolean | Prisma.Auditoria$colegioArgs<ExtArgs>
 }, ExtArgs["result"]["auditoria"]>
 
 export type AuditoriaSelectScalar = {
   id?: boolean
+  colegioId?: boolean
   usuario?: boolean
   rol?: boolean
   accion?: boolean
@@ -432,13 +613,25 @@ export type AuditoriaSelectScalar = {
   createdAt?: boolean
 }
 
-export type AuditoriaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "usuario" | "rol" | "accion" | "modulo" | "detalle" | "createdAt", ExtArgs["result"]["auditoria"]>
+export type AuditoriaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "colegioId" | "usuario" | "rol" | "accion" | "modulo" | "detalle" | "createdAt", ExtArgs["result"]["auditoria"]>
+export type AuditoriaInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.Auditoria$colegioArgs<ExtArgs>
+}
+export type AuditoriaIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.Auditoria$colegioArgs<ExtArgs>
+}
+export type AuditoriaIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.Auditoria$colegioArgs<ExtArgs>
+}
 
 export type $AuditoriaPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Auditoria"
-  objects: {}
+  objects: {
+    colegio: Prisma.$ColegioPayload<ExtArgs> | null
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
+    colegioId: string | null
     usuario: string
     rol: string
     accion: string
@@ -839,6 +1032,7 @@ readonly fields: AuditoriaFieldRefs;
  */
 export interface Prisma__AuditoriaClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  colegio<T extends Prisma.Auditoria$colegioArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Auditoria$colegioArgs<ExtArgs>>): Prisma.Prisma__ColegioClient<runtime.Types.Result.GetResult<Prisma.$ColegioPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -869,6 +1063,7 @@ export interface Prisma__AuditoriaClient<T, Null = never, ExtArgs extends runtim
  */
 export interface AuditoriaFieldRefs {
   readonly id: Prisma.FieldRef<"Auditoria", 'Int'>
+  readonly colegioId: Prisma.FieldRef<"Auditoria", 'String'>
   readonly usuario: Prisma.FieldRef<"Auditoria", 'String'>
   readonly rol: Prisma.FieldRef<"Auditoria", 'String'>
   readonly accion: Prisma.FieldRef<"Auditoria", 'String'>
@@ -892,6 +1087,10 @@ export type AuditoriaFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.Int
    */
   omit?: Prisma.AuditoriaOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AuditoriaInclude<ExtArgs> | null
+  /**
    * Filter, which Auditoria to fetch.
    */
   where: Prisma.AuditoriaWhereUniqueInput
@@ -910,6 +1109,10 @@ export type AuditoriaFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extensi
    */
   omit?: Prisma.AuditoriaOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AuditoriaInclude<ExtArgs> | null
+  /**
    * Filter, which Auditoria to fetch.
    */
   where: Prisma.AuditoriaWhereUniqueInput
@@ -927,6 +1130,10 @@ export type AuditoriaFindFirstArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Omit specific fields from the Auditoria
    */
   omit?: Prisma.AuditoriaOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AuditoriaInclude<ExtArgs> | null
   /**
    * Filter, which Auditoria to fetch.
    */
@@ -976,6 +1183,10 @@ export type AuditoriaFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensio
    */
   omit?: Prisma.AuditoriaOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AuditoriaInclude<ExtArgs> | null
+  /**
    * Filter, which Auditoria to fetch.
    */
   where?: Prisma.AuditoriaWhereInput
@@ -1023,6 +1234,10 @@ export type AuditoriaFindManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Omit specific fields from the Auditoria
    */
   omit?: Prisma.AuditoriaOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AuditoriaInclude<ExtArgs> | null
   /**
    * Filter, which Auditorias to fetch.
    */
@@ -1072,6 +1287,10 @@ export type AuditoriaCreateArgs<ExtArgs extends runtime.Types.Extensions.Interna
    */
   omit?: Prisma.AuditoriaOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AuditoriaInclude<ExtArgs> | null
+  /**
    * The data needed to create a Auditoria.
    */
   data: Prisma.XOR<Prisma.AuditoriaCreateInput, Prisma.AuditoriaUncheckedCreateInput>
@@ -1105,6 +1324,10 @@ export type AuditoriaCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Exten
    */
   data: Prisma.AuditoriaCreateManyInput | Prisma.AuditoriaCreateManyInput[]
   skipDuplicates?: boolean
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AuditoriaIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1119,6 +1342,10 @@ export type AuditoriaUpdateArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * Omit specific fields from the Auditoria
    */
   omit?: Prisma.AuditoriaOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AuditoriaInclude<ExtArgs> | null
   /**
    * The data needed to update a Auditoria.
    */
@@ -1171,6 +1398,10 @@ export type AuditoriaUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Exten
    * Limit how many Auditorias to update.
    */
   limit?: number
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AuditoriaIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1185,6 +1416,10 @@ export type AuditoriaUpsertArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * Omit specific fields from the Auditoria
    */
   omit?: Prisma.AuditoriaOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AuditoriaInclude<ExtArgs> | null
   /**
    * The filter to search for the Auditoria to update in case it exists.
    */
@@ -1212,6 +1447,10 @@ export type AuditoriaDeleteArgs<ExtArgs extends runtime.Types.Extensions.Interna
    */
   omit?: Prisma.AuditoriaOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AuditoriaInclude<ExtArgs> | null
+  /**
    * Filter which Auditoria to delete.
    */
   where: Prisma.AuditoriaWhereUniqueInput
@@ -1232,6 +1471,25 @@ export type AuditoriaDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Int
 }
 
 /**
+ * Auditoria.colegio
+ */
+export type Auditoria$colegioArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Colegio
+   */
+  select?: Prisma.ColegioSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Colegio
+   */
+  omit?: Prisma.ColegioOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ColegioInclude<ExtArgs> | null
+  where?: Prisma.ColegioWhereInput
+}
+
+/**
  * Auditoria without action
  */
 export type AuditoriaDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1243,4 +1501,8 @@ export type AuditoriaDefaultArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Omit specific fields from the Auditoria
    */
   omit?: Prisma.AuditoriaOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AuditoriaInclude<ExtArgs> | null
 }

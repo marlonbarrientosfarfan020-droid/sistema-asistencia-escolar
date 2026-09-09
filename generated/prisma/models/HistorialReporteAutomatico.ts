@@ -38,6 +38,7 @@ export type HistorialReporteAutomaticoSumAggregateOutputType = {
 
 export type HistorialReporteAutomaticoMinAggregateOutputType = {
   id: number | null
+  colegioId: string | null
   tipo: string | null
   destinatario: string | null
   chatId: string | null
@@ -51,6 +52,7 @@ export type HistorialReporteAutomaticoMinAggregateOutputType = {
 
 export type HistorialReporteAutomaticoMaxAggregateOutputType = {
   id: number | null
+  colegioId: string | null
   tipo: string | null
   destinatario: string | null
   chatId: string | null
@@ -64,6 +66,7 @@ export type HistorialReporteAutomaticoMaxAggregateOutputType = {
 
 export type HistorialReporteAutomaticoCountAggregateOutputType = {
   id: number
+  colegioId: number
   tipo: number
   destinatario: number
   chatId: number
@@ -89,6 +92,7 @@ export type HistorialReporteAutomaticoSumAggregateInputType = {
 
 export type HistorialReporteAutomaticoMinAggregateInputType = {
   id?: true
+  colegioId?: true
   tipo?: true
   destinatario?: true
   chatId?: true
@@ -102,6 +106,7 @@ export type HistorialReporteAutomaticoMinAggregateInputType = {
 
 export type HistorialReporteAutomaticoMaxAggregateInputType = {
   id?: true
+  colegioId?: true
   tipo?: true
   destinatario?: true
   chatId?: true
@@ -115,6 +120,7 @@ export type HistorialReporteAutomaticoMaxAggregateInputType = {
 
 export type HistorialReporteAutomaticoCountAggregateInputType = {
   id?: true
+  colegioId?: true
   tipo?: true
   destinatario?: true
   chatId?: true
@@ -215,6 +221,7 @@ export type HistorialReporteAutomaticoGroupByArgs<ExtArgs extends runtime.Types.
 
 export type HistorialReporteAutomaticoGroupByOutputType = {
   id: number
+  colegioId: string
   tipo: string
   destinatario: string
   chatId: string
@@ -251,6 +258,7 @@ export type HistorialReporteAutomaticoWhereInput = {
   OR?: Prisma.HistorialReporteAutomaticoWhereInput[]
   NOT?: Prisma.HistorialReporteAutomaticoWhereInput | Prisma.HistorialReporteAutomaticoWhereInput[]
   id?: Prisma.IntFilter<"HistorialReporteAutomatico"> | number
+  colegioId?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
   tipo?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
   destinatario?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
   chatId?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
@@ -260,11 +268,13 @@ export type HistorialReporteAutomaticoWhereInput = {
   estado?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
   detalle?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
   createdAt?: Prisma.DateTimeFilter<"HistorialReporteAutomatico"> | Date | string
+  colegio?: Prisma.XOR<Prisma.ColegioScalarRelationFilter, Prisma.ColegioWhereInput>
   estudiante?: Prisma.XOR<Prisma.EstudianteNullableScalarRelationFilter, Prisma.EstudianteWhereInput> | null
 }
 
 export type HistorialReporteAutomaticoOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   tipo?: Prisma.SortOrder
   destinatario?: Prisma.SortOrder
   chatId?: Prisma.SortOrder
@@ -274,6 +284,7 @@ export type HistorialReporteAutomaticoOrderByWithRelationInput = {
   estado?: Prisma.SortOrder
   detalle?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  colegio?: Prisma.ColegioOrderByWithRelationInput
   estudiante?: Prisma.EstudianteOrderByWithRelationInput
 }
 
@@ -282,6 +293,7 @@ export type HistorialReporteAutomaticoWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.HistorialReporteAutomaticoWhereInput | Prisma.HistorialReporteAutomaticoWhereInput[]
   OR?: Prisma.HistorialReporteAutomaticoWhereInput[]
   NOT?: Prisma.HistorialReporteAutomaticoWhereInput | Prisma.HistorialReporteAutomaticoWhereInput[]
+  colegioId?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
   tipo?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
   destinatario?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
   chatId?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
@@ -291,11 +303,13 @@ export type HistorialReporteAutomaticoWhereUniqueInput = Prisma.AtLeast<{
   estado?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
   detalle?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
   createdAt?: Prisma.DateTimeFilter<"HistorialReporteAutomatico"> | Date | string
+  colegio?: Prisma.XOR<Prisma.ColegioScalarRelationFilter, Prisma.ColegioWhereInput>
   estudiante?: Prisma.XOR<Prisma.EstudianteNullableScalarRelationFilter, Prisma.EstudianteWhereInput> | null
 }, "id">
 
 export type HistorialReporteAutomaticoOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   tipo?: Prisma.SortOrder
   destinatario?: Prisma.SortOrder
   chatId?: Prisma.SortOrder
@@ -317,6 +331,7 @@ export type HistorialReporteAutomaticoScalarWhereWithAggregatesInput = {
   OR?: Prisma.HistorialReporteAutomaticoScalarWhereWithAggregatesInput[]
   NOT?: Prisma.HistorialReporteAutomaticoScalarWhereWithAggregatesInput | Prisma.HistorialReporteAutomaticoScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"HistorialReporteAutomatico"> | number
+  colegioId?: Prisma.StringWithAggregatesFilter<"HistorialReporteAutomatico"> | string
   tipo?: Prisma.StringWithAggregatesFilter<"HistorialReporteAutomatico"> | string
   destinatario?: Prisma.StringWithAggregatesFilter<"HistorialReporteAutomatico"> | string
   chatId?: Prisma.StringWithAggregatesFilter<"HistorialReporteAutomatico"> | string
@@ -337,11 +352,13 @@ export type HistorialReporteAutomaticoCreateInput = {
   estado: string
   detalle?: string
   createdAt?: Date | string
+  colegio?: Prisma.ColegioCreateNestedOneWithoutHistorialReportesInput
   estudiante?: Prisma.EstudianteCreateNestedOneWithoutHistorialReportesInput
 }
 
 export type HistorialReporteAutomaticoUncheckedCreateInput = {
   id?: number
+  colegioId?: string
   tipo: string
   destinatario: string
   chatId?: string
@@ -362,11 +379,13 @@ export type HistorialReporteAutomaticoUpdateInput = {
   estado?: Prisma.StringFieldUpdateOperationsInput | string
   detalle?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  colegio?: Prisma.ColegioUpdateOneRequiredWithoutHistorialReportesNestedInput
   estudiante?: Prisma.EstudianteUpdateOneWithoutHistorialReportesNestedInput
 }
 
 export type HistorialReporteAutomaticoUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   tipo?: Prisma.StringFieldUpdateOperationsInput | string
   destinatario?: Prisma.StringFieldUpdateOperationsInput | string
   chatId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -380,6 +399,7 @@ export type HistorialReporteAutomaticoUncheckedUpdateInput = {
 
 export type HistorialReporteAutomaticoCreateManyInput = {
   id?: number
+  colegioId?: string
   tipo: string
   destinatario: string
   chatId?: string
@@ -404,6 +424,7 @@ export type HistorialReporteAutomaticoUpdateManyMutationInput = {
 
 export type HistorialReporteAutomaticoUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   tipo?: Prisma.StringFieldUpdateOperationsInput | string
   destinatario?: Prisma.StringFieldUpdateOperationsInput | string
   chatId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -427,6 +448,7 @@ export type HistorialReporteAutomaticoOrderByRelationAggregateInput = {
 
 export type HistorialReporteAutomaticoCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   tipo?: Prisma.SortOrder
   destinatario?: Prisma.SortOrder
   chatId?: Prisma.SortOrder
@@ -445,6 +467,7 @@ export type HistorialReporteAutomaticoAvgOrderByAggregateInput = {
 
 export type HistorialReporteAutomaticoMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   tipo?: Prisma.SortOrder
   destinatario?: Prisma.SortOrder
   chatId?: Prisma.SortOrder
@@ -458,6 +481,7 @@ export type HistorialReporteAutomaticoMaxOrderByAggregateInput = {
 
 export type HistorialReporteAutomaticoMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   tipo?: Prisma.SortOrder
   destinatario?: Prisma.SortOrder
   chatId?: Prisma.SortOrder
@@ -472,6 +496,48 @@ export type HistorialReporteAutomaticoMinOrderByAggregateInput = {
 export type HistorialReporteAutomaticoSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   estudianteId?: Prisma.SortOrder
+}
+
+export type HistorialReporteAutomaticoCreateNestedManyWithoutColegioInput = {
+  create?: Prisma.XOR<Prisma.HistorialReporteAutomaticoCreateWithoutColegioInput, Prisma.HistorialReporteAutomaticoUncheckedCreateWithoutColegioInput> | Prisma.HistorialReporteAutomaticoCreateWithoutColegioInput[] | Prisma.HistorialReporteAutomaticoUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.HistorialReporteAutomaticoCreateOrConnectWithoutColegioInput | Prisma.HistorialReporteAutomaticoCreateOrConnectWithoutColegioInput[]
+  createMany?: Prisma.HistorialReporteAutomaticoCreateManyColegioInputEnvelope
+  connect?: Prisma.HistorialReporteAutomaticoWhereUniqueInput | Prisma.HistorialReporteAutomaticoWhereUniqueInput[]
+}
+
+export type HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutColegioInput = {
+  create?: Prisma.XOR<Prisma.HistorialReporteAutomaticoCreateWithoutColegioInput, Prisma.HistorialReporteAutomaticoUncheckedCreateWithoutColegioInput> | Prisma.HistorialReporteAutomaticoCreateWithoutColegioInput[] | Prisma.HistorialReporteAutomaticoUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.HistorialReporteAutomaticoCreateOrConnectWithoutColegioInput | Prisma.HistorialReporteAutomaticoCreateOrConnectWithoutColegioInput[]
+  createMany?: Prisma.HistorialReporteAutomaticoCreateManyColegioInputEnvelope
+  connect?: Prisma.HistorialReporteAutomaticoWhereUniqueInput | Prisma.HistorialReporteAutomaticoWhereUniqueInput[]
+}
+
+export type HistorialReporteAutomaticoUpdateManyWithoutColegioNestedInput = {
+  create?: Prisma.XOR<Prisma.HistorialReporteAutomaticoCreateWithoutColegioInput, Prisma.HistorialReporteAutomaticoUncheckedCreateWithoutColegioInput> | Prisma.HistorialReporteAutomaticoCreateWithoutColegioInput[] | Prisma.HistorialReporteAutomaticoUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.HistorialReporteAutomaticoCreateOrConnectWithoutColegioInput | Prisma.HistorialReporteAutomaticoCreateOrConnectWithoutColegioInput[]
+  upsert?: Prisma.HistorialReporteAutomaticoUpsertWithWhereUniqueWithoutColegioInput | Prisma.HistorialReporteAutomaticoUpsertWithWhereUniqueWithoutColegioInput[]
+  createMany?: Prisma.HistorialReporteAutomaticoCreateManyColegioInputEnvelope
+  set?: Prisma.HistorialReporteAutomaticoWhereUniqueInput | Prisma.HistorialReporteAutomaticoWhereUniqueInput[]
+  disconnect?: Prisma.HistorialReporteAutomaticoWhereUniqueInput | Prisma.HistorialReporteAutomaticoWhereUniqueInput[]
+  delete?: Prisma.HistorialReporteAutomaticoWhereUniqueInput | Prisma.HistorialReporteAutomaticoWhereUniqueInput[]
+  connect?: Prisma.HistorialReporteAutomaticoWhereUniqueInput | Prisma.HistorialReporteAutomaticoWhereUniqueInput[]
+  update?: Prisma.HistorialReporteAutomaticoUpdateWithWhereUniqueWithoutColegioInput | Prisma.HistorialReporteAutomaticoUpdateWithWhereUniqueWithoutColegioInput[]
+  updateMany?: Prisma.HistorialReporteAutomaticoUpdateManyWithWhereWithoutColegioInput | Prisma.HistorialReporteAutomaticoUpdateManyWithWhereWithoutColegioInput[]
+  deleteMany?: Prisma.HistorialReporteAutomaticoScalarWhereInput | Prisma.HistorialReporteAutomaticoScalarWhereInput[]
+}
+
+export type HistorialReporteAutomaticoUncheckedUpdateManyWithoutColegioNestedInput = {
+  create?: Prisma.XOR<Prisma.HistorialReporteAutomaticoCreateWithoutColegioInput, Prisma.HistorialReporteAutomaticoUncheckedCreateWithoutColegioInput> | Prisma.HistorialReporteAutomaticoCreateWithoutColegioInput[] | Prisma.HistorialReporteAutomaticoUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.HistorialReporteAutomaticoCreateOrConnectWithoutColegioInput | Prisma.HistorialReporteAutomaticoCreateOrConnectWithoutColegioInput[]
+  upsert?: Prisma.HistorialReporteAutomaticoUpsertWithWhereUniqueWithoutColegioInput | Prisma.HistorialReporteAutomaticoUpsertWithWhereUniqueWithoutColegioInput[]
+  createMany?: Prisma.HistorialReporteAutomaticoCreateManyColegioInputEnvelope
+  set?: Prisma.HistorialReporteAutomaticoWhereUniqueInput | Prisma.HistorialReporteAutomaticoWhereUniqueInput[]
+  disconnect?: Prisma.HistorialReporteAutomaticoWhereUniqueInput | Prisma.HistorialReporteAutomaticoWhereUniqueInput[]
+  delete?: Prisma.HistorialReporteAutomaticoWhereUniqueInput | Prisma.HistorialReporteAutomaticoWhereUniqueInput[]
+  connect?: Prisma.HistorialReporteAutomaticoWhereUniqueInput | Prisma.HistorialReporteAutomaticoWhereUniqueInput[]
+  update?: Prisma.HistorialReporteAutomaticoUpdateWithWhereUniqueWithoutColegioInput | Prisma.HistorialReporteAutomaticoUpdateWithWhereUniqueWithoutColegioInput[]
+  updateMany?: Prisma.HistorialReporteAutomaticoUpdateManyWithWhereWithoutColegioInput | Prisma.HistorialReporteAutomaticoUpdateManyWithWhereWithoutColegioInput[]
+  deleteMany?: Prisma.HistorialReporteAutomaticoScalarWhereInput | Prisma.HistorialReporteAutomaticoScalarWhereInput[]
 }
 
 export type HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput = {
@@ -516,6 +582,74 @@ export type HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNested
   deleteMany?: Prisma.HistorialReporteAutomaticoScalarWhereInput | Prisma.HistorialReporteAutomaticoScalarWhereInput[]
 }
 
+export type HistorialReporteAutomaticoCreateWithoutColegioInput = {
+  tipo: string
+  destinatario: string
+  chatId?: string
+  fechaInicio?: Date | string | null
+  fechaFin?: Date | string | null
+  estado: string
+  detalle?: string
+  createdAt?: Date | string
+  estudiante?: Prisma.EstudianteCreateNestedOneWithoutHistorialReportesInput
+}
+
+export type HistorialReporteAutomaticoUncheckedCreateWithoutColegioInput = {
+  id?: number
+  tipo: string
+  destinatario: string
+  chatId?: string
+  estudianteId?: number | null
+  fechaInicio?: Date | string | null
+  fechaFin?: Date | string | null
+  estado: string
+  detalle?: string
+  createdAt?: Date | string
+}
+
+export type HistorialReporteAutomaticoCreateOrConnectWithoutColegioInput = {
+  where: Prisma.HistorialReporteAutomaticoWhereUniqueInput
+  create: Prisma.XOR<Prisma.HistorialReporteAutomaticoCreateWithoutColegioInput, Prisma.HistorialReporteAutomaticoUncheckedCreateWithoutColegioInput>
+}
+
+export type HistorialReporteAutomaticoCreateManyColegioInputEnvelope = {
+  data: Prisma.HistorialReporteAutomaticoCreateManyColegioInput | Prisma.HistorialReporteAutomaticoCreateManyColegioInput[]
+  skipDuplicates?: boolean
+}
+
+export type HistorialReporteAutomaticoUpsertWithWhereUniqueWithoutColegioInput = {
+  where: Prisma.HistorialReporteAutomaticoWhereUniqueInput
+  update: Prisma.XOR<Prisma.HistorialReporteAutomaticoUpdateWithoutColegioInput, Prisma.HistorialReporteAutomaticoUncheckedUpdateWithoutColegioInput>
+  create: Prisma.XOR<Prisma.HistorialReporteAutomaticoCreateWithoutColegioInput, Prisma.HistorialReporteAutomaticoUncheckedCreateWithoutColegioInput>
+}
+
+export type HistorialReporteAutomaticoUpdateWithWhereUniqueWithoutColegioInput = {
+  where: Prisma.HistorialReporteAutomaticoWhereUniqueInput
+  data: Prisma.XOR<Prisma.HistorialReporteAutomaticoUpdateWithoutColegioInput, Prisma.HistorialReporteAutomaticoUncheckedUpdateWithoutColegioInput>
+}
+
+export type HistorialReporteAutomaticoUpdateManyWithWhereWithoutColegioInput = {
+  where: Prisma.HistorialReporteAutomaticoScalarWhereInput
+  data: Prisma.XOR<Prisma.HistorialReporteAutomaticoUpdateManyMutationInput, Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutColegioInput>
+}
+
+export type HistorialReporteAutomaticoScalarWhereInput = {
+  AND?: Prisma.HistorialReporteAutomaticoScalarWhereInput | Prisma.HistorialReporteAutomaticoScalarWhereInput[]
+  OR?: Prisma.HistorialReporteAutomaticoScalarWhereInput[]
+  NOT?: Prisma.HistorialReporteAutomaticoScalarWhereInput | Prisma.HistorialReporteAutomaticoScalarWhereInput[]
+  id?: Prisma.IntFilter<"HistorialReporteAutomatico"> | number
+  colegioId?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
+  tipo?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
+  destinatario?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
+  chatId?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
+  estudianteId?: Prisma.IntNullableFilter<"HistorialReporteAutomatico"> | number | null
+  fechaInicio?: Prisma.DateTimeNullableFilter<"HistorialReporteAutomatico"> | Date | string | null
+  fechaFin?: Prisma.DateTimeNullableFilter<"HistorialReporteAutomatico"> | Date | string | null
+  estado?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
+  detalle?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
+  createdAt?: Prisma.DateTimeFilter<"HistorialReporteAutomatico"> | Date | string
+}
+
 export type HistorialReporteAutomaticoCreateWithoutEstudianteInput = {
   tipo: string
   destinatario: string
@@ -525,10 +659,12 @@ export type HistorialReporteAutomaticoCreateWithoutEstudianteInput = {
   estado: string
   detalle?: string
   createdAt?: Date | string
+  colegio?: Prisma.ColegioCreateNestedOneWithoutHistorialReportesInput
 }
 
 export type HistorialReporteAutomaticoUncheckedCreateWithoutEstudianteInput = {
   id?: number
+  colegioId?: string
   tipo: string
   destinatario: string
   chatId?: string
@@ -565,24 +701,60 @@ export type HistorialReporteAutomaticoUpdateManyWithWhereWithoutEstudianteInput 
   data: Prisma.XOR<Prisma.HistorialReporteAutomaticoUpdateManyMutationInput, Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteInput>
 }
 
-export type HistorialReporteAutomaticoScalarWhereInput = {
-  AND?: Prisma.HistorialReporteAutomaticoScalarWhereInput | Prisma.HistorialReporteAutomaticoScalarWhereInput[]
-  OR?: Prisma.HistorialReporteAutomaticoScalarWhereInput[]
-  NOT?: Prisma.HistorialReporteAutomaticoScalarWhereInput | Prisma.HistorialReporteAutomaticoScalarWhereInput[]
-  id?: Prisma.IntFilter<"HistorialReporteAutomatico"> | number
-  tipo?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
-  destinatario?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
-  chatId?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
-  estudianteId?: Prisma.IntNullableFilter<"HistorialReporteAutomatico"> | number | null
-  fechaInicio?: Prisma.DateTimeNullableFilter<"HistorialReporteAutomatico"> | Date | string | null
-  fechaFin?: Prisma.DateTimeNullableFilter<"HistorialReporteAutomatico"> | Date | string | null
-  estado?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
-  detalle?: Prisma.StringFilter<"HistorialReporteAutomatico"> | string
-  createdAt?: Prisma.DateTimeFilter<"HistorialReporteAutomatico"> | Date | string
+export type HistorialReporteAutomaticoCreateManyColegioInput = {
+  id?: number
+  tipo: string
+  destinatario: string
+  chatId?: string
+  estudianteId?: number | null
+  fechaInicio?: Date | string | null
+  fechaFin?: Date | string | null
+  estado: string
+  detalle?: string
+  createdAt?: Date | string
+}
+
+export type HistorialReporteAutomaticoUpdateWithoutColegioInput = {
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  destinatario?: Prisma.StringFieldUpdateOperationsInput | string
+  chatId?: Prisma.StringFieldUpdateOperationsInput | string
+  fechaInicio?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  fechaFin?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
+  detalle?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  estudiante?: Prisma.EstudianteUpdateOneWithoutHistorialReportesNestedInput
+}
+
+export type HistorialReporteAutomaticoUncheckedUpdateWithoutColegioInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  destinatario?: Prisma.StringFieldUpdateOperationsInput | string
+  chatId?: Prisma.StringFieldUpdateOperationsInput | string
+  estudianteId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  fechaInicio?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  fechaFin?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
+  detalle?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type HistorialReporteAutomaticoUncheckedUpdateManyWithoutColegioInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  destinatario?: Prisma.StringFieldUpdateOperationsInput | string
+  chatId?: Prisma.StringFieldUpdateOperationsInput | string
+  estudianteId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  fechaInicio?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  fechaFin?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
+  detalle?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type HistorialReporteAutomaticoCreateManyEstudianteInput = {
   id?: number
+  colegioId?: string
   tipo: string
   destinatario: string
   chatId?: string
@@ -602,10 +774,12 @@ export type HistorialReporteAutomaticoUpdateWithoutEstudianteInput = {
   estado?: Prisma.StringFieldUpdateOperationsInput | string
   detalle?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  colegio?: Prisma.ColegioUpdateOneRequiredWithoutHistorialReportesNestedInput
 }
 
 export type HistorialReporteAutomaticoUncheckedUpdateWithoutEstudianteInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   tipo?: Prisma.StringFieldUpdateOperationsInput | string
   destinatario?: Prisma.StringFieldUpdateOperationsInput | string
   chatId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -618,6 +792,7 @@ export type HistorialReporteAutomaticoUncheckedUpdateWithoutEstudianteInput = {
 
 export type HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   tipo?: Prisma.StringFieldUpdateOperationsInput | string
   destinatario?: Prisma.StringFieldUpdateOperationsInput | string
   chatId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -632,6 +807,7 @@ export type HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteInput 
 
 export type HistorialReporteAutomaticoSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   tipo?: boolean
   destinatario?: boolean
   chatId?: boolean
@@ -641,11 +817,13 @@ export type HistorialReporteAutomaticoSelect<ExtArgs extends runtime.Types.Exten
   estado?: boolean
   detalle?: boolean
   createdAt?: boolean
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   estudiante?: boolean | Prisma.HistorialReporteAutomatico$estudianteArgs<ExtArgs>
 }, ExtArgs["result"]["historialReporteAutomatico"]>
 
 export type HistorialReporteAutomaticoSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   tipo?: boolean
   destinatario?: boolean
   chatId?: boolean
@@ -655,11 +833,13 @@ export type HistorialReporteAutomaticoSelectCreateManyAndReturn<ExtArgs extends 
   estado?: boolean
   detalle?: boolean
   createdAt?: boolean
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   estudiante?: boolean | Prisma.HistorialReporteAutomatico$estudianteArgs<ExtArgs>
 }, ExtArgs["result"]["historialReporteAutomatico"]>
 
 export type HistorialReporteAutomaticoSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   tipo?: boolean
   destinatario?: boolean
   chatId?: boolean
@@ -669,11 +849,13 @@ export type HistorialReporteAutomaticoSelectUpdateManyAndReturn<ExtArgs extends 
   estado?: boolean
   detalle?: boolean
   createdAt?: boolean
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   estudiante?: boolean | Prisma.HistorialReporteAutomatico$estudianteArgs<ExtArgs>
 }, ExtArgs["result"]["historialReporteAutomatico"]>
 
 export type HistorialReporteAutomaticoSelectScalar = {
   id?: boolean
+  colegioId?: boolean
   tipo?: boolean
   destinatario?: boolean
   chatId?: boolean
@@ -685,24 +867,29 @@ export type HistorialReporteAutomaticoSelectScalar = {
   createdAt?: boolean
 }
 
-export type HistorialReporteAutomaticoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "tipo" | "destinatario" | "chatId" | "estudianteId" | "fechaInicio" | "fechaFin" | "estado" | "detalle" | "createdAt", ExtArgs["result"]["historialReporteAutomatico"]>
+export type HistorialReporteAutomaticoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "colegioId" | "tipo" | "destinatario" | "chatId" | "estudianteId" | "fechaInicio" | "fechaFin" | "estado" | "detalle" | "createdAt", ExtArgs["result"]["historialReporteAutomatico"]>
 export type HistorialReporteAutomaticoInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   estudiante?: boolean | Prisma.HistorialReporteAutomatico$estudianteArgs<ExtArgs>
 }
 export type HistorialReporteAutomaticoIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   estudiante?: boolean | Prisma.HistorialReporteAutomatico$estudianteArgs<ExtArgs>
 }
 export type HistorialReporteAutomaticoIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   estudiante?: boolean | Prisma.HistorialReporteAutomatico$estudianteArgs<ExtArgs>
 }
 
 export type $HistorialReporteAutomaticoPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "HistorialReporteAutomatico"
   objects: {
+    colegio: Prisma.$ColegioPayload<ExtArgs>
     estudiante: Prisma.$EstudiantePayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
+    colegioId: string
     tipo: string
     destinatario: string
     chatId: string
@@ -1106,6 +1293,7 @@ readonly fields: HistorialReporteAutomaticoFieldRefs;
  */
 export interface Prisma__HistorialReporteAutomaticoClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  colegio<T extends Prisma.ColegioDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ColegioDefaultArgs<ExtArgs>>): Prisma.Prisma__ColegioClient<runtime.Types.Result.GetResult<Prisma.$ColegioPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   estudiante<T extends Prisma.HistorialReporteAutomatico$estudianteArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.HistorialReporteAutomatico$estudianteArgs<ExtArgs>>): Prisma.Prisma__EstudianteClient<runtime.Types.Result.GetResult<Prisma.$EstudiantePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1137,6 +1325,7 @@ export interface Prisma__HistorialReporteAutomaticoClient<T, Null = never, ExtAr
  */
 export interface HistorialReporteAutomaticoFieldRefs {
   readonly id: Prisma.FieldRef<"HistorialReporteAutomatico", 'Int'>
+  readonly colegioId: Prisma.FieldRef<"HistorialReporteAutomatico", 'String'>
   readonly tipo: Prisma.FieldRef<"HistorialReporteAutomatico", 'String'>
   readonly destinatario: Prisma.FieldRef<"HistorialReporteAutomatico", 'String'>
   readonly chatId: Prisma.FieldRef<"HistorialReporteAutomatico", 'String'>

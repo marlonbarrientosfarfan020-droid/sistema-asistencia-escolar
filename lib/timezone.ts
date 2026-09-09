@@ -227,3 +227,49 @@ export function evaluarJornadaVigente({
   }
   return "SIN_SALIDA";
 }
+
+/**
+ * FASE 7.4: Retorna la hora canónica de Perú (America/Lima) en formato 24h (HH:mm).
+ */
+export function obtenerHoraPeru(fecha: Date = new Date()): string {
+  return horaPeru(fecha);
+}
+
+/**
+ * Convierte un string "HH:mm" a minutos totales desde la medianoche.
+ */
+export function minutosDesdeMedianoche(horaStr: string): number {
+  const [h, m] = (horaStr || "00:00").split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+/**
+ * FASE 7.4: Valida si una hora determinada está dentro del rango de jornada [horaApertura, horaCierre].
+ */
+export function estaDentroHorarioJornada(
+  horaActual: string,
+  horaApertura: string,
+  horaCierre: string
+): boolean {
+  const minutosActual = minutosDesdeMedianoche(horaActual);
+  const minutosApertura = minutosDesdeMedianoche(horaApertura);
+  const minutosCierre = minutosDesdeMedianoche(horaCierre);
+
+  if (minutosCierre >= minutosApertura) {
+    return minutosActual >= minutosApertura && minutosActual <= minutosCierre;
+  }
+  // Turno o jornada que cruza medianoche
+  return minutosActual >= minutosApertura || minutosActual <= minutosCierre;
+}
+
+/**
+ * FASE 7.4: Determina si una fecha en hora de Perú corresponde a domingo (no lectivo habitual).
+ */
+export function esFinDeSemanaPeru(fecha: Date = new Date()): boolean {
+  const diaSemanaStr = new Intl.DateTimeFormat("en-US", {
+    timeZone: ZONA_HORARIA,
+    weekday: "short",
+  }).format(fecha);
+  return diaSemanaStr === "Sun";
+}
+

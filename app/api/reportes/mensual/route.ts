@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { exigirAdminDemoOPersonal } from "@/lib/auth";
+import {
+  verificarModuloActivo,
+  registrarAuditoriaBloqueo,
+} from "@/lib/supermotor-guard";
 
 const ZONA_HORARIA = "America/Lima";
 
@@ -90,6 +94,26 @@ export async function GET(request: Request) {
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
+  }
+
+  // FASE 4.6: Validar reportesActivo en el SuperMotor
+  const validacionReportes = await verificarModuloActivo("reportes");
+  if (!validacionReportes.autorizado) {
+    await registrarAuditoriaBloqueo({
+      modulo: "REPORTES",
+      motivo: validacionReportes.motivo || "MODULO_DESACTIVADO",
+      usuario: acceso.sesion.usuario,
+    });
+
+    return NextResponse.json(
+      {
+        ok: false,
+        estado: "bloqueado",
+        message: "Generación de reportes temporalmente desactivada por el SuperMotor.",
+        mensaje: "Generación de reportes temporalmente desactivada por el SuperMotor.",
+      },
+      { status: 403 }
+    );
   }
 
   try {

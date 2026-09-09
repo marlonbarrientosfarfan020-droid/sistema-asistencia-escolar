@@ -1,12 +1,27 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { guardarSesionPadre } from "@/lib/auth-padres";
+import { verificarModuloActivo } from "@/lib/supermotor-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
+    // FASE 4.4: Validar portalActivo en SuperMotor
+    const validacionPortal = await verificarModuloActivo("portal");
+    if (!validacionPortal.autorizado) {
+      return NextResponse.json(
+        {
+          ok: false,
+          estado: "bloqueado",
+          message: "Portal temporalmente suspendido por administración.",
+          mensaje: "Portal temporalmente suspendido por administración.",
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const dni = String(body.dni || "").trim();
     const codigoFamiliar = String(body.codigoFamiliar || body.codigo || "").trim().toUpperCase();
@@ -42,7 +57,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Buscar código familiar
-    const familia = await prisma.codigoFamiliar.findUnique({
+    const familia = await prisma.codigoFamiliar.findFirst({
       where: { codigo: codigoFamiliar },
       include: {
         estudiantes: {

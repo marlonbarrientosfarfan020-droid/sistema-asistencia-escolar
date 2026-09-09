@@ -13,6 +13,7 @@ const COOKIE_NAME = "sesion_santa_rita";
 
 const ROLES_PERMITIDOS: RolUsuario[] = [
   "ADMIN",
+  "DIRECTOR",
   "DIRECTIVO",
   "DEMO",
   "PERSONAL",

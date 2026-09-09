@@ -1,3 +1,8 @@
+import {
+  verificarModuloActivo,
+  registrarAuditoriaBloqueo,
+} from "@/lib/supermotor-guard";
+
 type DatosWhatsApp = {
   telefono: string;
   tutor: string;
@@ -9,6 +14,7 @@ type DatosWhatsApp = {
   turno?: string;
   estado?: string;
   metodo?: string;
+  colegioId?: string;
 };
 
 export async function enviarWhatsApp({
@@ -22,9 +28,22 @@ export async function enviarWhatsApp({
   turno,
   estado,
   metodo,
+  colegioId = "SANTA_RITA_001",
 }: DatosWhatsApp) {
   if (process.env.WHATSAPP_ENABLED !== "true") {
     console.log("WhatsApp desactivado");
+    return false;
+  }
+
+  // Validación de SuperMotor: whatsappActivo
+  const estadoWhatsApp = await verificarModuloActivo("whatsapp", colegioId);
+  if (!estadoWhatsApp.autorizado) {
+    console.log("[WHATSAPP] Envío omitido: Módulo WhatsApp desactivado en SuperMotor.");
+    await registrarAuditoriaBloqueo({
+      modulo: "WHATSAPP",
+      motivo: estadoWhatsApp.motivo || "MODULO_DESACTIVADO",
+      detalles: { telefono, estudiante, colegioId },
+    });
     return false;
   }
 

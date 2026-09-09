@@ -7,8 +7,39 @@ datasource db {
   provider = "postgresql"
 }
 
+model Colegio {
+  id            Int      @id @default(autoincrement())
+  codigo        String   @unique
+  nombre        String
+  nombreCorto   String   @default("")
+  direccion     String   @default("")
+  telefono      String   @default("")
+  logo          String   @default("")
+  estado        String   @default("ACTIVO") // "ACTIVO" | "SUSPENDIDO"
+  fechaRegistro DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sistemaControl    SistemaControl?
+  configuracion     Configuracion?
+  usuarios          Usuario[]
+  estudiantes       Estudiante[]
+  turnos            Turno[]
+  asistencias       Asistencia[]
+  calendarios       CalendarioEscolar[]
+  codigosFamiliares CodigoFamiliar[]
+  historialReportes HistorialReporteAutomatico[]
+  auditorias        Auditoria[]
+  analisisIA        AnalisisIA[]
+  systemHealthLogs  SystemHealthLog[]
+
+  @@index([codigo])
+  @@index([estado])
+}
+
 model Estudiante {
   id             Int      @id @default(autoincrement())
+  colegioId      String   @default("SANTA_RITA_001")
   codigo         String   @unique
   dni            String   @unique
   nombres        String
@@ -20,6 +51,8 @@ model Estudiante {
   telegramChatId String   @default("")
   estado         Boolean  @default(true)
   createdAt      DateTime @default(now())
+
+  colegio Colegio @relation(fields: [colegioId], references: [codigo], onDelete: Cascade)
 
   turnoId Int?
   turno   Turno? @relation(fields: [turnoId], references: [id])
@@ -33,6 +66,7 @@ model Estudiante {
   historialReportes HistorialReporteAutomatico[]
   biometriaFacial   BiometriaFacial?
 
+  @@index([colegioId])
   @@index([turnoId])
   @@index([codigoFamiliarId])
   @@index([grado, seccion])
@@ -41,7 +75,8 @@ model Estudiante {
 
 model Turno {
   id                             Int      @id @default(autoincrement())
-  nombre                         String   @unique
+  colegioId                      String   @default("SANTA_RITA_001")
+  nombre                         String
   horaEntrada                    String
   horaSalida                     String
   estado                         Boolean  @default(true)
@@ -51,13 +86,19 @@ model Turno {
   margenEntradaAnticipadaMinutos Int      @default(60)
   margenSalidaMinutos            Int      @default(60)
 
+  colegio Colegio @relation(fields: [colegioId], references: [codigo], onDelete: Cascade)
+
   estudiantes       Estudiante[]
   calendarioEscolar CalendarioEscolar[]
   asistencias       Asistencia[]
+
+  @@unique([colegioId, nombre])
+  @@index([colegioId])
 }
 
 model Asistencia {
   id            Int       @id @default(autoincrement())
+  colegioId     String    @default("SANTA_RITA_001")
   fecha         DateTime  @default(now())
   fechaDia      String    @default("")
   horaEntrada   DateTime?
@@ -70,6 +111,8 @@ model Asistencia {
   fotoSalida    String?
   fotoUrl       String?
 
+  colegio Colegio @relation(fields: [colegioId], references: [codigo], onDelete: Cascade)
+
   estudianteId Int
   estudiante   Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
 
@@ -77,6 +120,8 @@ model Asistencia {
   turno   Turno? @relation(fields: [turnoId], references: [id], onDelete: SetNull)
 
   @@unique([estudianteId, fechaDia, turnoId])
+  @@index([colegioId])
+  @@index([colegioId, fechaDia])
   @@index([estudianteId, fechaDia])
   @@index([estudianteId])
   @@index([fecha])
@@ -89,18 +134,23 @@ model Asistencia {
 
 model Usuario {
   id        Int      @id @default(autoincrement())
+  colegioId String?  @default("SANTA_RITA_001")
   usuario   String   @unique
   password  String
   rol       String
   estado    Boolean  @default(true)
   createdAt DateTime @default(now())
 
+  colegio Colegio? @relation(fields: [colegioId], references: [codigo], onDelete: SetNull)
+
+  @@index([colegioId])
   @@index([estado])
   @@index([rol])
 }
 
 model Configuracion {
   id            Int      @id @default(autoincrement())
+  colegioId     String   @unique @default("SANTA_RITA_001")
   nombreColegio String   @default("Santa Rita de Casia")
   logoUrl       String   @default("")
   direccion     String   @default("")
@@ -108,6 +158,8 @@ model Configuracion {
   correo        String   @default("")
   director      String   @default("")
   createdAt     DateTime @default(now())
+
+  colegio Colegio @relation(fields: [colegioId], references: [codigo], onDelete: Cascade)
 
   reporteTelegramActivo       Boolean   @default(false)
   horaReporteDiario           String    @default("21:00")
@@ -146,10 +198,13 @@ model Configuracion {
   canalTelegramActivo             Boolean   @default(true)
   canalWhatsAppActivo             Boolean   @default(false)
   canalPortalWebActivo            Boolean   @default(true)
+
+  @@index([colegioId])
 }
 
 model Auditoria {
   id        Int      @id @default(autoincrement())
+  colegioId String?  @default("SANTA_RITA_001")
   usuario   String
   rol       String
   accion    String
@@ -157,6 +212,9 @@ model Auditoria {
   detalle   String
   createdAt DateTime @default(now())
 
+  colegio Colegio? @relation(fields: [colegioId], references: [codigo], onDelete: SetNull)
+
+  @@index([colegioId])
   @@index([createdAt])
   @@index([modulo])
   @@index([usuario])
@@ -178,11 +236,15 @@ model AlertaAsistencia {
 
 model AnalisisIA {
   id        Int      @id @default(autoincrement())
+  colegioId String?  @default("SANTA_RITA_001")
   tipo      String
   dni       String?
   resultado String
   createdAt DateTime @default(now())
 
+  colegio Colegio? @relation(fields: [colegioId], references: [codigo], onDelete: SetNull)
+
+  @@index([colegioId])
   @@index([tipo])
   @@index([dni])
   @@index([createdAt])
@@ -207,6 +269,7 @@ model RiesgoEstudianteIA {
 
 model CalendarioEscolar {
   id             Int      @id @default(autoincrement())
+  colegioId      String   @default("SANTA_RITA_001")
   fechaInicio    DateTime @db.Date
   fechaFin       DateTime @db.Date
   tipo           String
@@ -216,8 +279,10 @@ model CalendarioEscolar {
   estado         Boolean  @default(true)
   createdAt      DateTime @default(now())
 
-  turno Turno? @relation(fields: [turnoId], references: [id], onDelete: SetNull)
+  colegio Colegio @relation(fields: [colegioId], references: [codigo], onDelete: Cascade)
+  turno   Turno?  @relation(fields: [turnoId], references: [id], onDelete: SetNull)
 
+  @@index([colegioId])
   @@index([fechaInicio, fechaFin])
   @@index([turnoId])
   @@index([estado])
@@ -225,6 +290,7 @@ model CalendarioEscolar {
 
 model HistorialReporteAutomatico {
   id           Int       @id @default(autoincrement())
+  colegioId    String    @default("SANTA_RITA_001")
   tipo         String
   destinatario String
   chatId       String    @default("")
@@ -235,8 +301,10 @@ model HistorialReporteAutomatico {
   detalle      String    @default("")
   createdAt    DateTime  @default(now())
 
+  colegio    Colegio     @relation(fields: [colegioId], references: [codigo], onDelete: Cascade)
   estudiante Estudiante? @relation(fields: [estudianteId], references: [id], onDelete: SetNull)
 
+  @@index([colegioId])
   @@index([tipo])
   @@index([estado])
   @@index([createdAt])
@@ -278,7 +346,8 @@ model RostroFacial {
 
 model CodigoFamiliar {
   id               Int          @id @default(autoincrement())
-  codigo           String       @unique
+  colegioId        String       @default("SANTA_RITA_001")
+  codigo           String
   tutorTitular     String       @default("")
   telefonoContacto String       @default("")
   correoContacto   String       @default("")
@@ -287,8 +356,59 @@ model CodigoFamiliar {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  estudiantes      Estudiante[]
+  colegio     Colegio      @relation(fields: [colegioId], references: [codigo], onDelete: Cascade)
+  estudiantes Estudiante[]
 
+  @@unique([colegioId, codigo])
+  @@index([colegioId])
   @@index([codigo])
   @@index([estado])
+}
+
+model SistemaControl {
+  id                         Int       @id @default(autoincrement())
+  colegioId                  String    @unique @default("SANTA_RITA_001")
+  motorActivo                Boolean   @default(false)
+  asistenciaActivo           Boolean   @default(false)
+  portalActivo               Boolean   @default(false)
+  telegramActivo             Boolean   @default(false)
+  whatsappActivo             Boolean   @default(false)
+  reportesActivo             Boolean   @default(false)
+  iaActivo                   Boolean   @default(false)
+  alertasActivo              Boolean   @default(false)
+  fotosActivo                Boolean   @default(false)
+  estadoJornada              String    @default("CERRADO")
+  modoOperacion              String    @default("MANUAL")
+  horaAperturaJornada        String?   @default("06:30")
+  horaCierreJornada          String?   @default("14:30")
+  minutosAnticipacionEntrada Int       @default(60)
+  minutosCierreAutomatico    Int       @default(30)
+  ultimaActivacion           DateTime?
+  ultimoUsuario              String    @default("SISTEMA")
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+
+  colegio Colegio @relation(fields: [colegioId], references: [codigo], onDelete: Cascade)
+
+  @@index([colegioId])
+  @@index([motorActivo])
+  @@index([modoOperacion])
+}
+
+model SystemHealthLog {
+  id              Int      @id @default(autoincrement())
+  colegioId       String   @default("SANTA_RITA_001")
+  servicio        String   // "DATABASE" | "SUPERMOTOR" | "CRON" | "TELEGRAM" | "WHATSAPP" | "STORAGE"
+  estado          String   // "OK" | "WARNING" | "ERROR"
+  mensaje         String   @default("")
+  tiempoRespuesta Int?     @default(0)
+  detalles        String?  @default("")
+  fechaHora       DateTime @default(now())
+
+  colegio Colegio @relation(fields: [colegioId], references: [codigo], onDelete: Cascade)
+
+  @@index([colegioId])
+  @@index([servicio])
+  @@index([estado])
+  @@index([fechaHora])
 }

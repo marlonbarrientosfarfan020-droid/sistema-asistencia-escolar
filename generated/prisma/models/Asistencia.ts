@@ -40,6 +40,7 @@ export type AsistenciaSumAggregateOutputType = {
 
 export type AsistenciaMinAggregateOutputType = {
   id: number | null
+  colegioId: string | null
   fecha: Date | null
   fechaDia: string | null
   horaEntrada: Date | null
@@ -57,6 +58,7 @@ export type AsistenciaMinAggregateOutputType = {
 
 export type AsistenciaMaxAggregateOutputType = {
   id: number | null
+  colegioId: string | null
   fecha: Date | null
   fechaDia: string | null
   horaEntrada: Date | null
@@ -74,6 +76,7 @@ export type AsistenciaMaxAggregateOutputType = {
 
 export type AsistenciaCountAggregateOutputType = {
   id: number
+  colegioId: number
   fecha: number
   fechaDia: number
   horaEntrada: number
@@ -105,6 +108,7 @@ export type AsistenciaSumAggregateInputType = {
 
 export type AsistenciaMinAggregateInputType = {
   id?: true
+  colegioId?: true
   fecha?: true
   fechaDia?: true
   horaEntrada?: true
@@ -122,6 +126,7 @@ export type AsistenciaMinAggregateInputType = {
 
 export type AsistenciaMaxAggregateInputType = {
   id?: true
+  colegioId?: true
   fecha?: true
   fechaDia?: true
   horaEntrada?: true
@@ -139,6 +144,7 @@ export type AsistenciaMaxAggregateInputType = {
 
 export type AsistenciaCountAggregateInputType = {
   id?: true
+  colegioId?: true
   fecha?: true
   fechaDia?: true
   horaEntrada?: true
@@ -243,6 +249,7 @@ export type AsistenciaGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inter
 
 export type AsistenciaGroupByOutputType = {
   id: number
+  colegioId: string
   fecha: Date
   fechaDia: string
   horaEntrada: Date | null
@@ -283,6 +290,7 @@ export type AsistenciaWhereInput = {
   OR?: Prisma.AsistenciaWhereInput[]
   NOT?: Prisma.AsistenciaWhereInput | Prisma.AsistenciaWhereInput[]
   id?: Prisma.IntFilter<"Asistencia"> | number
+  colegioId?: Prisma.StringFilter<"Asistencia"> | string
   fecha?: Prisma.DateTimeFilter<"Asistencia"> | Date | string
   fechaDia?: Prisma.StringFilter<"Asistencia"> | string
   horaEntrada?: Prisma.DateTimeNullableFilter<"Asistencia"> | Date | string | null
@@ -296,12 +304,14 @@ export type AsistenciaWhereInput = {
   fotoUrl?: Prisma.StringNullableFilter<"Asistencia"> | string | null
   estudianteId?: Prisma.IntFilter<"Asistencia"> | number
   turnoId?: Prisma.IntNullableFilter<"Asistencia"> | number | null
+  colegio?: Prisma.XOR<Prisma.ColegioScalarRelationFilter, Prisma.ColegioWhereInput>
   estudiante?: Prisma.XOR<Prisma.EstudianteScalarRelationFilter, Prisma.EstudianteWhereInput>
   turno?: Prisma.XOR<Prisma.TurnoNullableScalarRelationFilter, Prisma.TurnoWhereInput> | null
 }
 
 export type AsistenciaOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   fecha?: Prisma.SortOrder
   fechaDia?: Prisma.SortOrder
   horaEntrada?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -315,6 +325,7 @@ export type AsistenciaOrderByWithRelationInput = {
   fotoUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   estudianteId?: Prisma.SortOrder
   turnoId?: Prisma.SortOrderInput | Prisma.SortOrder
+  colegio?: Prisma.ColegioOrderByWithRelationInput
   estudiante?: Prisma.EstudianteOrderByWithRelationInput
   turno?: Prisma.TurnoOrderByWithRelationInput
 }
@@ -325,6 +336,7 @@ export type AsistenciaWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.AsistenciaWhereInput | Prisma.AsistenciaWhereInput[]
   OR?: Prisma.AsistenciaWhereInput[]
   NOT?: Prisma.AsistenciaWhereInput | Prisma.AsistenciaWhereInput[]
+  colegioId?: Prisma.StringFilter<"Asistencia"> | string
   fecha?: Prisma.DateTimeFilter<"Asistencia"> | Date | string
   fechaDia?: Prisma.StringFilter<"Asistencia"> | string
   horaEntrada?: Prisma.DateTimeNullableFilter<"Asistencia"> | Date | string | null
@@ -338,12 +350,14 @@ export type AsistenciaWhereUniqueInput = Prisma.AtLeast<{
   fotoUrl?: Prisma.StringNullableFilter<"Asistencia"> | string | null
   estudianteId?: Prisma.IntFilter<"Asistencia"> | number
   turnoId?: Prisma.IntNullableFilter<"Asistencia"> | number | null
+  colegio?: Prisma.XOR<Prisma.ColegioScalarRelationFilter, Prisma.ColegioWhereInput>
   estudiante?: Prisma.XOR<Prisma.EstudianteScalarRelationFilter, Prisma.EstudianteWhereInput>
   turno?: Prisma.XOR<Prisma.TurnoNullableScalarRelationFilter, Prisma.TurnoWhereInput> | null
 }, "id" | "estudianteId_fechaDia_turnoId">
 
 export type AsistenciaOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   fecha?: Prisma.SortOrder
   fechaDia?: Prisma.SortOrder
   horaEntrada?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -369,6 +383,7 @@ export type AsistenciaScalarWhereWithAggregatesInput = {
   OR?: Prisma.AsistenciaScalarWhereWithAggregatesInput[]
   NOT?: Prisma.AsistenciaScalarWhereWithAggregatesInput | Prisma.AsistenciaScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"Asistencia"> | number
+  colegioId?: Prisma.StringWithAggregatesFilter<"Asistencia"> | string
   fecha?: Prisma.DateTimeWithAggregatesFilter<"Asistencia"> | Date | string
   fechaDia?: Prisma.StringWithAggregatesFilter<"Asistencia"> | string
   horaEntrada?: Prisma.DateTimeNullableWithAggregatesFilter<"Asistencia"> | Date | string | null
@@ -396,12 +411,14 @@ export type AsistenciaCreateInput = {
   fotoEntrada?: string | null
   fotoSalida?: string | null
   fotoUrl?: string | null
+  colegio?: Prisma.ColegioCreateNestedOneWithoutAsistenciasInput
   estudiante: Prisma.EstudianteCreateNestedOneWithoutAsistenciasInput
   turno?: Prisma.TurnoCreateNestedOneWithoutAsistenciasInput
 }
 
 export type AsistenciaUncheckedCreateInput = {
   id?: number
+  colegioId?: string
   fecha?: Date | string
   fechaDia?: string
   horaEntrada?: Date | string | null
@@ -429,12 +446,14 @@ export type AsistenciaUpdateInput = {
   fotoEntrada?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  colegio?: Prisma.ColegioUpdateOneRequiredWithoutAsistenciasNestedInput
   estudiante?: Prisma.EstudianteUpdateOneRequiredWithoutAsistenciasNestedInput
   turno?: Prisma.TurnoUpdateOneWithoutAsistenciasNestedInput
 }
 
 export type AsistenciaUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   fecha?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   fechaDia?: Prisma.StringFieldUpdateOperationsInput | string
   horaEntrada?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -452,6 +471,7 @@ export type AsistenciaUncheckedUpdateInput = {
 
 export type AsistenciaCreateManyInput = {
   id?: number
+  colegioId?: string
   fecha?: Date | string
   fechaDia?: string
   horaEntrada?: Date | string | null
@@ -483,6 +503,7 @@ export type AsistenciaUpdateManyMutationInput = {
 
 export type AsistenciaUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   fecha?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   fechaDia?: Prisma.StringFieldUpdateOperationsInput | string
   horaEntrada?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -516,6 +537,7 @@ export type AsistenciaEstudianteIdFechaDiaTurnoIdCompoundUniqueInput = {
 
 export type AsistenciaCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   fecha?: Prisma.SortOrder
   fechaDia?: Prisma.SortOrder
   horaEntrada?: Prisma.SortOrder
@@ -539,6 +561,7 @@ export type AsistenciaAvgOrderByAggregateInput = {
 
 export type AsistenciaMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   fecha?: Prisma.SortOrder
   fechaDia?: Prisma.SortOrder
   horaEntrada?: Prisma.SortOrder
@@ -556,6 +579,7 @@ export type AsistenciaMaxOrderByAggregateInput = {
 
 export type AsistenciaMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   fecha?: Prisma.SortOrder
   fechaDia?: Prisma.SortOrder
   horaEntrada?: Prisma.SortOrder
@@ -575,6 +599,48 @@ export type AsistenciaSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   estudianteId?: Prisma.SortOrder
   turnoId?: Prisma.SortOrder
+}
+
+export type AsistenciaCreateNestedManyWithoutColegioInput = {
+  create?: Prisma.XOR<Prisma.AsistenciaCreateWithoutColegioInput, Prisma.AsistenciaUncheckedCreateWithoutColegioInput> | Prisma.AsistenciaCreateWithoutColegioInput[] | Prisma.AsistenciaUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.AsistenciaCreateOrConnectWithoutColegioInput | Prisma.AsistenciaCreateOrConnectWithoutColegioInput[]
+  createMany?: Prisma.AsistenciaCreateManyColegioInputEnvelope
+  connect?: Prisma.AsistenciaWhereUniqueInput | Prisma.AsistenciaWhereUniqueInput[]
+}
+
+export type AsistenciaUncheckedCreateNestedManyWithoutColegioInput = {
+  create?: Prisma.XOR<Prisma.AsistenciaCreateWithoutColegioInput, Prisma.AsistenciaUncheckedCreateWithoutColegioInput> | Prisma.AsistenciaCreateWithoutColegioInput[] | Prisma.AsistenciaUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.AsistenciaCreateOrConnectWithoutColegioInput | Prisma.AsistenciaCreateOrConnectWithoutColegioInput[]
+  createMany?: Prisma.AsistenciaCreateManyColegioInputEnvelope
+  connect?: Prisma.AsistenciaWhereUniqueInput | Prisma.AsistenciaWhereUniqueInput[]
+}
+
+export type AsistenciaUpdateManyWithoutColegioNestedInput = {
+  create?: Prisma.XOR<Prisma.AsistenciaCreateWithoutColegioInput, Prisma.AsistenciaUncheckedCreateWithoutColegioInput> | Prisma.AsistenciaCreateWithoutColegioInput[] | Prisma.AsistenciaUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.AsistenciaCreateOrConnectWithoutColegioInput | Prisma.AsistenciaCreateOrConnectWithoutColegioInput[]
+  upsert?: Prisma.AsistenciaUpsertWithWhereUniqueWithoutColegioInput | Prisma.AsistenciaUpsertWithWhereUniqueWithoutColegioInput[]
+  createMany?: Prisma.AsistenciaCreateManyColegioInputEnvelope
+  set?: Prisma.AsistenciaWhereUniqueInput | Prisma.AsistenciaWhereUniqueInput[]
+  disconnect?: Prisma.AsistenciaWhereUniqueInput | Prisma.AsistenciaWhereUniqueInput[]
+  delete?: Prisma.AsistenciaWhereUniqueInput | Prisma.AsistenciaWhereUniqueInput[]
+  connect?: Prisma.AsistenciaWhereUniqueInput | Prisma.AsistenciaWhereUniqueInput[]
+  update?: Prisma.AsistenciaUpdateWithWhereUniqueWithoutColegioInput | Prisma.AsistenciaUpdateWithWhereUniqueWithoutColegioInput[]
+  updateMany?: Prisma.AsistenciaUpdateManyWithWhereWithoutColegioInput | Prisma.AsistenciaUpdateManyWithWhereWithoutColegioInput[]
+  deleteMany?: Prisma.AsistenciaScalarWhereInput | Prisma.AsistenciaScalarWhereInput[]
+}
+
+export type AsistenciaUncheckedUpdateManyWithoutColegioNestedInput = {
+  create?: Prisma.XOR<Prisma.AsistenciaCreateWithoutColegioInput, Prisma.AsistenciaUncheckedCreateWithoutColegioInput> | Prisma.AsistenciaCreateWithoutColegioInput[] | Prisma.AsistenciaUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.AsistenciaCreateOrConnectWithoutColegioInput | Prisma.AsistenciaCreateOrConnectWithoutColegioInput[]
+  upsert?: Prisma.AsistenciaUpsertWithWhereUniqueWithoutColegioInput | Prisma.AsistenciaUpsertWithWhereUniqueWithoutColegioInput[]
+  createMany?: Prisma.AsistenciaCreateManyColegioInputEnvelope
+  set?: Prisma.AsistenciaWhereUniqueInput | Prisma.AsistenciaWhereUniqueInput[]
+  disconnect?: Prisma.AsistenciaWhereUniqueInput | Prisma.AsistenciaWhereUniqueInput[]
+  delete?: Prisma.AsistenciaWhereUniqueInput | Prisma.AsistenciaWhereUniqueInput[]
+  connect?: Prisma.AsistenciaWhereUniqueInput | Prisma.AsistenciaWhereUniqueInput[]
+  update?: Prisma.AsistenciaUpdateWithWhereUniqueWithoutColegioInput | Prisma.AsistenciaUpdateWithWhereUniqueWithoutColegioInput[]
+  updateMany?: Prisma.AsistenciaUpdateManyWithWhereWithoutColegioInput | Prisma.AsistenciaUpdateManyWithWhereWithoutColegioInput[]
+  deleteMany?: Prisma.AsistenciaScalarWhereInput | Prisma.AsistenciaScalarWhereInput[]
 }
 
 export type AsistenciaCreateNestedManyWithoutEstudianteInput = {
@@ -669,6 +735,86 @@ export type NullableStringFieldUpdateOperationsInput = {
   set?: string | null
 }
 
+export type AsistenciaCreateWithoutColegioInput = {
+  fecha?: Date | string
+  fechaDia?: string
+  horaEntrada?: Date | string | null
+  horaSalida?: Date | string | null
+  metodo: string
+  estado?: string
+  estadoJornada?: string
+  estadoSalida?: string | null
+  fotoEntrada?: string | null
+  fotoSalida?: string | null
+  fotoUrl?: string | null
+  estudiante: Prisma.EstudianteCreateNestedOneWithoutAsistenciasInput
+  turno?: Prisma.TurnoCreateNestedOneWithoutAsistenciasInput
+}
+
+export type AsistenciaUncheckedCreateWithoutColegioInput = {
+  id?: number
+  fecha?: Date | string
+  fechaDia?: string
+  horaEntrada?: Date | string | null
+  horaSalida?: Date | string | null
+  metodo: string
+  estado?: string
+  estadoJornada?: string
+  estadoSalida?: string | null
+  fotoEntrada?: string | null
+  fotoSalida?: string | null
+  fotoUrl?: string | null
+  estudianteId: number
+  turnoId?: number | null
+}
+
+export type AsistenciaCreateOrConnectWithoutColegioInput = {
+  where: Prisma.AsistenciaWhereUniqueInput
+  create: Prisma.XOR<Prisma.AsistenciaCreateWithoutColegioInput, Prisma.AsistenciaUncheckedCreateWithoutColegioInput>
+}
+
+export type AsistenciaCreateManyColegioInputEnvelope = {
+  data: Prisma.AsistenciaCreateManyColegioInput | Prisma.AsistenciaCreateManyColegioInput[]
+  skipDuplicates?: boolean
+}
+
+export type AsistenciaUpsertWithWhereUniqueWithoutColegioInput = {
+  where: Prisma.AsistenciaWhereUniqueInput
+  update: Prisma.XOR<Prisma.AsistenciaUpdateWithoutColegioInput, Prisma.AsistenciaUncheckedUpdateWithoutColegioInput>
+  create: Prisma.XOR<Prisma.AsistenciaCreateWithoutColegioInput, Prisma.AsistenciaUncheckedCreateWithoutColegioInput>
+}
+
+export type AsistenciaUpdateWithWhereUniqueWithoutColegioInput = {
+  where: Prisma.AsistenciaWhereUniqueInput
+  data: Prisma.XOR<Prisma.AsistenciaUpdateWithoutColegioInput, Prisma.AsistenciaUncheckedUpdateWithoutColegioInput>
+}
+
+export type AsistenciaUpdateManyWithWhereWithoutColegioInput = {
+  where: Prisma.AsistenciaScalarWhereInput
+  data: Prisma.XOR<Prisma.AsistenciaUpdateManyMutationInput, Prisma.AsistenciaUncheckedUpdateManyWithoutColegioInput>
+}
+
+export type AsistenciaScalarWhereInput = {
+  AND?: Prisma.AsistenciaScalarWhereInput | Prisma.AsistenciaScalarWhereInput[]
+  OR?: Prisma.AsistenciaScalarWhereInput[]
+  NOT?: Prisma.AsistenciaScalarWhereInput | Prisma.AsistenciaScalarWhereInput[]
+  id?: Prisma.IntFilter<"Asistencia"> | number
+  colegioId?: Prisma.StringFilter<"Asistencia"> | string
+  fecha?: Prisma.DateTimeFilter<"Asistencia"> | Date | string
+  fechaDia?: Prisma.StringFilter<"Asistencia"> | string
+  horaEntrada?: Prisma.DateTimeNullableFilter<"Asistencia"> | Date | string | null
+  horaSalida?: Prisma.DateTimeNullableFilter<"Asistencia"> | Date | string | null
+  metodo?: Prisma.StringFilter<"Asistencia"> | string
+  estado?: Prisma.StringFilter<"Asistencia"> | string
+  estadoJornada?: Prisma.StringFilter<"Asistencia"> | string
+  estadoSalida?: Prisma.StringNullableFilter<"Asistencia"> | string | null
+  fotoEntrada?: Prisma.StringNullableFilter<"Asistencia"> | string | null
+  fotoSalida?: Prisma.StringNullableFilter<"Asistencia"> | string | null
+  fotoUrl?: Prisma.StringNullableFilter<"Asistencia"> | string | null
+  estudianteId?: Prisma.IntFilter<"Asistencia"> | number
+  turnoId?: Prisma.IntNullableFilter<"Asistencia"> | number | null
+}
+
 export type AsistenciaCreateWithoutEstudianteInput = {
   fecha?: Date | string
   fechaDia?: string
@@ -681,11 +827,13 @@ export type AsistenciaCreateWithoutEstudianteInput = {
   fotoEntrada?: string | null
   fotoSalida?: string | null
   fotoUrl?: string | null
+  colegio?: Prisma.ColegioCreateNestedOneWithoutAsistenciasInput
   turno?: Prisma.TurnoCreateNestedOneWithoutAsistenciasInput
 }
 
 export type AsistenciaUncheckedCreateWithoutEstudianteInput = {
   id?: number
+  colegioId?: string
   fecha?: Date | string
   fechaDia?: string
   horaEntrada?: Date | string | null
@@ -726,26 +874,6 @@ export type AsistenciaUpdateManyWithWhereWithoutEstudianteInput = {
   data: Prisma.XOR<Prisma.AsistenciaUpdateManyMutationInput, Prisma.AsistenciaUncheckedUpdateManyWithoutEstudianteInput>
 }
 
-export type AsistenciaScalarWhereInput = {
-  AND?: Prisma.AsistenciaScalarWhereInput | Prisma.AsistenciaScalarWhereInput[]
-  OR?: Prisma.AsistenciaScalarWhereInput[]
-  NOT?: Prisma.AsistenciaScalarWhereInput | Prisma.AsistenciaScalarWhereInput[]
-  id?: Prisma.IntFilter<"Asistencia"> | number
-  fecha?: Prisma.DateTimeFilter<"Asistencia"> | Date | string
-  fechaDia?: Prisma.StringFilter<"Asistencia"> | string
-  horaEntrada?: Prisma.DateTimeNullableFilter<"Asistencia"> | Date | string | null
-  horaSalida?: Prisma.DateTimeNullableFilter<"Asistencia"> | Date | string | null
-  metodo?: Prisma.StringFilter<"Asistencia"> | string
-  estado?: Prisma.StringFilter<"Asistencia"> | string
-  estadoJornada?: Prisma.StringFilter<"Asistencia"> | string
-  estadoSalida?: Prisma.StringNullableFilter<"Asistencia"> | string | null
-  fotoEntrada?: Prisma.StringNullableFilter<"Asistencia"> | string | null
-  fotoSalida?: Prisma.StringNullableFilter<"Asistencia"> | string | null
-  fotoUrl?: Prisma.StringNullableFilter<"Asistencia"> | string | null
-  estudianteId?: Prisma.IntFilter<"Asistencia"> | number
-  turnoId?: Prisma.IntNullableFilter<"Asistencia"> | number | null
-}
-
 export type AsistenciaCreateWithoutTurnoInput = {
   fecha?: Date | string
   fechaDia?: string
@@ -758,11 +886,13 @@ export type AsistenciaCreateWithoutTurnoInput = {
   fotoEntrada?: string | null
   fotoSalida?: string | null
   fotoUrl?: string | null
+  colegio?: Prisma.ColegioCreateNestedOneWithoutAsistenciasInput
   estudiante: Prisma.EstudianteCreateNestedOneWithoutAsistenciasInput
 }
 
 export type AsistenciaUncheckedCreateWithoutTurnoInput = {
   id?: number
+  colegioId?: string
   fecha?: Date | string
   fechaDia?: string
   horaEntrada?: Date | string | null
@@ -803,8 +933,76 @@ export type AsistenciaUpdateManyWithWhereWithoutTurnoInput = {
   data: Prisma.XOR<Prisma.AsistenciaUpdateManyMutationInput, Prisma.AsistenciaUncheckedUpdateManyWithoutTurnoInput>
 }
 
+export type AsistenciaCreateManyColegioInput = {
+  id?: number
+  fecha?: Date | string
+  fechaDia?: string
+  horaEntrada?: Date | string | null
+  horaSalida?: Date | string | null
+  metodo: string
+  estado?: string
+  estadoJornada?: string
+  estadoSalida?: string | null
+  fotoEntrada?: string | null
+  fotoSalida?: string | null
+  fotoUrl?: string | null
+  estudianteId: number
+  turnoId?: number | null
+}
+
+export type AsistenciaUpdateWithoutColegioInput = {
+  fecha?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  fechaDia?: Prisma.StringFieldUpdateOperationsInput | string
+  horaEntrada?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metodo?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoJornada?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fotoEntrada?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fotoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  estudiante?: Prisma.EstudianteUpdateOneRequiredWithoutAsistenciasNestedInput
+  turno?: Prisma.TurnoUpdateOneWithoutAsistenciasNestedInput
+}
+
+export type AsistenciaUncheckedUpdateWithoutColegioInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  fecha?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  fechaDia?: Prisma.StringFieldUpdateOperationsInput | string
+  horaEntrada?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metodo?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoJornada?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fotoEntrada?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fotoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  estudianteId?: Prisma.IntFieldUpdateOperationsInput | number
+  turnoId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+}
+
+export type AsistenciaUncheckedUpdateManyWithoutColegioInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  fecha?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  fechaDia?: Prisma.StringFieldUpdateOperationsInput | string
+  horaEntrada?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  horaSalida?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metodo?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoJornada?: Prisma.StringFieldUpdateOperationsInput | string
+  estadoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fotoEntrada?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fotoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  estudianteId?: Prisma.IntFieldUpdateOperationsInput | number
+  turnoId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+}
+
 export type AsistenciaCreateManyEstudianteInput = {
   id?: number
+  colegioId?: string
   fecha?: Date | string
   fechaDia?: string
   horaEntrada?: Date | string | null
@@ -831,11 +1029,13 @@ export type AsistenciaUpdateWithoutEstudianteInput = {
   fotoEntrada?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  colegio?: Prisma.ColegioUpdateOneRequiredWithoutAsistenciasNestedInput
   turno?: Prisma.TurnoUpdateOneWithoutAsistenciasNestedInput
 }
 
 export type AsistenciaUncheckedUpdateWithoutEstudianteInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   fecha?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   fechaDia?: Prisma.StringFieldUpdateOperationsInput | string
   horaEntrada?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -852,6 +1052,7 @@ export type AsistenciaUncheckedUpdateWithoutEstudianteInput = {
 
 export type AsistenciaUncheckedUpdateManyWithoutEstudianteInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   fecha?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   fechaDia?: Prisma.StringFieldUpdateOperationsInput | string
   horaEntrada?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -868,6 +1069,7 @@ export type AsistenciaUncheckedUpdateManyWithoutEstudianteInput = {
 
 export type AsistenciaCreateManyTurnoInput = {
   id?: number
+  colegioId?: string
   fecha?: Date | string
   fechaDia?: string
   horaEntrada?: Date | string | null
@@ -894,11 +1096,13 @@ export type AsistenciaUpdateWithoutTurnoInput = {
   fotoEntrada?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoSalida?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  colegio?: Prisma.ColegioUpdateOneRequiredWithoutAsistenciasNestedInput
   estudiante?: Prisma.EstudianteUpdateOneRequiredWithoutAsistenciasNestedInput
 }
 
 export type AsistenciaUncheckedUpdateWithoutTurnoInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   fecha?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   fechaDia?: Prisma.StringFieldUpdateOperationsInput | string
   horaEntrada?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -915,6 +1119,7 @@ export type AsistenciaUncheckedUpdateWithoutTurnoInput = {
 
 export type AsistenciaUncheckedUpdateManyWithoutTurnoInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   fecha?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   fechaDia?: Prisma.StringFieldUpdateOperationsInput | string
   horaEntrada?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -933,6 +1138,7 @@ export type AsistenciaUncheckedUpdateManyWithoutTurnoInput = {
 
 export type AsistenciaSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   fecha?: boolean
   fechaDia?: boolean
   horaEntrada?: boolean
@@ -946,12 +1152,14 @@ export type AsistenciaSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   fotoUrl?: boolean
   estudianteId?: boolean
   turnoId?: boolean
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   estudiante?: boolean | Prisma.EstudianteDefaultArgs<ExtArgs>
   turno?: boolean | Prisma.Asistencia$turnoArgs<ExtArgs>
 }, ExtArgs["result"]["asistencia"]>
 
 export type AsistenciaSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   fecha?: boolean
   fechaDia?: boolean
   horaEntrada?: boolean
@@ -965,12 +1173,14 @@ export type AsistenciaSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   fotoUrl?: boolean
   estudianteId?: boolean
   turnoId?: boolean
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   estudiante?: boolean | Prisma.EstudianteDefaultArgs<ExtArgs>
   turno?: boolean | Prisma.Asistencia$turnoArgs<ExtArgs>
 }, ExtArgs["result"]["asistencia"]>
 
 export type AsistenciaSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   fecha?: boolean
   fechaDia?: boolean
   horaEntrada?: boolean
@@ -984,12 +1194,14 @@ export type AsistenciaSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   fotoUrl?: boolean
   estudianteId?: boolean
   turnoId?: boolean
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   estudiante?: boolean | Prisma.EstudianteDefaultArgs<ExtArgs>
   turno?: boolean | Prisma.Asistencia$turnoArgs<ExtArgs>
 }, ExtArgs["result"]["asistencia"]>
 
 export type AsistenciaSelectScalar = {
   id?: boolean
+  colegioId?: boolean
   fecha?: boolean
   fechaDia?: boolean
   horaEntrada?: boolean
@@ -1005,16 +1217,19 @@ export type AsistenciaSelectScalar = {
   turnoId?: boolean
 }
 
-export type AsistenciaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "fecha" | "fechaDia" | "horaEntrada" | "horaSalida" | "metodo" | "estado" | "estadoJornada" | "estadoSalida" | "fotoEntrada" | "fotoSalida" | "fotoUrl" | "estudianteId" | "turnoId", ExtArgs["result"]["asistencia"]>
+export type AsistenciaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "colegioId" | "fecha" | "fechaDia" | "horaEntrada" | "horaSalida" | "metodo" | "estado" | "estadoJornada" | "estadoSalida" | "fotoEntrada" | "fotoSalida" | "fotoUrl" | "estudianteId" | "turnoId", ExtArgs["result"]["asistencia"]>
 export type AsistenciaInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   estudiante?: boolean | Prisma.EstudianteDefaultArgs<ExtArgs>
   turno?: boolean | Prisma.Asistencia$turnoArgs<ExtArgs>
 }
 export type AsistenciaIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   estudiante?: boolean | Prisma.EstudianteDefaultArgs<ExtArgs>
   turno?: boolean | Prisma.Asistencia$turnoArgs<ExtArgs>
 }
 export type AsistenciaIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   estudiante?: boolean | Prisma.EstudianteDefaultArgs<ExtArgs>
   turno?: boolean | Prisma.Asistencia$turnoArgs<ExtArgs>
 }
@@ -1022,11 +1237,13 @@ export type AsistenciaIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.E
 export type $AsistenciaPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Asistencia"
   objects: {
+    colegio: Prisma.$ColegioPayload<ExtArgs>
     estudiante: Prisma.$EstudiantePayload<ExtArgs>
     turno: Prisma.$TurnoPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
+    colegioId: string
     fecha: Date
     fechaDia: string
     horaEntrada: Date | null
@@ -1434,6 +1651,7 @@ readonly fields: AsistenciaFieldRefs;
  */
 export interface Prisma__AsistenciaClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  colegio<T extends Prisma.ColegioDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ColegioDefaultArgs<ExtArgs>>): Prisma.Prisma__ColegioClient<runtime.Types.Result.GetResult<Prisma.$ColegioPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   estudiante<T extends Prisma.EstudianteDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EstudianteDefaultArgs<ExtArgs>>): Prisma.Prisma__EstudianteClient<runtime.Types.Result.GetResult<Prisma.$EstudiantePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   turno<T extends Prisma.Asistencia$turnoArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asistencia$turnoArgs<ExtArgs>>): Prisma.Prisma__TurnoClient<runtime.Types.Result.GetResult<Prisma.$TurnoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
@@ -1466,6 +1684,7 @@ export interface Prisma__AsistenciaClient<T, Null = never, ExtArgs extends runti
  */
 export interface AsistenciaFieldRefs {
   readonly id: Prisma.FieldRef<"Asistencia", 'Int'>
+  readonly colegioId: Prisma.FieldRef<"Asistencia", 'String'>
   readonly fecha: Prisma.FieldRef<"Asistencia", 'DateTime'>
   readonly fechaDia: Prisma.FieldRef<"Asistencia", 'String'>
   readonly horaEntrada: Prisma.FieldRef<"Asistencia", 'DateTime'>

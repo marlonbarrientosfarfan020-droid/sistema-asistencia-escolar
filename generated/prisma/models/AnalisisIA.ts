@@ -36,6 +36,7 @@ export type AnalisisIASumAggregateOutputType = {
 
 export type AnalisisIAMinAggregateOutputType = {
   id: number | null
+  colegioId: string | null
   tipo: string | null
   dni: string | null
   resultado: string | null
@@ -44,6 +45,7 @@ export type AnalisisIAMinAggregateOutputType = {
 
 export type AnalisisIAMaxAggregateOutputType = {
   id: number | null
+  colegioId: string | null
   tipo: string | null
   dni: string | null
   resultado: string | null
@@ -52,6 +54,7 @@ export type AnalisisIAMaxAggregateOutputType = {
 
 export type AnalisisIACountAggregateOutputType = {
   id: number
+  colegioId: number
   tipo: number
   dni: number
   resultado: number
@@ -70,6 +73,7 @@ export type AnalisisIASumAggregateInputType = {
 
 export type AnalisisIAMinAggregateInputType = {
   id?: true
+  colegioId?: true
   tipo?: true
   dni?: true
   resultado?: true
@@ -78,6 +82,7 @@ export type AnalisisIAMinAggregateInputType = {
 
 export type AnalisisIAMaxAggregateInputType = {
   id?: true
+  colegioId?: true
   tipo?: true
   dni?: true
   resultado?: true
@@ -86,6 +91,7 @@ export type AnalisisIAMaxAggregateInputType = {
 
 export type AnalisisIACountAggregateInputType = {
   id?: true
+  colegioId?: true
   tipo?: true
   dni?: true
   resultado?: true
@@ -181,6 +187,7 @@ export type AnalisisIAGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inter
 
 export type AnalisisIAGroupByOutputType = {
   id: number
+  colegioId: string | null
   tipo: string
   dni: string | null
   resultado: string
@@ -212,18 +219,22 @@ export type AnalisisIAWhereInput = {
   OR?: Prisma.AnalisisIAWhereInput[]
   NOT?: Prisma.AnalisisIAWhereInput | Prisma.AnalisisIAWhereInput[]
   id?: Prisma.IntFilter<"AnalisisIA"> | number
+  colegioId?: Prisma.StringNullableFilter<"AnalisisIA"> | string | null
   tipo?: Prisma.StringFilter<"AnalisisIA"> | string
   dni?: Prisma.StringNullableFilter<"AnalisisIA"> | string | null
   resultado?: Prisma.StringFilter<"AnalisisIA"> | string
   createdAt?: Prisma.DateTimeFilter<"AnalisisIA"> | Date | string
+  colegio?: Prisma.XOR<Prisma.ColegioNullableScalarRelationFilter, Prisma.ColegioWhereInput> | null
 }
 
 export type AnalisisIAOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrderInput | Prisma.SortOrder
   tipo?: Prisma.SortOrder
   dni?: Prisma.SortOrderInput | Prisma.SortOrder
   resultado?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  colegio?: Prisma.ColegioOrderByWithRelationInput
 }
 
 export type AnalisisIAWhereUniqueInput = Prisma.AtLeast<{
@@ -231,14 +242,17 @@ export type AnalisisIAWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.AnalisisIAWhereInput | Prisma.AnalisisIAWhereInput[]
   OR?: Prisma.AnalisisIAWhereInput[]
   NOT?: Prisma.AnalisisIAWhereInput | Prisma.AnalisisIAWhereInput[]
+  colegioId?: Prisma.StringNullableFilter<"AnalisisIA"> | string | null
   tipo?: Prisma.StringFilter<"AnalisisIA"> | string
   dni?: Prisma.StringNullableFilter<"AnalisisIA"> | string | null
   resultado?: Prisma.StringFilter<"AnalisisIA"> | string
   createdAt?: Prisma.DateTimeFilter<"AnalisisIA"> | Date | string
+  colegio?: Prisma.XOR<Prisma.ColegioNullableScalarRelationFilter, Prisma.ColegioWhereInput> | null
 }, "id">
 
 export type AnalisisIAOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrderInput | Prisma.SortOrder
   tipo?: Prisma.SortOrder
   dni?: Prisma.SortOrderInput | Prisma.SortOrder
   resultado?: Prisma.SortOrder
@@ -255,6 +269,7 @@ export type AnalisisIAScalarWhereWithAggregatesInput = {
   OR?: Prisma.AnalisisIAScalarWhereWithAggregatesInput[]
   NOT?: Prisma.AnalisisIAScalarWhereWithAggregatesInput | Prisma.AnalisisIAScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"AnalisisIA"> | number
+  colegioId?: Prisma.StringNullableWithAggregatesFilter<"AnalisisIA"> | string | null
   tipo?: Prisma.StringWithAggregatesFilter<"AnalisisIA"> | string
   dni?: Prisma.StringNullableWithAggregatesFilter<"AnalisisIA"> | string | null
   resultado?: Prisma.StringWithAggregatesFilter<"AnalisisIA"> | string
@@ -266,10 +281,12 @@ export type AnalisisIACreateInput = {
   dni?: string | null
   resultado: string
   createdAt?: Date | string
+  colegio?: Prisma.ColegioCreateNestedOneWithoutAnalisisIAInput
 }
 
 export type AnalisisIAUncheckedCreateInput = {
   id?: number
+  colegioId?: string | null
   tipo: string
   dni?: string | null
   resultado: string
@@ -281,10 +298,12 @@ export type AnalisisIAUpdateInput = {
   dni?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   resultado?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  colegio?: Prisma.ColegioUpdateOneWithoutAnalisisIANestedInput
 }
 
 export type AnalisisIAUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tipo?: Prisma.StringFieldUpdateOperationsInput | string
   dni?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   resultado?: Prisma.StringFieldUpdateOperationsInput | string
@@ -293,6 +312,7 @@ export type AnalisisIAUncheckedUpdateInput = {
 
 export type AnalisisIACreateManyInput = {
   id?: number
+  colegioId?: string | null
   tipo: string
   dni?: string | null
   resultado: string
@@ -308,14 +328,26 @@ export type AnalisisIAUpdateManyMutationInput = {
 
 export type AnalisisIAUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tipo?: Prisma.StringFieldUpdateOperationsInput | string
   dni?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   resultado?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
+export type AnalisisIAListRelationFilter = {
+  every?: Prisma.AnalisisIAWhereInput
+  some?: Prisma.AnalisisIAWhereInput
+  none?: Prisma.AnalisisIAWhereInput
+}
+
+export type AnalisisIAOrderByRelationAggregateInput = {
+  _count?: Prisma.SortOrder
+}
+
 export type AnalisisIACountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   tipo?: Prisma.SortOrder
   dni?: Prisma.SortOrder
   resultado?: Prisma.SortOrder
@@ -328,6 +360,7 @@ export type AnalisisIAAvgOrderByAggregateInput = {
 
 export type AnalisisIAMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   tipo?: Prisma.SortOrder
   dni?: Prisma.SortOrder
   resultado?: Prisma.SortOrder
@@ -336,6 +369,7 @@ export type AnalisisIAMaxOrderByAggregateInput = {
 
 export type AnalisisIAMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   tipo?: Prisma.SortOrder
   dni?: Prisma.SortOrder
   resultado?: Prisma.SortOrder
@@ -346,47 +380,192 @@ export type AnalisisIASumOrderByAggregateInput = {
   id?: Prisma.SortOrder
 }
 
+export type AnalisisIACreateNestedManyWithoutColegioInput = {
+  create?: Prisma.XOR<Prisma.AnalisisIACreateWithoutColegioInput, Prisma.AnalisisIAUncheckedCreateWithoutColegioInput> | Prisma.AnalisisIACreateWithoutColegioInput[] | Prisma.AnalisisIAUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.AnalisisIACreateOrConnectWithoutColegioInput | Prisma.AnalisisIACreateOrConnectWithoutColegioInput[]
+  createMany?: Prisma.AnalisisIACreateManyColegioInputEnvelope
+  connect?: Prisma.AnalisisIAWhereUniqueInput | Prisma.AnalisisIAWhereUniqueInput[]
+}
+
+export type AnalisisIAUncheckedCreateNestedManyWithoutColegioInput = {
+  create?: Prisma.XOR<Prisma.AnalisisIACreateWithoutColegioInput, Prisma.AnalisisIAUncheckedCreateWithoutColegioInput> | Prisma.AnalisisIACreateWithoutColegioInput[] | Prisma.AnalisisIAUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.AnalisisIACreateOrConnectWithoutColegioInput | Prisma.AnalisisIACreateOrConnectWithoutColegioInput[]
+  createMany?: Prisma.AnalisisIACreateManyColegioInputEnvelope
+  connect?: Prisma.AnalisisIAWhereUniqueInput | Prisma.AnalisisIAWhereUniqueInput[]
+}
+
+export type AnalisisIAUpdateManyWithoutColegioNestedInput = {
+  create?: Prisma.XOR<Prisma.AnalisisIACreateWithoutColegioInput, Prisma.AnalisisIAUncheckedCreateWithoutColegioInput> | Prisma.AnalisisIACreateWithoutColegioInput[] | Prisma.AnalisisIAUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.AnalisisIACreateOrConnectWithoutColegioInput | Prisma.AnalisisIACreateOrConnectWithoutColegioInput[]
+  upsert?: Prisma.AnalisisIAUpsertWithWhereUniqueWithoutColegioInput | Prisma.AnalisisIAUpsertWithWhereUniqueWithoutColegioInput[]
+  createMany?: Prisma.AnalisisIACreateManyColegioInputEnvelope
+  set?: Prisma.AnalisisIAWhereUniqueInput | Prisma.AnalisisIAWhereUniqueInput[]
+  disconnect?: Prisma.AnalisisIAWhereUniqueInput | Prisma.AnalisisIAWhereUniqueInput[]
+  delete?: Prisma.AnalisisIAWhereUniqueInput | Prisma.AnalisisIAWhereUniqueInput[]
+  connect?: Prisma.AnalisisIAWhereUniqueInput | Prisma.AnalisisIAWhereUniqueInput[]
+  update?: Prisma.AnalisisIAUpdateWithWhereUniqueWithoutColegioInput | Prisma.AnalisisIAUpdateWithWhereUniqueWithoutColegioInput[]
+  updateMany?: Prisma.AnalisisIAUpdateManyWithWhereWithoutColegioInput | Prisma.AnalisisIAUpdateManyWithWhereWithoutColegioInput[]
+  deleteMany?: Prisma.AnalisisIAScalarWhereInput | Prisma.AnalisisIAScalarWhereInput[]
+}
+
+export type AnalisisIAUncheckedUpdateManyWithoutColegioNestedInput = {
+  create?: Prisma.XOR<Prisma.AnalisisIACreateWithoutColegioInput, Prisma.AnalisisIAUncheckedCreateWithoutColegioInput> | Prisma.AnalisisIACreateWithoutColegioInput[] | Prisma.AnalisisIAUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.AnalisisIACreateOrConnectWithoutColegioInput | Prisma.AnalisisIACreateOrConnectWithoutColegioInput[]
+  upsert?: Prisma.AnalisisIAUpsertWithWhereUniqueWithoutColegioInput | Prisma.AnalisisIAUpsertWithWhereUniqueWithoutColegioInput[]
+  createMany?: Prisma.AnalisisIACreateManyColegioInputEnvelope
+  set?: Prisma.AnalisisIAWhereUniqueInput | Prisma.AnalisisIAWhereUniqueInput[]
+  disconnect?: Prisma.AnalisisIAWhereUniqueInput | Prisma.AnalisisIAWhereUniqueInput[]
+  delete?: Prisma.AnalisisIAWhereUniqueInput | Prisma.AnalisisIAWhereUniqueInput[]
+  connect?: Prisma.AnalisisIAWhereUniqueInput | Prisma.AnalisisIAWhereUniqueInput[]
+  update?: Prisma.AnalisisIAUpdateWithWhereUniqueWithoutColegioInput | Prisma.AnalisisIAUpdateWithWhereUniqueWithoutColegioInput[]
+  updateMany?: Prisma.AnalisisIAUpdateManyWithWhereWithoutColegioInput | Prisma.AnalisisIAUpdateManyWithWhereWithoutColegioInput[]
+  deleteMany?: Prisma.AnalisisIAScalarWhereInput | Prisma.AnalisisIAScalarWhereInput[]
+}
+
+export type AnalisisIACreateWithoutColegioInput = {
+  tipo: string
+  dni?: string | null
+  resultado: string
+  createdAt?: Date | string
+}
+
+export type AnalisisIAUncheckedCreateWithoutColegioInput = {
+  id?: number
+  tipo: string
+  dni?: string | null
+  resultado: string
+  createdAt?: Date | string
+}
+
+export type AnalisisIACreateOrConnectWithoutColegioInput = {
+  where: Prisma.AnalisisIAWhereUniqueInput
+  create: Prisma.XOR<Prisma.AnalisisIACreateWithoutColegioInput, Prisma.AnalisisIAUncheckedCreateWithoutColegioInput>
+}
+
+export type AnalisisIACreateManyColegioInputEnvelope = {
+  data: Prisma.AnalisisIACreateManyColegioInput | Prisma.AnalisisIACreateManyColegioInput[]
+  skipDuplicates?: boolean
+}
+
+export type AnalisisIAUpsertWithWhereUniqueWithoutColegioInput = {
+  where: Prisma.AnalisisIAWhereUniqueInput
+  update: Prisma.XOR<Prisma.AnalisisIAUpdateWithoutColegioInput, Prisma.AnalisisIAUncheckedUpdateWithoutColegioInput>
+  create: Prisma.XOR<Prisma.AnalisisIACreateWithoutColegioInput, Prisma.AnalisisIAUncheckedCreateWithoutColegioInput>
+}
+
+export type AnalisisIAUpdateWithWhereUniqueWithoutColegioInput = {
+  where: Prisma.AnalisisIAWhereUniqueInput
+  data: Prisma.XOR<Prisma.AnalisisIAUpdateWithoutColegioInput, Prisma.AnalisisIAUncheckedUpdateWithoutColegioInput>
+}
+
+export type AnalisisIAUpdateManyWithWhereWithoutColegioInput = {
+  where: Prisma.AnalisisIAScalarWhereInput
+  data: Prisma.XOR<Prisma.AnalisisIAUpdateManyMutationInput, Prisma.AnalisisIAUncheckedUpdateManyWithoutColegioInput>
+}
+
+export type AnalisisIAScalarWhereInput = {
+  AND?: Prisma.AnalisisIAScalarWhereInput | Prisma.AnalisisIAScalarWhereInput[]
+  OR?: Prisma.AnalisisIAScalarWhereInput[]
+  NOT?: Prisma.AnalisisIAScalarWhereInput | Prisma.AnalisisIAScalarWhereInput[]
+  id?: Prisma.IntFilter<"AnalisisIA"> | number
+  colegioId?: Prisma.StringNullableFilter<"AnalisisIA"> | string | null
+  tipo?: Prisma.StringFilter<"AnalisisIA"> | string
+  dni?: Prisma.StringNullableFilter<"AnalisisIA"> | string | null
+  resultado?: Prisma.StringFilter<"AnalisisIA"> | string
+  createdAt?: Prisma.DateTimeFilter<"AnalisisIA"> | Date | string
+}
+
+export type AnalisisIACreateManyColegioInput = {
+  id?: number
+  tipo: string
+  dni?: string | null
+  resultado: string
+  createdAt?: Date | string
+}
+
+export type AnalisisIAUpdateWithoutColegioInput = {
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resultado?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type AnalisisIAUncheckedUpdateWithoutColegioInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resultado?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type AnalisisIAUncheckedUpdateManyWithoutColegioInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  resultado?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 
 
 export type AnalisisIASelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   tipo?: boolean
   dni?: boolean
   resultado?: boolean
   createdAt?: boolean
+  colegio?: boolean | Prisma.AnalisisIA$colegioArgs<ExtArgs>
 }, ExtArgs["result"]["analisisIA"]>
 
 export type AnalisisIASelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   tipo?: boolean
   dni?: boolean
   resultado?: boolean
   createdAt?: boolean
+  colegio?: boolean | Prisma.AnalisisIA$colegioArgs<ExtArgs>
 }, ExtArgs["result"]["analisisIA"]>
 
 export type AnalisisIASelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   tipo?: boolean
   dni?: boolean
   resultado?: boolean
   createdAt?: boolean
+  colegio?: boolean | Prisma.AnalisisIA$colegioArgs<ExtArgs>
 }, ExtArgs["result"]["analisisIA"]>
 
 export type AnalisisIASelectScalar = {
   id?: boolean
+  colegioId?: boolean
   tipo?: boolean
   dni?: boolean
   resultado?: boolean
   createdAt?: boolean
 }
 
-export type AnalisisIAOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "tipo" | "dni" | "resultado" | "createdAt", ExtArgs["result"]["analisisIA"]>
+export type AnalisisIAOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "colegioId" | "tipo" | "dni" | "resultado" | "createdAt", ExtArgs["result"]["analisisIA"]>
+export type AnalisisIAInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.AnalisisIA$colegioArgs<ExtArgs>
+}
+export type AnalisisIAIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.AnalisisIA$colegioArgs<ExtArgs>
+}
+export type AnalisisIAIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.AnalisisIA$colegioArgs<ExtArgs>
+}
 
 export type $AnalisisIAPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "AnalisisIA"
-  objects: {}
+  objects: {
+    colegio: Prisma.$ColegioPayload<ExtArgs> | null
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
+    colegioId: string | null
     tipo: string
     dni: string | null
     resultado: string
@@ -785,6 +964,7 @@ readonly fields: AnalisisIAFieldRefs;
  */
 export interface Prisma__AnalisisIAClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  colegio<T extends Prisma.AnalisisIA$colegioArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AnalisisIA$colegioArgs<ExtArgs>>): Prisma.Prisma__ColegioClient<runtime.Types.Result.GetResult<Prisma.$ColegioPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -815,6 +995,7 @@ export interface Prisma__AnalisisIAClient<T, Null = never, ExtArgs extends runti
  */
 export interface AnalisisIAFieldRefs {
   readonly id: Prisma.FieldRef<"AnalisisIA", 'Int'>
+  readonly colegioId: Prisma.FieldRef<"AnalisisIA", 'String'>
   readonly tipo: Prisma.FieldRef<"AnalisisIA", 'String'>
   readonly dni: Prisma.FieldRef<"AnalisisIA", 'String'>
   readonly resultado: Prisma.FieldRef<"AnalisisIA", 'String'>
@@ -836,6 +1017,10 @@ export type AnalisisIAFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.In
    */
   omit?: Prisma.AnalisisIAOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AnalisisIAInclude<ExtArgs> | null
+  /**
    * Filter, which AnalisisIA to fetch.
    */
   where: Prisma.AnalisisIAWhereUniqueInput
@@ -854,6 +1039,10 @@ export type AnalisisIAFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extens
    */
   omit?: Prisma.AnalisisIAOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AnalisisIAInclude<ExtArgs> | null
+  /**
    * Filter, which AnalisisIA to fetch.
    */
   where: Prisma.AnalisisIAWhereUniqueInput
@@ -871,6 +1060,10 @@ export type AnalisisIAFindFirstArgs<ExtArgs extends runtime.Types.Extensions.Int
    * Omit specific fields from the AnalisisIA
    */
   omit?: Prisma.AnalisisIAOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AnalisisIAInclude<ExtArgs> | null
   /**
    * Filter, which AnalisisIA to fetch.
    */
@@ -920,6 +1113,10 @@ export type AnalisisIAFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensi
    */
   omit?: Prisma.AnalisisIAOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AnalisisIAInclude<ExtArgs> | null
+  /**
    * Filter, which AnalisisIA to fetch.
    */
   where?: Prisma.AnalisisIAWhereInput
@@ -967,6 +1164,10 @@ export type AnalisisIAFindManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Omit specific fields from the AnalisisIA
    */
   omit?: Prisma.AnalisisIAOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AnalisisIAInclude<ExtArgs> | null
   /**
    * Filter, which AnalisisIAS to fetch.
    */
@@ -1016,6 +1217,10 @@ export type AnalisisIACreateArgs<ExtArgs extends runtime.Types.Extensions.Intern
    */
   omit?: Prisma.AnalisisIAOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AnalisisIAInclude<ExtArgs> | null
+  /**
    * The data needed to create a AnalisisIA.
    */
   data: Prisma.XOR<Prisma.AnalisisIACreateInput, Prisma.AnalisisIAUncheckedCreateInput>
@@ -1049,6 +1254,10 @@ export type AnalisisIACreateManyAndReturnArgs<ExtArgs extends runtime.Types.Exte
    */
   data: Prisma.AnalisisIACreateManyInput | Prisma.AnalisisIACreateManyInput[]
   skipDuplicates?: boolean
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AnalisisIAIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1063,6 +1272,10 @@ export type AnalisisIAUpdateArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Omit specific fields from the AnalisisIA
    */
   omit?: Prisma.AnalisisIAOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AnalisisIAInclude<ExtArgs> | null
   /**
    * The data needed to update a AnalisisIA.
    */
@@ -1115,6 +1328,10 @@ export type AnalisisIAUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Exte
    * Limit how many AnalisisIAS to update.
    */
   limit?: number
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AnalisisIAIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1129,6 +1346,10 @@ export type AnalisisIAUpsertArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Omit specific fields from the AnalisisIA
    */
   omit?: Prisma.AnalisisIAOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AnalisisIAInclude<ExtArgs> | null
   /**
    * The filter to search for the AnalisisIA to update in case it exists.
    */
@@ -1156,6 +1377,10 @@ export type AnalisisIADeleteArgs<ExtArgs extends runtime.Types.Extensions.Intern
    */
   omit?: Prisma.AnalisisIAOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AnalisisIAInclude<ExtArgs> | null
+  /**
    * Filter which AnalisisIA to delete.
    */
   where: Prisma.AnalisisIAWhereUniqueInput
@@ -1176,6 +1401,25 @@ export type AnalisisIADeleteManyArgs<ExtArgs extends runtime.Types.Extensions.In
 }
 
 /**
+ * AnalisisIA.colegio
+ */
+export type AnalisisIA$colegioArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Colegio
+   */
+  select?: Prisma.ColegioSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Colegio
+   */
+  omit?: Prisma.ColegioOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ColegioInclude<ExtArgs> | null
+  where?: Prisma.ColegioWhereInput
+}
+
+/**
  * AnalisisIA without action
  */
 export type AnalisisIADefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1187,4 +1431,8 @@ export type AnalisisIADefaultArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Omit specific fields from the AnalisisIA
    */
   omit?: Prisma.AnalisisIAOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AnalisisIAInclude<ExtArgs> | null
 }

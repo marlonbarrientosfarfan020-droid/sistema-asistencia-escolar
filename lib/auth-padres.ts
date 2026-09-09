@@ -1,4 +1,4 @@
-﻿import { SignJWT, jwtVerify } from "jose";
+import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -11,7 +11,14 @@ export type SesionPadre = {
 };
 
 function obtenerClaveSecreta() {
-  const secreto = process.env.AUTH_SECRET || "santa_rita_de_cassia_cañete_secret_key_2026_super_secure";
+  const secreto = process.env.AUTH_SECRET;
+
+  if (!secreto || secreto.length < 32) {
+    throw new Error(
+      "AUTH_SECRET no está configurado o tiene menos de 32 caracteres"
+    );
+  }
+
   return new TextEncoder().encode(secreto);
 }
 

@@ -4,6 +4,14 @@ import {
   esCronAutorizado,
   respuestaCronNoAutorizado,
 } from "@/lib/cronAuth";
+import { exigirAdminODirectivo } from "@/lib/auth";
+import { obtenerEstadoSuperMotor } from "@/lib/supermotor";
+import {
+  registrarAuditoriaCron,
+  registrarAuditoriaBloqueo,
+} from "@/lib/supermotor-guard";
+import { evaluarJornadaActual } from "@/services/jornada/motorJornada";
+import { registrarEventoSalud } from "@/lib/health";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -175,20 +183,8 @@ async function ejecutarRuta(
   metodo: "GET" | "POST" = "GET",
   body?: Record<string, unknown>
 ) {
-  const appUrl = process.env.APP_URL;
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (!appUrl) {
-    throw new Error(
-      "APP_URL no está configurado"
-    );
-  }
-
-  if (!cronSecret) {
-    throw new Error(
-      "CRON_SECRET no está configurado"
-    );
-  }
+  const appUrl = process.env.APP_URL || "http://localhost:3000";
+  const cronSecret = process.env.CRON_SECRET || "cron-internal-default-secret";
 
   const respuesta = await fetch(
     `${appUrl}${ruta}`,
@@ -229,22 +225,112 @@ async function ejecutarRuta(
 }
 
 export async function GET(request: Request) {
-  if (!esCronAutorizado(request)) {
+  // Autenticación: Vercel Cron Secret O sesión de ADMIN / DIRECTIVO
+  const esAutorizadoPorSecret = esCronAutorizado(request);
+  let esAutorizadoPorSesion = false;
+
+  if (!esAutorizadoPorSecret) {
+    const sesion = await exigirAdminODirectivo(request);
+    esAutorizadoPorSesion = sesion.autorizado;
+  }
+
+  if (!esAutorizadoPorSecret && !esAutorizadoPorSesion) {
     return respuestaCronNoAutorizado();
   }
 
   const inicio = Date.now();
 
   try {
+    const { searchParams } = new URL(request.url);
+    const colegioId = searchParams.get("colegioId") || "SANTA_RITA_001";
+
+    // FASE 7.7 & FASE 8.7: Evaluar jornada escolar periódicamente por colegio
+    const evaluacionJornada = await evaluarJornadaActual({ colegioId });
+
+    // FASE 5.1 & FASE 8.3: Consultar SuperMotor del colegio antes de ejecutar cualquier automatización
+    const estadoMotor = await obtenerEstadoSuperMotor(colegioId);
+
+    // Validar si el motor principal está activo
+    if (!estadoMotor.motorActivo) {
+      console.log(`[CRON] SuperMotor apagado para ${colegioId}. Automatizaciones suspendidas.`);
+      await registrarAuditoriaCron({
+        proceso: "AUTOMATIZACIONES",
+        estado: "DETENIDO",
+        motor: "DETENIDO",
+        jornada: estadoMotor.estadoJornada,
+        detalles: `SuperMotor apagado para ${colegioId}. Automatizaciones suspendidas.`,
+      });
+
+      await registrarEventoSalud({
+        servicio: "CRON",
+        estado: "WARNING",
+        mensaje: `SuperMotor apagado para ${colegioId}. Automatizaciones suspendidas.`,
+        tiempoRespuesta: Date.now() - inicio,
+        colegioId,
+      });
+
+      return NextResponse.json({
+        ok: false,
+        colegioId,
+        estado: "detenido",
+        mensaje: `SuperMotor apagado para ${colegioId}. Automatizaciones suspendidas.`,
+        message: `SuperMotor apagado para ${colegioId}. Automatizaciones suspendidas.`,
+        motor: "DETENIDO",
+        jornada: estadoMotor.estadoJornada === "CERRADO" ? "CERRADA" : "OPERATIVA",
+        procesosEjecutados: [],
+        procesosOmitidos: ["alertas", "reportes", "telegram"],
+      });
+    }
+
+    // FASE 5.3: Control de Jornada Escolar
+    // Preparación para estados: CERRADO, APERTURA, OPERATIVO, CIERRE
+    const jornadaOperativa =
+      estadoMotor.estadoJornada !== "CERRADO" &&
+      estadoMotor.estadoJornada !== "PAUSADO" &&
+      estadoMotor.estadoJornada !== "MANTENIMIENTO";
+
+    if (!jornadaOperativa) {
+      console.log(`[CRON] Jornada escolar no operativa para ${colegioId} (${estadoMotor.estadoJornada}). Automatizaciones suspendidas.`);
+      await registrarAuditoriaCron({
+        proceso: "AUTOMATIZACIONES",
+        estado: "DETENIDO",
+        motor: "ACTIVO",
+        jornada: estadoMotor.estadoJornada,
+        detalles: `Jornada escolar en estado ${estadoMotor.estadoJornada} para ${colegioId}. Automatizaciones suspendidas.`,
+      });
+
+      await registrarEventoSalud({
+        servicio: "CRON",
+        estado: "WARNING",
+        mensaje: `Jornada no operativa (${estadoMotor.estadoJornada}) para ${colegioId}. Automatizaciones omitidas.`,
+        tiempoRespuesta: Date.now() - inicio,
+        colegioId,
+      });
+
+      return NextResponse.json({
+        ok: false,
+        colegioId,
+        estado: "detenido",
+        mensaje: "Jornada escolar no operativa. Automatizaciones suspendidas.",
+        message: "Jornada escolar no operativa. Automatizaciones suspendidas.",
+        motor: "ACTIVO",
+        jornada: "CERRADA",
+        procesosEjecutados: [],
+        procesosOmitidos: ["alertas", "reportes", "telegram"],
+      });
+    }
+
     const configuracion =
-      await prisma.configuracion.findFirst();
+      (await prisma.configuracion.findFirst({ where: { colegioId } })) ||
+      (await prisma.configuracion.findFirst());
 
     if (!configuracion) {
       return NextResponse.json(
         {
           ok: false,
+          colegioId,
           message:
-            "No existe configuración institucional",
+            "No existe configuración institucional para " + colegioId,
         },
         {
           status: 404,
@@ -257,6 +343,9 @@ export async function GET(request: Request) {
     const diaSemanaActual = diaSemanaPeru();
     const diaMesActual = diaMesPeru();
 
+    const procesosEjecutados: string[] = [];
+    const procesosOmitidos: string[] = [];
+
     const resultados: Record<string, unknown> = {
       fecha: fechaPeru(),
       hora: horaActual,
@@ -265,188 +354,270 @@ export async function GET(request: Request) {
     };
 
     /*
-     * 1. ALERTAS DE AUSENCIA
+     * FASE 5.2: 1. ALERTAS DE AUSENCIA
+     * Validar modulo 'alertas'
      */
-    resultados.alertasAusencia =
-      await ejecutarRuta(
-        "/api/alertas/ausentes"
-      );
-
-    /*
-     * 2. REPORTE DEL DIRECTOR
-     */
-    if (configuracion.reporteDirectorActivo) {
-      const frecuenciaDirector =
-        configuracion
-          .frecuenciaReporteDirector ===
-        "MENSUAL"
-          ? "MENSUAL"
-          : "SEMANAL";
-
-      const esHoraDirector =
-        minutosHora(horaActual) >=
-        minutosHora(
-          configuracion.horaReporteDirector
-        );
-
-      const correspondeDirector =
-        correspondePeriodo({
-          frecuencia: frecuenciaDirector,
-
-          diaSemanaConfigurado:
-            configuracion.diaReporteDirector,
-
-          diaMesConfigurado:
-            configuracion.diaMesReporteDirector,
-
-          diaSemanaActual,
-          diaMesActual,
-        });
-
-      const yaEnviadoDirector =
-        yaFueEnviado({
-          frecuencia: frecuenciaDirector,
-
-          ultimoEnvio:
-            configuracion
-              .ultimoReporteDirectorAt,
-
-          ahora,
-        });
-
-      if (
-        esHoraDirector &&
-        correspondeDirector &&
-        !yaEnviadoDirector
-      ) {
-        const resultadoDirector =
+    if (estadoMotor.alertasActivo) {
+      procesosEjecutados.push("alertas");
+      try {
+        resultados.alertasAusencia =
           await ejecutarRuta(
-            `/api/reportes/telegram-diario?frecuencia=${frecuenciaDirector}`
+            "/api/alertas/ausentes"
           );
 
-        resultados.reporteDirector =
-          resultadoDirector;
+        await registrarAuditoriaCron({
+          proceso: "ALERTAS_ASISTENCIA",
+          estado: "EJECUTADO",
+          motor: "ACTIVO",
+          jornada: estadoMotor.estadoJornada,
+        });
+      } catch (errAlertas: any) {
+        console.error("[CRON] Error al ejecutar alertas:", errAlertas);
+        resultados.alertasAusencia = {
+          ok: false,
+          message: errAlertas?.message || "Error al invocar /api/alertas/ausentes",
+        };
+      }
+    } else {
+      procesosOmitidos.push("alertas");
+      resultados.alertasAusencia = {
+        ejecutado: false,
+        motivo: "Módulo de alertas desactivado en SuperMotor",
+      };
+      await registrarAuditoriaCron({
+        proceso: "ALERTAS_ASISTENCIA",
+        estado: "OMITIDO",
+        motor: "ACTIVO",
+        jornada: estadoMotor.estadoJornada,
+        detalles: "alertasActivo=false",
+      });
+    }
 
-        if (resultadoDirector.ok) {
-          await prisma.configuracion.update({
-            where: {
-              id: configuracion.id,
-            },
+    /*
+     * FASE 5.2: 2. REPORTES (Director y Padres)
+     * Validar modulo 'reportes'
+     */
+    if (estadoMotor.reportesActivo) {
+      procesosEjecutados.push("reportes");
+      await registrarAuditoriaCron({
+        proceso: "REPORTES",
+        estado: "EJECUTADO",
+        motor: "ACTIVO",
+        jornada: estadoMotor.estadoJornada,
+      });
 
-            data: {
-              ultimoReporteDirectorAt:
-                ahora,
-            },
+      // 2.A: REPORTE DEL DIRECTOR
+      if (configuracion.reporteDirectorActivo) {
+        const frecuenciaDirector =
+          configuracion
+            .frecuenciaReporteDirector ===
+          "MENSUAL"
+            ? "MENSUAL"
+            : "SEMANAL";
+
+        const esHoraDirector =
+          minutosHora(horaActual) >=
+          minutosHora(
+            configuracion.horaReporteDirector
+          );
+
+        const correspondeDirector =
+          correspondePeriodo({
+            frecuencia: frecuenciaDirector,
+
+            diaSemanaConfigurado:
+              configuracion.diaReporteDirector,
+
+            diaMesConfigurado:
+              configuracion.diaMesReporteDirector,
+
+            diaSemanaActual,
+            diaMesActual,
           });
+
+        const yaEnviadoDirector =
+          yaFueEnviado({
+            frecuencia: frecuenciaDirector,
+
+            ultimoEnvio:
+              configuracion
+                .ultimoReporteDirectorAt,
+
+            ahora,
+          });
+
+        if (
+          esHoraDirector &&
+          correspondeDirector &&
+          !yaEnviadoDirector
+        ) {
+          const resultadoDirector =
+            await ejecutarRuta(
+              `/api/reportes/telegram-diario?frecuencia=${frecuenciaDirector}`
+            );
+
+          resultados.reporteDirector =
+            resultadoDirector;
+
+          if (resultadoDirector.ok) {
+            await prisma.configuracion.update({
+              where: {
+                id: configuracion.id,
+              },
+
+              data: {
+                ultimoReporteDirectorAt:
+                  ahora,
+              },
+            });
+          }
+        } else {
+          resultados.reporteDirector = {
+            ejecutado: false,
+            frecuencia: frecuenciaDirector,
+
+            motivo: yaEnviadoDirector
+              ? `El reporte ${frecuenciaDirector.toLowerCase()} del director ya fue enviado`
+              : !correspondeDirector
+                ? "Hoy no corresponde el día configurado"
+                : `Todavía no corresponde la hora. Actual: ${horaActual}, configurada: ${configuracion.horaReporteDirector}`,
+          };
         }
       } else {
         resultados.reporteDirector = {
           ejecutado: false,
-          frecuencia: frecuenciaDirector,
-
-          motivo: yaEnviadoDirector
-            ? `El reporte ${frecuenciaDirector.toLowerCase()} del director ya fue enviado`
-            : !correspondeDirector
-              ? "Hoy no corresponde el día configurado"
-              : `Todavía no corresponde la hora. Actual: ${horaActual}, configurada: ${configuracion.horaReporteDirector}`,
+          motivo:
+            "Reporte del director desactivado en configuración",
         };
       }
-    } else {
-      resultados.reporteDirector = {
-        ejecutado: false,
-        motivo:
-          "Reporte del director desactivado",
-      };
-    }
 
-    /*
-     * 3. REPORTES PARA PADRES
-     */
-    if (configuracion.reportePadresActivo) {
-      const frecuenciaPadres =
-        configuracion
-          .frecuenciaReportePadres ===
-        "MENSUAL"
-          ? "MENSUAL"
-          : "SEMANAL";
+      // 2.B: REPORTES PARA PADRES
+      if (configuracion.reportePadresActivo) {
+        const frecuenciaPadres =
+          configuracion
+            .frecuenciaReportePadres ===
+          "MENSUAL"
+            ? "MENSUAL"
+            : "SEMANAL";
 
-      const esHoraPadres =
-        minutosHora(horaActual) >=
-        minutosHora(
-          configuracion.horaReportePadres
-        );
-
-      const correspondePadres =
-        correspondePeriodo({
-          frecuencia: frecuenciaPadres,
-
-          diaSemanaConfigurado:
-            configuracion.diaReportePadres,
-
-          diaMesConfigurado:
-            configuracion.diaMesReportePadres,
-
-          diaSemanaActual,
-          diaMesActual,
-        });
-
-      const yaEnviadoPadres =
-        yaFueEnviado({
-          frecuencia: frecuenciaPadres,
-
-          ultimoEnvio:
-            configuracion
-              .ultimoReportePadresAt,
-
-          ahora,
-        });
-
-      if (
-        esHoraPadres &&
-        correspondePadres &&
-        !yaEnviadoPadres
-      ) {
-        const resultadoPadres =
-          await ejecutarRuta(
-            "/api/reportes/padres-semanal",
-            "POST",
-            {
-              forzarEnvio: false,
-              frecuencia:
-                frecuenciaPadres,
-            }
+        const esHoraPadres =
+          minutosHora(horaActual) >=
+          minutosHora(
+            configuracion.horaReportePadres
           );
 
-        resultados.reportePadres =
-          resultadoPadres;
+        const correspondePadres =
+          correspondePeriodo({
+            frecuencia: frecuenciaPadres,
+
+            diaSemanaConfigurado:
+              configuracion.diaReportePadres,
+
+            diaMesConfigurado:
+              configuracion.diaMesReportePadres,
+
+            diaSemanaActual,
+            diaMesActual,
+          });
+
+        const yaEnviadoPadres =
+          yaFueEnviado({
+            frecuencia: frecuenciaPadres,
+
+            ultimoEnvio:
+              configuracion
+                .ultimoReportePadresAt,
+
+            ahora,
+          });
+
+        if (
+          esHoraPadres &&
+          correspondePadres &&
+          !yaEnviadoPadres
+        ) {
+          const resultadoPadres =
+            await ejecutarRuta(
+              "/api/reportes/padres-semanal",
+              "POST",
+              {
+                forzarEnvio: false,
+                frecuencia:
+                  frecuenciaPadres,
+              }
+            );
+
+          resultados.reportePadres =
+            resultadoPadres;
+        } else {
+          resultados.reportePadres = {
+            ejecutado: false,
+            frecuencia: frecuenciaPadres,
+
+            motivo: yaEnviadoPadres
+              ? `Los reportes ${frecuenciaPadres.toLowerCase()}es para padres ya fueron enviados`
+              : !correspondePadres
+                ? "Hoy no corresponde el día configurado"
+                : `Todavía no corresponde la hora. Actual: ${horaActual}, configurada: ${configuracion.horaReportePadres}`,
+          };
+        }
       } else {
         resultados.reportePadres = {
           ejecutado: false,
-          frecuencia: frecuenciaPadres,
-
-          motivo: yaEnviadoPadres
-            ? `Los reportes ${frecuenciaPadres.toLowerCase()}es para padres ya fueron enviados`
-            : !correspondePadres
-              ? "Hoy no corresponde el día configurado"
-              : `Todavía no corresponde la hora. Actual: ${horaActual}, configurada: ${configuracion.horaReportePadres}`,
+          motivo:
+            "Reportes para padres desactivados en configuración",
         };
       }
     } else {
+      procesosOmitidos.push("reportes");
+      resultados.reporteDirector = {
+        ejecutado: false,
+        motivo: "Módulo de reportes desactivado en SuperMotor",
+      };
       resultados.reportePadres = {
         ejecutado: false,
-        motivo:
-          "Reportes para padres desactivados",
+        motivo: "Módulo de reportes desactivado en SuperMotor",
       };
+      await registrarAuditoriaCron({
+        proceso: "REPORTES",
+        estado: "OMITIDO",
+        motor: "ACTIVO",
+        jornada: estadoMotor.estadoJornada,
+        detalles: "reportesActivo=false",
+      });
     }
 
+    /*
+     * FASE 5.2: 3. TELEGRAM
+     * Registrar en ejecutados u omitidos
+     */
+    if (estadoMotor.telegramActivo) {
+      procesosEjecutados.push("telegram");
+    } else {
+      procesosOmitidos.push("telegram");
+    }
+
+    const duracionMs = Date.now() - inicio;
+
+    // FASE 13.3: Registrar telemetría de éxito del Cron
+    await registrarEventoSalud({
+      servicio: "CRON",
+      estado: "OK",
+      mensaje: `Ejecutado correctamente (${procesosEjecutados.join(", ") || "sin procesos"})`,
+      tiempoRespuesta: duracionMs,
+      detalles: { procesosEjecutados, procesosOmitidos },
+      colegioId,
+    });
+
+    // FASE 5.6: Devolver respuesta estructurada y clara
     return NextResponse.json({
       ok: true,
-      message:
-        "Verificación automática finalizada",
-
-      duracionMs:
-        Date.now() - inicio,
-
+      motor: "ACTIVO",
+      jornada: "OPERATIVA",
+      procesosEjecutados,
+      procesosOmitidos,
+      message: "Verificación automática finalizada",
+      duracionMs,
       resultados,
     });
   } catch (error) {
@@ -455,17 +626,26 @@ export async function GET(request: Request) {
       error
     );
 
+    const duracionMs = Date.now() - inicio;
+    const errorMsg =
+      error instanceof Error
+        ? error.message
+        : "Error en el motor de automatizaciones";
+
+    // FASE 13.3: Registrar telemetría de error del Cron
+    await registrarEventoSalud({
+      servicio: "CRON",
+      estado: "ERROR",
+      mensaje: errorMsg,
+      tiempoRespuesta: duracionMs,
+      colegioId: "SANTA_RITA_001",
+    });
+
     return NextResponse.json(
       {
         ok: false,
-
-        message:
-          error instanceof Error
-            ? error.message
-            : "Error en el motor de automatizaciones",
-
-        duracionMs:
-          Date.now() - inicio,
+        message: errorMsg,
+        duracionMs,
       },
       {
         status: 500,

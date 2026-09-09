@@ -29,7 +29,7 @@ export default function DashboardLayout({
   const esAdmin = rol === "ADMIN";
   const esDemo = rol === "DEMO";
   const esPersonal = rol === "PERSONAL";
-  const esDirectivo = rol === "DIRECTIVO";
+  const esDirectivo = rol === "DIRECTIVO" || rol === "DIRECTOR";
 
   const puedeGestionar =
     esAdmin || esDirectivo || esDemo || esPersonal;
@@ -269,6 +269,18 @@ export default function DashboardLayout({
     ];
 
     const administracionItems: MenuItem[] = [
+      {
+        href: "/dashboard/supermotor",
+        icono: "🚀",
+        texto: "SuperMotor",
+        visible: puedeGestionar,
+      },
+      {
+        href: "/dashboard/monitoreo",
+        icono: "🩺",
+        texto: "Monitoreo y Salud",
+        visible: puedeAdministrar,
+      },
       {
         href: "/dashboard/calendario",
         icono: "🗓️",

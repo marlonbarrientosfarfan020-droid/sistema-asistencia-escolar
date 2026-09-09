@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { exigirAdminODirectivo } from "@/lib/auth";
@@ -47,7 +47,12 @@ export async function POST(
       intentos++;
       const candidato = generarCodigoFamiliar();
       const existe = await prisma.codigoFamiliar.findUnique({
-        where: { codigo: candidato },
+        where: {
+          colegioId_codigo: {
+            colegioId: familia.colegioId,
+            codigo: candidato,
+          },
+        },
       });
       if (!existe) {
         nuevoCodigo = candidato;

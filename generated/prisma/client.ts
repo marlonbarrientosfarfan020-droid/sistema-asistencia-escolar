@@ -31,8 +31,8 @@ export * from "./enums"
  * const prisma = new PrismaClient({
  *   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
  * })
- * // Fetch zero or more Estudiantes
- * const estudiantes = await prisma.estudiante.findMany()
+ * // Fetch zero or more Colegios
+ * const colegios = await prisma.colegio.findMany()
  * ```
  * 
  * Read more in our [docs](https://pris.ly/d/client).
@@ -41,6 +41,11 @@ export const PrismaClient = $Class.getPrismaClientClass()
 export type PrismaClient<LogOpts extends Prisma.LogLevel = never, OmitOpts extends Prisma.PrismaClientOptions["omit"] = Prisma.PrismaClientOptions["omit"], ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = $Class.PrismaClient<LogOpts, OmitOpts, ExtArgs>
 export { Prisma }
 
+/**
+ * Model Colegio
+ * 
+ */
+export type Colegio = Prisma.ColegioModel
 /**
  * Model Estudiante
  * 
@@ -111,3 +116,13 @@ export type RostroFacial = Prisma.RostroFacialModel
  * 
  */
 export type CodigoFamiliar = Prisma.CodigoFamiliarModel
+/**
+ * Model SistemaControl
+ * 
+ */
+export type SistemaControl = Prisma.SistemaControlModel
+/**
+ * Model SystemHealthLog
+ * 
+ */
+export type SystemHealthLog = Prisma.SystemHealthLogModel

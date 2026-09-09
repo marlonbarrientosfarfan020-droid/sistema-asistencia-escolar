@@ -4,15 +4,20 @@ import { cookies } from "next/headers";
 const COOKIE_NAME = "sesion_santa_rita";
 
 export type RolUsuario =
+  | "SUPER_ADMIN"
   | "ADMIN"
+  | "ADMIN_COLEGIO"
   | "DIRECTIVO"
+  | "DIRECTOR"
   | "DEMO"
-  | "PERSONAL";
+  | "PERSONAL"
+  | "PADRE";
 
 export type SesionUsuario = {
   usuarioId: number;
   usuario: string;
   rol: RolUsuario;
+  colegioId?: string | null;
 };
 
 function obtenerClaveSecreta() {
@@ -29,10 +34,14 @@ function obtenerClaveSecreta() {
 
 function esRolValido(valor: unknown): valor is RolUsuario {
   return (
+    valor === "SUPER_ADMIN" ||
     valor === "ADMIN" ||
+    valor === "ADMIN_COLEGIO" ||
     valor === "DIRECTIVO" ||
+    valor === "DIRECTOR" ||
     valor === "DEMO" ||
-    valor === "PERSONAL"
+    valor === "PERSONAL" ||
+    valor === "PADRE"
   );
 }
 
@@ -43,6 +52,7 @@ export async function crearTokenSesion(
     usuarioId: sesion.usuarioId,
     usuario: sesion.usuario,
     rol: sesion.rol,
+    colegioId: sesion.colegioId ?? (sesion.rol === "SUPER_ADMIN" ? null : "SANTA_RITA_001"),
   })
     .setProtectedHeader({
       alg: "HS256",
@@ -67,10 +77,28 @@ export async function guardarSesion(
   });
 }
 
-export async function obtenerSesion(): Promise<SesionUsuario | null> {
+export async function obtenerSesion(request?: Request): Promise<SesionUsuario | null> {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get(COOKIE_NAME)?.value;
+    let token: string | undefined;
+
+    if (request) {
+      const cookieHeader = request.headers.get("cookie") || "";
+      const match = cookieHeader.match(new RegExp(`${COOKIE_NAME}=([^;]+)`));
+      if (match) {
+        token = match[1];
+      }
+      if (!token) {
+        const authHeader = request.headers.get("authorization") || "";
+        if (authHeader.startsWith("Bearer ")) {
+          token = authHeader.slice(7).trim();
+        }
+      }
+    }
+
+    if (!token && !request) {
+      const cookieStore = await cookies();
+      token = cookieStore.get(COOKIE_NAME)?.value;
+    }
 
     if (!token) {
       return null;
@@ -102,10 +130,19 @@ export async function obtenerSesion(): Promise<SesionUsuario | null> {
       return null;
     }
 
+    const colegioIdRaw = resultado.payload.colegioId;
+    const colegioId =
+      colegioIdRaw === null
+        ? null
+        : typeof colegioIdRaw === "string"
+        ? colegioIdRaw
+        : "SANTA_RITA_001";
+
     return {
       usuarioId,
       usuario,
       rol,
+      colegioId,
     };
   } catch (error) {
     console.error(
@@ -155,8 +192,8 @@ function respuestaNoAutorizado() {
   );
 }
 
-export async function exigirSesion() {
-  const sesion = await obtenerSesion();
+export async function exigirSesion(request?: Request) {
+  const sesion = await obtenerSesion(request);
 
   if (!sesion) {
     return {
@@ -172,9 +209,10 @@ export async function exigirSesion() {
 }
 
 export async function exigirRoles(
-  rolesPermitidos: RolUsuario[]
+  rolesPermitidos: RolUsuario[],
+  request?: Request
 ) {
-  const acceso = await exigirSesion();
+  const acceso = await exigirSesion(request);
 
   if (!acceso.autorizado) {
     return acceso;
@@ -194,21 +232,34 @@ export async function exigirRoles(
   return acceso;
 }
 
-export async function exigirAdmin() {
-  return exigirRoles(["ADMIN"]);
+export async function exigirAdmin(request?: Request) {
+  return exigirRoles(["SUPER_ADMIN", "ADMIN", "ADMIN_COLEGIO"], request);
 }
 
-export async function exigirAdminODemo() {
+export async function exigirSuperAdmin(request?: Request) {
+  return exigirRoles(["SUPER_ADMIN"], request);
+}
+
+export async function exigirDirector(request?: Request) {
+  return exigirRoles(["SUPER_ADMIN", "ADMIN", "ADMIN_COLEGIO", "DIRECTOR", "DIRECTIVO"], request);
+}
+
+export async function exigirAdminODemo(request?: Request) {
   return exigirRoles([
+    "SUPER_ADMIN",
     "ADMIN",
+    "ADMIN_COLEGIO",
     "DEMO",
-  ]);
+  ], request);
 }
 
-export async function exigirPersonal() {
+export async function exigirPersonal(request?: Request) {
   return exigirRoles([
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ADMIN_COLEGIO",
     "PERSONAL",
-  ]);
+  ], request);
 }
 
 export async function exigirAdminOPersonal(request?: Request) {
@@ -221,52 +272,76 @@ export async function exigirAdminOPersonal(request?: Request) {
           usuarioId: 0,
           usuario: "terminal_porteria",
           rol: "PERSONAL" as RolUsuario,
+          colegioId: "SANTA_RITA_001",
         },
       };
     }
   }
 
   return exigirRoles([
+    "SUPER_ADMIN",
     "ADMIN",
+    "ADMIN_COLEGIO",
+    "DIRECTIVO",
+    "DIRECTOR",
     "PERSONAL",
-  ]);
+  ], request);
 }
 
-export async function exigirCualquierRol() {
+export async function exigirCualquierRol(request?: Request) {
   return exigirRoles([
+    "SUPER_ADMIN",
     "ADMIN",
+    "ADMIN_COLEGIO",
     "DIRECTIVO",
+    "DIRECTOR",
     "DEMO",
     "PERSONAL",
-  ]);
-}
-export async function exigirAdminDemoOPersonal() {
-  return exigirRoles([
-    "ADMIN",
-    "DEMO",
-    "PERSONAL",
-  ]);
-}
-export async function exigirAdminODirectivo() {
-  return exigirRoles([
-    "ADMIN",
-    "DIRECTIVO",
-  ]);
+    "PADRE",
+  ], request);
 }
 
-export async function exigirAdminDirectivoODemo() {
+export async function exigirAdminDemoOPersonal(request?: Request) {
   return exigirRoles([
+    "SUPER_ADMIN",
     "ADMIN",
+    "ADMIN_COLEGIO",
     "DIRECTIVO",
-    "DEMO",
-  ]);
-}
-
-export async function exigirAdminDirectivoDemoOPersonal() {
-  return exigirRoles([
-    "ADMIN",
-    "DIRECTIVO",
+    "DIRECTOR",
     "DEMO",
     "PERSONAL",
-  ]);
+  ], request);
+}
+
+export async function exigirAdminODirectivo(request?: Request) {
+  return exigirRoles([
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ADMIN_COLEGIO",
+    "DIRECTIVO",
+    "DIRECTOR",
+  ], request);
+}
+
+export async function exigirAdminDirectivoODemo(request?: Request) {
+  return exigirRoles([
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ADMIN_COLEGIO",
+    "DIRECTIVO",
+    "DIRECTOR",
+    "DEMO",
+  ], request);
+}
+
+export async function exigirAdminDirectivoDemoOPersonal(request?: Request) {
+  return exigirRoles([
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ADMIN_COLEGIO",
+    "DIRECTIVO",
+    "DIRECTOR",
+    "DEMO",
+    "PERSONAL",
+  ], request);
 }

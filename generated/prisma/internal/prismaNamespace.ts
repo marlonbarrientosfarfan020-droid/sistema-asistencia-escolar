@@ -384,6 +384,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 
 export const ModelName = {
+  Colegio: 'Colegio',
   Estudiante: 'Estudiante',
   Turno: 'Turno',
   Asistencia: 'Asistencia',
@@ -397,7 +398,9 @@ export const ModelName = {
   HistorialReporteAutomatico: 'HistorialReporteAutomatico',
   BiometriaFacial: 'BiometriaFacial',
   RostroFacial: 'RostroFacial',
-  CodigoFamiliar: 'CodigoFamiliar'
+  CodigoFamiliar: 'CodigoFamiliar',
+  SistemaControl: 'SistemaControl',
+  SystemHealthLog: 'SystemHealthLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -413,10 +416,84 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "estudiante" | "turno" | "asistencia" | "usuario" | "configuracion" | "auditoria" | "alertaAsistencia" | "analisisIA" | "riesgoEstudianteIA" | "calendarioEscolar" | "historialReporteAutomatico" | "biometriaFacial" | "rostroFacial" | "codigoFamiliar"
+    modelProps: "colegio" | "estudiante" | "turno" | "asistencia" | "usuario" | "configuracion" | "auditoria" | "alertaAsistencia" | "analisisIA" | "riesgoEstudianteIA" | "calendarioEscolar" | "historialReporteAutomatico" | "biometriaFacial" | "rostroFacial" | "codigoFamiliar" | "sistemaControl" | "systemHealthLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
+    Colegio: {
+      payload: Prisma.$ColegioPayload<ExtArgs>
+      fields: Prisma.ColegioFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ColegioFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColegioPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ColegioFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColegioPayload>
+        }
+        findFirst: {
+          args: Prisma.ColegioFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColegioPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ColegioFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColegioPayload>
+        }
+        findMany: {
+          args: Prisma.ColegioFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColegioPayload>[]
+        }
+        create: {
+          args: Prisma.ColegioCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColegioPayload>
+        }
+        createMany: {
+          args: Prisma.ColegioCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ColegioCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColegioPayload>[]
+        }
+        delete: {
+          args: Prisma.ColegioDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColegioPayload>
+        }
+        update: {
+          args: Prisma.ColegioUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColegioPayload>
+        }
+        deleteMany: {
+          args: Prisma.ColegioDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ColegioUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ColegioUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColegioPayload>[]
+        }
+        upsert: {
+          args: Prisma.ColegioUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColegioPayload>
+        }
+        aggregate: {
+          args: Prisma.ColegioAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateColegio>
+        }
+        groupBy: {
+          args: Prisma.ColegioGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ColegioGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ColegioCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ColegioCountAggregateOutputType> | number
+        }
+      }
+    }
     Estudiante: {
       payload: Prisma.$EstudiantePayload<ExtArgs>
       fields: Prisma.EstudianteFieldRefs
@@ -1453,6 +1530,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SistemaControl: {
+      payload: Prisma.$SistemaControlPayload<ExtArgs>
+      fields: Prisma.SistemaControlFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SistemaControlFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SistemaControlPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SistemaControlFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SistemaControlPayload>
+        }
+        findFirst: {
+          args: Prisma.SistemaControlFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SistemaControlPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SistemaControlFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SistemaControlPayload>
+        }
+        findMany: {
+          args: Prisma.SistemaControlFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SistemaControlPayload>[]
+        }
+        create: {
+          args: Prisma.SistemaControlCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SistemaControlPayload>
+        }
+        createMany: {
+          args: Prisma.SistemaControlCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SistemaControlCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SistemaControlPayload>[]
+        }
+        delete: {
+          args: Prisma.SistemaControlDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SistemaControlPayload>
+        }
+        update: {
+          args: Prisma.SistemaControlUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SistemaControlPayload>
+        }
+        deleteMany: {
+          args: Prisma.SistemaControlDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SistemaControlUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SistemaControlUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SistemaControlPayload>[]
+        }
+        upsert: {
+          args: Prisma.SistemaControlUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SistemaControlPayload>
+        }
+        aggregate: {
+          args: Prisma.SistemaControlAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSistemaControl>
+        }
+        groupBy: {
+          args: Prisma.SistemaControlGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SistemaControlGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SistemaControlCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SistemaControlCountAggregateOutputType> | number
+        }
+      }
+    }
+    SystemHealthLog: {
+      payload: Prisma.$SystemHealthLogPayload<ExtArgs>
+      fields: Prisma.SystemHealthLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SystemHealthLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemHealthLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SystemHealthLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemHealthLogPayload>
+        }
+        findFirst: {
+          args: Prisma.SystemHealthLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemHealthLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SystemHealthLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemHealthLogPayload>
+        }
+        findMany: {
+          args: Prisma.SystemHealthLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemHealthLogPayload>[]
+        }
+        create: {
+          args: Prisma.SystemHealthLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemHealthLogPayload>
+        }
+        createMany: {
+          args: Prisma.SystemHealthLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SystemHealthLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemHealthLogPayload>[]
+        }
+        delete: {
+          args: Prisma.SystemHealthLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemHealthLogPayload>
+        }
+        update: {
+          args: Prisma.SystemHealthLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemHealthLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.SystemHealthLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SystemHealthLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SystemHealthLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemHealthLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.SystemHealthLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemHealthLogPayload>
+        }
+        aggregate: {
+          args: Prisma.SystemHealthLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSystemHealthLog>
+        }
+        groupBy: {
+          args: Prisma.SystemHealthLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SystemHealthLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SystemHealthLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SystemHealthLogCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1492,8 +1717,26 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
+export const ColegioScalarFieldEnum = {
+  id: 'id',
+  codigo: 'codigo',
+  nombre: 'nombre',
+  nombreCorto: 'nombreCorto',
+  direccion: 'direccion',
+  telefono: 'telefono',
+  logo: 'logo',
+  estado: 'estado',
+  fechaRegistro: 'fechaRegistro',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ColegioScalarFieldEnum = (typeof ColegioScalarFieldEnum)[keyof typeof ColegioScalarFieldEnum]
+
+
 export const EstudianteScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   codigo: 'codigo',
   dni: 'dni',
   nombres: 'nombres',
@@ -1514,6 +1757,7 @@ export type EstudianteScalarFieldEnum = (typeof EstudianteScalarFieldEnum)[keyof
 
 export const TurnoScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   nombre: 'nombre',
   horaEntrada: 'horaEntrada',
   horaSalida: 'horaSalida',
@@ -1530,6 +1774,7 @@ export type TurnoScalarFieldEnum = (typeof TurnoScalarFieldEnum)[keyof typeof Tu
 
 export const AsistenciaScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   fecha: 'fecha',
   fechaDia: 'fechaDia',
   horaEntrada: 'horaEntrada',
@@ -1550,6 +1795,7 @@ export type AsistenciaScalarFieldEnum = (typeof AsistenciaScalarFieldEnum)[keyof
 
 export const UsuarioScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   usuario: 'usuario',
   password: 'password',
   rol: 'rol',
@@ -1562,6 +1808,7 @@ export type UsuarioScalarFieldEnum = (typeof UsuarioScalarFieldEnum)[keyof typeo
 
 export const ConfiguracionScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   nombreColegio: 'nombreColegio',
   logoUrl: 'logoUrl',
   direccion: 'direccion',
@@ -1609,6 +1856,7 @@ export type ConfiguracionScalarFieldEnum = (typeof ConfiguracionScalarFieldEnum)
 
 export const AuditoriaScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   usuario: 'usuario',
   rol: 'rol',
   accion: 'accion',
@@ -1633,6 +1881,7 @@ export type AlertaAsistenciaScalarFieldEnum = (typeof AlertaAsistenciaScalarFiel
 
 export const AnalisisIAScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   tipo: 'tipo',
   dni: 'dni',
   resultado: 'resultado',
@@ -1658,6 +1907,7 @@ export type RiesgoEstudianteIAScalarFieldEnum = (typeof RiesgoEstudianteIAScalar
 
 export const CalendarioEscolarScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   fechaInicio: 'fechaInicio',
   fechaFin: 'fechaFin',
   tipo: 'tipo',
@@ -1673,6 +1923,7 @@ export type CalendarioEscolarScalarFieldEnum = (typeof CalendarioEscolarScalarFi
 
 export const HistorialReporteAutomaticoScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   tipo: 'tipo',
   destinatario: 'destinatario',
   chatId: 'chatId',
@@ -1716,6 +1967,7 @@ export type RostroFacialScalarFieldEnum = (typeof RostroFacialScalarFieldEnum)[k
 
 export const CodigoFamiliarScalarFieldEnum = {
   id: 'id',
+  colegioId: 'colegioId',
   codigo: 'codigo',
   tutorTitular: 'tutorTitular',
   telefonoContacto: 'telefonoContacto',
@@ -1727,6 +1979,47 @@ export const CodigoFamiliarScalarFieldEnum = {
 } as const
 
 export type CodigoFamiliarScalarFieldEnum = (typeof CodigoFamiliarScalarFieldEnum)[keyof typeof CodigoFamiliarScalarFieldEnum]
+
+
+export const SistemaControlScalarFieldEnum = {
+  id: 'id',
+  colegioId: 'colegioId',
+  motorActivo: 'motorActivo',
+  asistenciaActivo: 'asistenciaActivo',
+  portalActivo: 'portalActivo',
+  telegramActivo: 'telegramActivo',
+  whatsappActivo: 'whatsappActivo',
+  reportesActivo: 'reportesActivo',
+  iaActivo: 'iaActivo',
+  alertasActivo: 'alertasActivo',
+  fotosActivo: 'fotosActivo',
+  estadoJornada: 'estadoJornada',
+  modoOperacion: 'modoOperacion',
+  horaAperturaJornada: 'horaAperturaJornada',
+  horaCierreJornada: 'horaCierreJornada',
+  minutosAnticipacionEntrada: 'minutosAnticipacionEntrada',
+  minutosCierreAutomatico: 'minutosCierreAutomatico',
+  ultimaActivacion: 'ultimaActivacion',
+  ultimoUsuario: 'ultimoUsuario',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SistemaControlScalarFieldEnum = (typeof SistemaControlScalarFieldEnum)[keyof typeof SistemaControlScalarFieldEnum]
+
+
+export const SystemHealthLogScalarFieldEnum = {
+  id: 'id',
+  colegioId: 'colegioId',
+  servicio: 'servicio',
+  estado: 'estado',
+  mensaje: 'mensaje',
+  tiempoRespuesta: 'tiempoRespuesta',
+  detalles: 'detalles',
+  fechaHora: 'fechaHora'
+} as const
+
+export type SystemHealthLogScalarFieldEnum = (typeof SystemHealthLogScalarFieldEnum)[keyof typeof SystemHealthLogScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1788,13 +2081,6 @@ export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaMod
 
 
 /**
- * Reference to a field of type 'Boolean'
- */
-export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
-    
-
-
-/**
  * Reference to a field of type 'DateTime'
  */
 export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
@@ -1805,6 +2091,13 @@ export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
  * Reference to a field of type 'DateTime[]'
  */
 export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -1931,6 +2224,7 @@ export type PrismaClientOptions = ({
   queryPlanCacheMaxSize?: number
 }
 export type GlobalOmitConfig = {
+  colegio?: Prisma.ColegioOmit
   estudiante?: Prisma.EstudianteOmit
   turno?: Prisma.TurnoOmit
   asistencia?: Prisma.AsistenciaOmit
@@ -1945,6 +2239,8 @@ export type GlobalOmitConfig = {
   biometriaFacial?: Prisma.BiometriaFacialOmit
   rostroFacial?: Prisma.RostroFacialOmit
   codigoFamiliar?: Prisma.CodigoFamiliarOmit
+  sistemaControl?: Prisma.SistemaControlOmit
+  systemHealthLog?: Prisma.SystemHealthLogOmit
 }
 
 /* Types for Logging */

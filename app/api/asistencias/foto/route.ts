@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { exigirAdminOPersonal } from "@/lib/auth";
+import { verificarModuloActivo } from "@/lib/supermotor-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,6 +24,19 @@ export async function POST(request: Request) {
   if (!acceso.autorizado) {
     console.warn("[FOTO API] Acceso denegado en /api/asistencias/foto");
     return acceso.respuesta;
+  }
+
+  // FASE 4.3: Validar fotosActivo en el SuperMotor
+  const validacionFotos = await verificarModuloActivo("fotos");
+  if (!validacionFotos.autorizado) {
+    console.log("[FOTO API] Almacenamiento omitido: fotosActivo=false en SuperMotor");
+    return NextResponse.json({
+      ok: true,
+      activo: false,
+      omitido: true,
+      fotoUrl: "",
+      message: "Captura de evidencia fotográfica desactivada en el SuperMotor.",
+    });
   }
 
   try {

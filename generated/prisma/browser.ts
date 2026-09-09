@@ -18,6 +18,11 @@ export { Prisma }
 export * as $Enums from './enums'
 export * from './enums';
 /**
+ * Model Colegio
+ * 
+ */
+export type Colegio = Prisma.ColegioModel
+/**
  * Model Estudiante
  * 
  */
@@ -87,3 +92,13 @@ export type RostroFacial = Prisma.RostroFacialModel
  * 
  */
 export type CodigoFamiliar = Prisma.CodigoFamiliarModel
+/**
+ * Model SistemaControl
+ * 
+ */
+export type SistemaControl = Prisma.SistemaControlModel
+/**
+ * Model SystemHealthLog
+ * 
+ */
+export type SystemHealthLog = Prisma.SystemHealthLogModel

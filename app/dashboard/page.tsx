@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { useRealtimeEvents } from "@/hooks/useRealtimeEvents";
 import {
   Bar,
   BarChart,
@@ -279,6 +280,62 @@ export default function Dashboard() {
     turno: "TODOS",
     grado: "TODOS",
     seccion: "TODAS",
+  });
+
+  // FASE 6.4: Actualización inmediata en tiempo real sin recargar página
+  const handleAsistenciaEnVivo = useCallback((eventoDatos: any) => {
+    setDatos((prev) => {
+      const esPuntual = eventoDatos.estado === "PRESENTE";
+      const esTarde = eventoDatos.estado === "TARDE";
+
+      const nuevaAsistencia: Asistencia = {
+        id: Number(eventoDatos.asistenciaId) || Date.now(),
+        fecha: String(eventoDatos.fecha || new Date().toISOString()),
+        horaEntrada: eventoDatos.hora || eventoDatos.hora24 || null,
+        horaSalida: null,
+        metodo: String(eventoDatos.metodo || "QR"),
+        estado: String(eventoDatos.estado || "PRESENTE"),
+        estudiante: {
+          nombres: eventoDatos.estudiante?.nombres || "Estudiante",
+          apellidos: eventoDatos.estudiante?.apellidos || "",
+          grado: eventoDatos.estudiante?.grado || "",
+          seccion: eventoDatos.estudiante?.seccion || "",
+          turno: eventoDatos.estudiante?.turno ? { nombre: eventoDatos.estudiante.turno } : null,
+        },
+      };
+
+      return {
+        ...prev,
+        presentes: prev.presentes + 1,
+        puntuales: esPuntual ? prev.puntuales + 1 : prev.puntuales,
+        tardanzas: esTarde ? prev.tardanzas + 1 : prev.tardanzas,
+        entradas: (prev.entradas || 0) + 1,
+        ultimasAsistencias: [nuevaAsistencia, ...prev.ultimasAsistencias.filter((a) => a.id !== nuevaAsistencia.id).slice(0, 9)],
+        actualizadoEn: new Date().toLocaleTimeString("es-PE", { hour12: false }),
+      };
+    });
+
+    void cargarDashboard();
+  }, []);
+
+  const handleSalidaEnVivo = useCallback(() => {
+    setDatos((prev) => ({
+      ...prev,
+      salidas: (prev.salidas || 0) + 1,
+      salidasRegistradas: (prev.salidasRegistradas || 0) + 1,
+      actualizadoEn: new Date().toLocaleTimeString("es-PE", { hour12: false }),
+    }));
+    void cargarDashboard();
+  }, []);
+
+  const handleSuperMotorEnVivo = useCallback(() => {
+    void cargarDashboard();
+  }, []);
+
+  const { conectado: sseConectado } = useRealtimeEvents({
+    onAsistencia: handleAsistenciaEnVivo,
+    onSalida: handleSalidaEnVivo,
+    onSuperMotor: handleSuperMotorEnVivo,
   });
 
   async function cargarDashboard(signal?: AbortSignal) {
@@ -616,6 +673,12 @@ export default function Dashboard() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+                {sseConectado && (
+                  <div className="inline-flex items-center gap-2 rounded-2xl border border-emerald-500/40 bg-emerald-950/60 px-3 py-2 text-xs font-bold text-emerald-400 shadow-sm animate-pulse">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
+                    <span>⚡ En vivo (SSE)</span>
+                  </div>
+                )}
                 <EstadoChip
                   activo={datos.automatizaciones.activas}
                   textoActivo="Motor activo"

@@ -1,5 +1,9 @@
 import axios from "axios";
 import FormData from "form-data";
+import {
+  verificarModuloActivo,
+  registrarAuditoriaBloqueo,
+} from "@/lib/supermotor-guard";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
@@ -19,6 +23,18 @@ function validarTelegram(chatId: string) {
 
 export async function enviarTelegram(chatId: string, mensaje: string) {
   if (!validarTelegram(chatId)) return false;
+
+  // FASE 4.5: Validar telegramActivo en el SuperMotor
+  const estadoTelegram = await verificarModuloActivo("telegram");
+  if (!estadoTelegram.autorizado) {
+    console.log("[TELEGRAM] Envío omitido: Módulo telegram desactivado en SuperMotor.");
+    await registrarAuditoriaBloqueo({
+      modulo: "TELEGRAM",
+      motivo: estadoTelegram.motivo || "MODULO_DESACTIVADO",
+      detalles: { chatId },
+    });
+    return false;
+  }
 
   try {
     await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
@@ -42,6 +58,17 @@ export async function enviarArchivoTelegram(
   caption: string
 ) {
   if (!validarTelegram(chatId)) return false;
+
+  const estadoTelegram = await verificarModuloActivo("telegram");
+  if (!estadoTelegram.autorizado) {
+    console.log("[TELEGRAM] Envío de archivo omitido: Módulo desactivado en SuperMotor.");
+    await registrarAuditoriaBloqueo({
+      modulo: "TELEGRAM",
+      motivo: estadoTelegram.motivo || "MODULO_DESACTIVADO",
+      detalles: { chatId, nombreArchivo },
+    });
+    return false;
+  }
 
   try {
     const formData = new FormData();
@@ -78,6 +105,17 @@ export async function enviarFotoTelegram(
   caption: string
 ) {
   if (!validarTelegram(chatId)) return false;
+
+  const estadoTelegram = await verificarModuloActivo("telegram");
+  if (!estadoTelegram.autorizado) {
+    console.log("[TELEGRAM] Envío de foto omitido: Módulo desactivado en SuperMotor.");
+    await registrarAuditoriaBloqueo({
+      modulo: "TELEGRAM",
+      motivo: estadoTelegram.motivo || "MODULO_DESACTIVADO",
+      detalles: { chatId },
+    });
+    return false;
+  }
 
   try {
     const formData = new FormData();

@@ -8,6 +8,7 @@
  *
  * 🟢 You can import this file directly.
  */
+export type * from './models/Colegio'
 export type * from './models/Estudiante'
 export type * from './models/Turno'
 export type * from './models/Asistencia'
@@ -22,4 +23,6 @@ export type * from './models/HistorialReporteAutomatico'
 export type * from './models/BiometriaFacial'
 export type * from './models/RostroFacial'
 export type * from './models/CodigoFamiliar'
+export type * from './models/SistemaControl'
+export type * from './models/SystemHealthLog'
 export type * from './commonInputTypes'

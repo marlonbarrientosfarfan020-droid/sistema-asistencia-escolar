@@ -7,6 +7,7 @@ import {
   exigirAdminDemoOPersonal,
   exigirAdminOPersonal,
 } from "@/lib/auth";
+import { resolverColegio } from "@/lib/tenant";
 import {
   fechaPeru,
   horaPeru,
@@ -18,16 +19,33 @@ import {
   calcularEstadoSalida,
   evaluarJornadaVigente,
 } from "@/lib/timezone";
+import {
+  verificarModuloActivo,
+  registrarAuditoriaBloqueo,
+  registrarAuditoriaAutorizado,
+  respuestaBloqueoSupermotor,
+} from "@/lib/supermotor-guard";
+import { emitEvent } from "@/lib/events/eventBus";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const acceso = await exigirAdminDemoOPersonal();
+  const acceso = await exigirAdminDemoOPersonal(request);
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
   }
+
+  const tenant = resolverColegio(acceso.sesion, request);
+  if (!tenant.ok) {
+    return NextResponse.json(
+      { message: tenant.message },
+      { status: tenant.status }
+    );
+  }
+
+  const colegioId = tenant.context.colegioId;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -42,16 +60,19 @@ export async function GET(request: Request) {
       finDia = limites.finDia;
     }
 
+    const whereFiltro: any = {};
+    if (!tenant.context.esSuperAdmin || !request.url.includes("todos=true")) {
+      whereFiltro.colegioId = colegioId;
+    }
+    if (fecha && inicioDia && finDia) {
+      whereFiltro.fecha = {
+        gte: inicioDia,
+        lte: finDia,
+      };
+    }
+
     const asistencias = await prisma.asistencia.findMany({
-      where:
-        fecha && inicioDia && finDia
-          ? {
-              fecha: {
-                gte: inicioDia,
-                lte: finDia,
-              },
-            }
-          : {},
+      where: whereFiltro,
       orderBy: {
         fecha: "desc",
       },
@@ -167,6 +188,42 @@ export async function POST(request: Request) {
     return acceso.respuesta;
   }
 
+  const tenant = resolverColegio(acceso.sesion, request);
+  if (!tenant.ok) {
+    return NextResponse.json(
+      { message: tenant.message },
+      { status: tenant.status }
+    );
+  }
+
+  const colegioId = tenant.context.colegioId;
+
+  // FASE 4.2 & FASE 8.7: Capa de autorización del SuperMotor por colegio
+  const validacionAsistencia = await verificarModuloActivo("asistencia", colegioId);
+  if (!validacionAsistencia.autorizado) {
+    console.log("[ASISTENCIA API] Registro bloqueado por SuperMotor (" + colegioId + "):", validacionAsistencia.motivo);
+    await registrarAuditoriaBloqueo({
+      modulo: "ASISTENCIA",
+      motivo: validacionAsistencia.motivo || "SUPERMOTOR_APAGADO",
+      usuario: acceso.sesion.usuario,
+      detalles: {
+        colegioId,
+        motorActivo: validacionAsistencia.estado?.motorActivo ?? false,
+        asistenciaActivo: validacionAsistencia.estado?.asistenciaActivo ?? false,
+      },
+    });
+
+    return respuestaBloqueoSupermotor(
+      "El sistema de asistencia se encuentra temporalmente desactivado."
+    );
+  }
+
+  // FASE 4.7: Registrar auditoría de asistencia autorizada
+  await registrarAuditoriaAutorizado({
+    modulo: "ASISTENCIA",
+    usuario: acceso.sesion.usuario,
+  });
+
   try {
     const body = await request.json();
 
@@ -202,15 +259,26 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validación estricta de evidencia fotográfica (flujo único)
-    if (!fotoUrl || !fotoUrl.startsWith("http")) {
-      return NextResponse.json(
-        {
-          ok: false,
-          message: "No se pudo guardar evidencia fotográfica",
-        },
-        { status: 400 }
-      );
+    // FASE 4.3: Validar fotosActivo por colegio
+    const validacionFotos = await verificarModuloActivo("fotos", colegioId);
+    let fotoUrlFinal = fotoUrl;
+
+    if (validacionFotos.autorizado) {
+      // Fotos está ON: Validación estricta de evidencia fotográfica
+      if (!fotoUrl || !fotoUrl.startsWith("http")) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message: "No se pudo guardar evidencia fotográfica",
+          },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Fotos está OFF: Se continúa la asistencia sin fotografía obligatoria
+      if (!fotoUrl || !fotoUrl.startsWith("http")) {
+        fotoUrlFinal = "";
+      }
     }
 
     const condicionesBusqueda: Array<
@@ -229,6 +297,7 @@ export async function POST(request: Request) {
       await Promise.all([
         prisma.estudiante.findFirst({
           where: {
+            colegioId,
             OR: condicionesBusqueda,
           },
           include: {
@@ -236,6 +305,7 @@ export async function POST(request: Request) {
           },
         }),
         prisma.configuracion.findFirst({
+          where: { colegioId },
           select: {
             canalWhatsAppActivo: true,
             canalTelegramActivo: true,
@@ -421,6 +491,7 @@ export async function POST(request: Request) {
         asistencia =
           await prisma.asistencia.create({
             data: {
+              colegioId: estudiante.colegioId || colegioId,
               estudianteId: estudiante.id,
               fecha: ahora,
               fechaDia,
@@ -430,8 +501,8 @@ export async function POST(request: Request) {
               estado: estadoAsistencia,
               estadoJornada: "ABIERTA",
               estadoSalida: "PENDIENTE",
-              fotoUrl,
-              fotoEntrada: fotoUrl,
+              fotoUrl: fotoUrlFinal,
+              fotoEntrada: fotoUrlFinal,
             },
           });
       } catch (errDb: any) {
@@ -496,6 +567,31 @@ export async function POST(request: Request) {
           console.error("Error no crítico enviando Telegram:", error);
         });
       }
+
+      // FASE 6.7 & FASE 8.4: Emitir evento en tiempo real ASISTENCIA_REGISTRADA por colegio
+      emitEvent("ASISTENCIA_REGISTRADA", {
+        colegioId: estudiante.colegioId || colegioId,
+        asistenciaId: asistencia.id,
+        estudianteId: estudiante.id,
+        estudiante: {
+          id: estudiante.id,
+          codigo: estudiante.codigo,
+          dni: estudiante.dni,
+          nombres: estudiante.nombres,
+          apellidos: estudiante.apellidos,
+          grado: estudiante.grado,
+          seccion: estudiante.seccion,
+          tutor: estudiante.nombreTutor,
+          turno: estudiante.turno?.nombre,
+        },
+        hora: horaActual12,
+        hora24: horaPeru(ahora),
+        fecha: fechaDia,
+        metodo,
+        estado: estadoAsistencia,
+        tipo: "ENTRADA",
+        fotoUrl: fotoUrlFinal,
+      }, estudiante.colegioId || colegioId);
 
       return NextResponse.json({
         ok: true,
@@ -562,7 +658,7 @@ export async function POST(request: Request) {
           horaSalida: ahora,
           estadoJornada: "CERRADA",
           estadoSalida,
-          fotoSalida: fotoUrl,
+          fotoSalida: fotoUrlFinal,
         },
       });
 
@@ -624,6 +720,31 @@ export async function POST(request: Request) {
           console.error("Error no crítico enviando Telegram:", error);
         });
       }
+
+      // FASE 6.7 & FASE 8.4: Emitir evento en tiempo real ASISTENCIA_SALIDA por colegio
+      emitEvent("ASISTENCIA_SALIDA", {
+        colegioId: estudiante.colegioId || colegioId,
+        asistenciaId: asistencia.id,
+        estudianteId: estudiante.id,
+        estudiante: {
+          id: estudiante.id,
+          codigo: estudiante.codigo,
+          dni: estudiante.dni,
+          nombres: estudiante.nombres,
+          apellidos: estudiante.apellidos,
+          grado: estudiante.grado,
+          seccion: estudiante.seccion,
+          tutor: estudiante.nombreTutor,
+          turno: estudiante.turno?.nombre,
+        },
+        hora: horaActual12,
+        hora24: horaPeru(ahora),
+        fecha: fechaDia,
+        metodo,
+        estadoSalida,
+        tipo: "SALIDA",
+        fotoUrl: fotoUrlFinal,
+      }, estudiante.colegioId || colegioId);
 
       return NextResponse.json({
         ok: true,

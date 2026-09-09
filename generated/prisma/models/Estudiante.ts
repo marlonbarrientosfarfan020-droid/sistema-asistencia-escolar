@@ -40,6 +40,7 @@ export type EstudianteSumAggregateOutputType = {
 
 export type EstudianteMinAggregateOutputType = {
   id: number | null
+  colegioId: string | null
   codigo: string | null
   dni: string | null
   nombres: string | null
@@ -57,6 +58,7 @@ export type EstudianteMinAggregateOutputType = {
 
 export type EstudianteMaxAggregateOutputType = {
   id: number | null
+  colegioId: string | null
   codigo: string | null
   dni: string | null
   nombres: string | null
@@ -74,6 +76,7 @@ export type EstudianteMaxAggregateOutputType = {
 
 export type EstudianteCountAggregateOutputType = {
   id: number
+  colegioId: number
   codigo: number
   dni: number
   nombres: number
@@ -105,6 +108,7 @@ export type EstudianteSumAggregateInputType = {
 
 export type EstudianteMinAggregateInputType = {
   id?: true
+  colegioId?: true
   codigo?: true
   dni?: true
   nombres?: true
@@ -122,6 +126,7 @@ export type EstudianteMinAggregateInputType = {
 
 export type EstudianteMaxAggregateInputType = {
   id?: true
+  colegioId?: true
   codigo?: true
   dni?: true
   nombres?: true
@@ -139,6 +144,7 @@ export type EstudianteMaxAggregateInputType = {
 
 export type EstudianteCountAggregateInputType = {
   id?: true
+  colegioId?: true
   codigo?: true
   dni?: true
   nombres?: true
@@ -243,6 +249,7 @@ export type EstudianteGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inter
 
 export type EstudianteGroupByOutputType = {
   id: number
+  colegioId: string
   codigo: string
   dni: string
   nombres: string
@@ -283,6 +290,7 @@ export type EstudianteWhereInput = {
   OR?: Prisma.EstudianteWhereInput[]
   NOT?: Prisma.EstudianteWhereInput | Prisma.EstudianteWhereInput[]
   id?: Prisma.IntFilter<"Estudiante"> | number
+  colegioId?: Prisma.StringFilter<"Estudiante"> | string
   codigo?: Prisma.StringFilter<"Estudiante"> | string
   dni?: Prisma.StringFilter<"Estudiante"> | string
   nombres?: Prisma.StringFilter<"Estudiante"> | string
@@ -296,6 +304,7 @@ export type EstudianteWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Estudiante"> | Date | string
   turnoId?: Prisma.IntNullableFilter<"Estudiante"> | number | null
   codigoFamiliarId?: Prisma.IntNullableFilter<"Estudiante"> | number | null
+  colegio?: Prisma.XOR<Prisma.ColegioScalarRelationFilter, Prisma.ColegioWhereInput>
   turno?: Prisma.XOR<Prisma.TurnoNullableScalarRelationFilter, Prisma.TurnoWhereInput> | null
   codigoFamiliar?: Prisma.XOR<Prisma.CodigoFamiliarNullableScalarRelationFilter, Prisma.CodigoFamiliarWhereInput> | null
   asistencias?: Prisma.AsistenciaListRelationFilter
@@ -307,6 +316,7 @@ export type EstudianteWhereInput = {
 
 export type EstudianteOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   codigo?: Prisma.SortOrder
   dni?: Prisma.SortOrder
   nombres?: Prisma.SortOrder
@@ -320,6 +330,7 @@ export type EstudianteOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   turnoId?: Prisma.SortOrderInput | Prisma.SortOrder
   codigoFamiliarId?: Prisma.SortOrderInput | Prisma.SortOrder
+  colegio?: Prisma.ColegioOrderByWithRelationInput
   turno?: Prisma.TurnoOrderByWithRelationInput
   codigoFamiliar?: Prisma.CodigoFamiliarOrderByWithRelationInput
   asistencias?: Prisma.AsistenciaOrderByRelationAggregateInput
@@ -336,6 +347,7 @@ export type EstudianteWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.EstudianteWhereInput | Prisma.EstudianteWhereInput[]
   OR?: Prisma.EstudianteWhereInput[]
   NOT?: Prisma.EstudianteWhereInput | Prisma.EstudianteWhereInput[]
+  colegioId?: Prisma.StringFilter<"Estudiante"> | string
   nombres?: Prisma.StringFilter<"Estudiante"> | string
   apellidos?: Prisma.StringFilter<"Estudiante"> | string
   grado?: Prisma.StringFilter<"Estudiante"> | string
@@ -347,6 +359,7 @@ export type EstudianteWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Estudiante"> | Date | string
   turnoId?: Prisma.IntNullableFilter<"Estudiante"> | number | null
   codigoFamiliarId?: Prisma.IntNullableFilter<"Estudiante"> | number | null
+  colegio?: Prisma.XOR<Prisma.ColegioScalarRelationFilter, Prisma.ColegioWhereInput>
   turno?: Prisma.XOR<Prisma.TurnoNullableScalarRelationFilter, Prisma.TurnoWhereInput> | null
   codigoFamiliar?: Prisma.XOR<Prisma.CodigoFamiliarNullableScalarRelationFilter, Prisma.CodigoFamiliarWhereInput> | null
   asistencias?: Prisma.AsistenciaListRelationFilter
@@ -358,6 +371,7 @@ export type EstudianteWhereUniqueInput = Prisma.AtLeast<{
 
 export type EstudianteOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   codigo?: Prisma.SortOrder
   dni?: Prisma.SortOrder
   nombres?: Prisma.SortOrder
@@ -383,6 +397,7 @@ export type EstudianteScalarWhereWithAggregatesInput = {
   OR?: Prisma.EstudianteScalarWhereWithAggregatesInput[]
   NOT?: Prisma.EstudianteScalarWhereWithAggregatesInput | Prisma.EstudianteScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"Estudiante"> | number
+  colegioId?: Prisma.StringWithAggregatesFilter<"Estudiante"> | string
   codigo?: Prisma.StringWithAggregatesFilter<"Estudiante"> | string
   dni?: Prisma.StringWithAggregatesFilter<"Estudiante"> | string
   nombres?: Prisma.StringWithAggregatesFilter<"Estudiante"> | string
@@ -410,6 +425,7 @@ export type EstudianteCreateInput = {
   telegramChatId?: string
   estado?: boolean
   createdAt?: Date | string
+  colegio?: Prisma.ColegioCreateNestedOneWithoutEstudiantesInput
   turno?: Prisma.TurnoCreateNestedOneWithoutEstudiantesInput
   codigoFamiliar?: Prisma.CodigoFamiliarCreateNestedOneWithoutEstudiantesInput
   asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
@@ -421,6 +437,7 @@ export type EstudianteCreateInput = {
 
 export type EstudianteUncheckedCreateInput = {
   id?: number
+  colegioId?: string
   codigo: string
   dni: string
   nombres: string
@@ -453,6 +470,7 @@ export type EstudianteUpdateInput = {
   telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  colegio?: Prisma.ColegioUpdateOneRequiredWithoutEstudiantesNestedInput
   turno?: Prisma.TurnoUpdateOneWithoutEstudiantesNestedInput
   codigoFamiliar?: Prisma.CodigoFamiliarUpdateOneWithoutEstudiantesNestedInput
   asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
@@ -464,6 +482,7 @@ export type EstudianteUpdateInput = {
 
 export type EstudianteUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   codigo?: Prisma.StringFieldUpdateOperationsInput | string
   dni?: Prisma.StringFieldUpdateOperationsInput | string
   nombres?: Prisma.StringFieldUpdateOperationsInput | string
@@ -486,6 +505,7 @@ export type EstudianteUncheckedUpdateInput = {
 
 export type EstudianteCreateManyInput = {
   id?: number
+  colegioId?: string
   codigo: string
   dni: string
   nombres: string
@@ -517,6 +537,7 @@ export type EstudianteUpdateManyMutationInput = {
 
 export type EstudianteUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   codigo?: Prisma.StringFieldUpdateOperationsInput | string
   dni?: Prisma.StringFieldUpdateOperationsInput | string
   nombres?: Prisma.StringFieldUpdateOperationsInput | string
@@ -532,8 +553,19 @@ export type EstudianteUncheckedUpdateManyInput = {
   codigoFamiliarId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
+export type EstudianteListRelationFilter = {
+  every?: Prisma.EstudianteWhereInput
+  some?: Prisma.EstudianteWhereInput
+  none?: Prisma.EstudianteWhereInput
+}
+
+export type EstudianteOrderByRelationAggregateInput = {
+  _count?: Prisma.SortOrder
+}
+
 export type EstudianteCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   codigo?: Prisma.SortOrder
   dni?: Prisma.SortOrder
   nombres?: Prisma.SortOrder
@@ -557,6 +589,7 @@ export type EstudianteAvgOrderByAggregateInput = {
 
 export type EstudianteMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   codigo?: Prisma.SortOrder
   dni?: Prisma.SortOrder
   nombres?: Prisma.SortOrder
@@ -574,6 +607,7 @@ export type EstudianteMaxOrderByAggregateInput = {
 
 export type EstudianteMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  colegioId?: Prisma.SortOrder
   codigo?: Prisma.SortOrder
   dni?: Prisma.SortOrder
   nombres?: Prisma.SortOrder
@@ -595,16 +629,6 @@ export type EstudianteSumOrderByAggregateInput = {
   codigoFamiliarId?: Prisma.SortOrder
 }
 
-export type EstudianteListRelationFilter = {
-  every?: Prisma.EstudianteWhereInput
-  some?: Prisma.EstudianteWhereInput
-  none?: Prisma.EstudianteWhereInput
-}
-
-export type EstudianteOrderByRelationAggregateInput = {
-  _count?: Prisma.SortOrder
-}
-
 export type EstudianteScalarRelationFilter = {
   is?: Prisma.EstudianteWhereInput
   isNot?: Prisma.EstudianteWhereInput
@@ -615,24 +639,50 @@ export type EstudianteNullableScalarRelationFilter = {
   isNot?: Prisma.EstudianteWhereInput | null
 }
 
-export type StringFieldUpdateOperationsInput = {
-  set?: string
+export type EstudianteCreateNestedManyWithoutColegioInput = {
+  create?: Prisma.XOR<Prisma.EstudianteCreateWithoutColegioInput, Prisma.EstudianteUncheckedCreateWithoutColegioInput> | Prisma.EstudianteCreateWithoutColegioInput[] | Prisma.EstudianteUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.EstudianteCreateOrConnectWithoutColegioInput | Prisma.EstudianteCreateOrConnectWithoutColegioInput[]
+  createMany?: Prisma.EstudianteCreateManyColegioInputEnvelope
+  connect?: Prisma.EstudianteWhereUniqueInput | Prisma.EstudianteWhereUniqueInput[]
+}
+
+export type EstudianteUncheckedCreateNestedManyWithoutColegioInput = {
+  create?: Prisma.XOR<Prisma.EstudianteCreateWithoutColegioInput, Prisma.EstudianteUncheckedCreateWithoutColegioInput> | Prisma.EstudianteCreateWithoutColegioInput[] | Prisma.EstudianteUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.EstudianteCreateOrConnectWithoutColegioInput | Prisma.EstudianteCreateOrConnectWithoutColegioInput[]
+  createMany?: Prisma.EstudianteCreateManyColegioInputEnvelope
+  connect?: Prisma.EstudianteWhereUniqueInput | Prisma.EstudianteWhereUniqueInput[]
+}
+
+export type EstudianteUpdateManyWithoutColegioNestedInput = {
+  create?: Prisma.XOR<Prisma.EstudianteCreateWithoutColegioInput, Prisma.EstudianteUncheckedCreateWithoutColegioInput> | Prisma.EstudianteCreateWithoutColegioInput[] | Prisma.EstudianteUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.EstudianteCreateOrConnectWithoutColegioInput | Prisma.EstudianteCreateOrConnectWithoutColegioInput[]
+  upsert?: Prisma.EstudianteUpsertWithWhereUniqueWithoutColegioInput | Prisma.EstudianteUpsertWithWhereUniqueWithoutColegioInput[]
+  createMany?: Prisma.EstudianteCreateManyColegioInputEnvelope
+  set?: Prisma.EstudianteWhereUniqueInput | Prisma.EstudianteWhereUniqueInput[]
+  disconnect?: Prisma.EstudianteWhereUniqueInput | Prisma.EstudianteWhereUniqueInput[]
+  delete?: Prisma.EstudianteWhereUniqueInput | Prisma.EstudianteWhereUniqueInput[]
+  connect?: Prisma.EstudianteWhereUniqueInput | Prisma.EstudianteWhereUniqueInput[]
+  update?: Prisma.EstudianteUpdateWithWhereUniqueWithoutColegioInput | Prisma.EstudianteUpdateWithWhereUniqueWithoutColegioInput[]
+  updateMany?: Prisma.EstudianteUpdateManyWithWhereWithoutColegioInput | Prisma.EstudianteUpdateManyWithWhereWithoutColegioInput[]
+  deleteMany?: Prisma.EstudianteScalarWhereInput | Prisma.EstudianteScalarWhereInput[]
+}
+
+export type EstudianteUncheckedUpdateManyWithoutColegioNestedInput = {
+  create?: Prisma.XOR<Prisma.EstudianteCreateWithoutColegioInput, Prisma.EstudianteUncheckedCreateWithoutColegioInput> | Prisma.EstudianteCreateWithoutColegioInput[] | Prisma.EstudianteUncheckedCreateWithoutColegioInput[]
+  connectOrCreate?: Prisma.EstudianteCreateOrConnectWithoutColegioInput | Prisma.EstudianteCreateOrConnectWithoutColegioInput[]
+  upsert?: Prisma.EstudianteUpsertWithWhereUniqueWithoutColegioInput | Prisma.EstudianteUpsertWithWhereUniqueWithoutColegioInput[]
+  createMany?: Prisma.EstudianteCreateManyColegioInputEnvelope
+  set?: Prisma.EstudianteWhereUniqueInput | Prisma.EstudianteWhereUniqueInput[]
+  disconnect?: Prisma.EstudianteWhereUniqueInput | Prisma.EstudianteWhereUniqueInput[]
+  delete?: Prisma.EstudianteWhereUniqueInput | Prisma.EstudianteWhereUniqueInput[]
+  connect?: Prisma.EstudianteWhereUniqueInput | Prisma.EstudianteWhereUniqueInput[]
+  update?: Prisma.EstudianteUpdateWithWhereUniqueWithoutColegioInput | Prisma.EstudianteUpdateWithWhereUniqueWithoutColegioInput[]
+  updateMany?: Prisma.EstudianteUpdateManyWithWhereWithoutColegioInput | Prisma.EstudianteUpdateManyWithWhereWithoutColegioInput[]
+  deleteMany?: Prisma.EstudianteScalarWhereInput | Prisma.EstudianteScalarWhereInput[]
 }
 
 export type BoolFieldUpdateOperationsInput = {
   set?: boolean
-}
-
-export type DateTimeFieldUpdateOperationsInput = {
-  set?: Date | string
-}
-
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
 }
 
 export type NullableIntFieldUpdateOperationsInput = {
@@ -799,6 +849,96 @@ export type EstudianteUncheckedUpdateManyWithoutCodigoFamiliarNestedInput = {
   deleteMany?: Prisma.EstudianteScalarWhereInput | Prisma.EstudianteScalarWhereInput[]
 }
 
+export type EstudianteCreateWithoutColegioInput = {
+  codigo: string
+  dni: string
+  nombres: string
+  apellidos: string
+  grado: string
+  seccion: string
+  nombreTutor?: string
+  whatsapp?: string
+  telegramChatId?: string
+  estado?: boolean
+  createdAt?: Date | string
+  turno?: Prisma.TurnoCreateNestedOneWithoutEstudiantesInput
+  codigoFamiliar?: Prisma.CodigoFamiliarCreateNestedOneWithoutEstudiantesInput
+  asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
+  alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
+  riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialCreateNestedOneWithoutEstudianteInput
+}
+
+export type EstudianteUncheckedCreateWithoutColegioInput = {
+  id?: number
+  codigo: string
+  dni: string
+  nombres: string
+  apellidos: string
+  grado: string
+  seccion: string
+  nombreTutor?: string
+  whatsapp?: string
+  telegramChatId?: string
+  estado?: boolean
+  createdAt?: Date | string
+  turnoId?: number | null
+  codigoFamiliarId?: number | null
+  asistencias?: Prisma.AsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedCreateNestedOneWithoutEstudianteInput
+}
+
+export type EstudianteCreateOrConnectWithoutColegioInput = {
+  where: Prisma.EstudianteWhereUniqueInput
+  create: Prisma.XOR<Prisma.EstudianteCreateWithoutColegioInput, Prisma.EstudianteUncheckedCreateWithoutColegioInput>
+}
+
+export type EstudianteCreateManyColegioInputEnvelope = {
+  data: Prisma.EstudianteCreateManyColegioInput | Prisma.EstudianteCreateManyColegioInput[]
+  skipDuplicates?: boolean
+}
+
+export type EstudianteUpsertWithWhereUniqueWithoutColegioInput = {
+  where: Prisma.EstudianteWhereUniqueInput
+  update: Prisma.XOR<Prisma.EstudianteUpdateWithoutColegioInput, Prisma.EstudianteUncheckedUpdateWithoutColegioInput>
+  create: Prisma.XOR<Prisma.EstudianteCreateWithoutColegioInput, Prisma.EstudianteUncheckedCreateWithoutColegioInput>
+}
+
+export type EstudianteUpdateWithWhereUniqueWithoutColegioInput = {
+  where: Prisma.EstudianteWhereUniqueInput
+  data: Prisma.XOR<Prisma.EstudianteUpdateWithoutColegioInput, Prisma.EstudianteUncheckedUpdateWithoutColegioInput>
+}
+
+export type EstudianteUpdateManyWithWhereWithoutColegioInput = {
+  where: Prisma.EstudianteScalarWhereInput
+  data: Prisma.XOR<Prisma.EstudianteUpdateManyMutationInput, Prisma.EstudianteUncheckedUpdateManyWithoutColegioInput>
+}
+
+export type EstudianteScalarWhereInput = {
+  AND?: Prisma.EstudianteScalarWhereInput | Prisma.EstudianteScalarWhereInput[]
+  OR?: Prisma.EstudianteScalarWhereInput[]
+  NOT?: Prisma.EstudianteScalarWhereInput | Prisma.EstudianteScalarWhereInput[]
+  id?: Prisma.IntFilter<"Estudiante"> | number
+  colegioId?: Prisma.StringFilter<"Estudiante"> | string
+  codigo?: Prisma.StringFilter<"Estudiante"> | string
+  dni?: Prisma.StringFilter<"Estudiante"> | string
+  nombres?: Prisma.StringFilter<"Estudiante"> | string
+  apellidos?: Prisma.StringFilter<"Estudiante"> | string
+  grado?: Prisma.StringFilter<"Estudiante"> | string
+  seccion?: Prisma.StringFilter<"Estudiante"> | string
+  nombreTutor?: Prisma.StringFilter<"Estudiante"> | string
+  whatsapp?: Prisma.StringFilter<"Estudiante"> | string
+  telegramChatId?: Prisma.StringFilter<"Estudiante"> | string
+  estado?: Prisma.BoolFilter<"Estudiante"> | boolean
+  createdAt?: Prisma.DateTimeFilter<"Estudiante"> | Date | string
+  turnoId?: Prisma.IntNullableFilter<"Estudiante"> | number | null
+  codigoFamiliarId?: Prisma.IntNullableFilter<"Estudiante"> | number | null
+}
+
 export type EstudianteCreateWithoutTurnoInput = {
   codigo: string
   dni: string
@@ -811,6 +951,7 @@ export type EstudianteCreateWithoutTurnoInput = {
   telegramChatId?: string
   estado?: boolean
   createdAt?: Date | string
+  colegio?: Prisma.ColegioCreateNestedOneWithoutEstudiantesInput
   codigoFamiliar?: Prisma.CodigoFamiliarCreateNestedOneWithoutEstudiantesInput
   asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
   alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
@@ -821,6 +962,7 @@ export type EstudianteCreateWithoutTurnoInput = {
 
 export type EstudianteUncheckedCreateWithoutTurnoInput = {
   id?: number
+  colegioId?: string
   codigo: string
   dni: string
   nombres: string
@@ -866,26 +1008,6 @@ export type EstudianteUpdateManyWithWhereWithoutTurnoInput = {
   data: Prisma.XOR<Prisma.EstudianteUpdateManyMutationInput, Prisma.EstudianteUncheckedUpdateManyWithoutTurnoInput>
 }
 
-export type EstudianteScalarWhereInput = {
-  AND?: Prisma.EstudianteScalarWhereInput | Prisma.EstudianteScalarWhereInput[]
-  OR?: Prisma.EstudianteScalarWhereInput[]
-  NOT?: Prisma.EstudianteScalarWhereInput | Prisma.EstudianteScalarWhereInput[]
-  id?: Prisma.IntFilter<"Estudiante"> | number
-  codigo?: Prisma.StringFilter<"Estudiante"> | string
-  dni?: Prisma.StringFilter<"Estudiante"> | string
-  nombres?: Prisma.StringFilter<"Estudiante"> | string
-  apellidos?: Prisma.StringFilter<"Estudiante"> | string
-  grado?: Prisma.StringFilter<"Estudiante"> | string
-  seccion?: Prisma.StringFilter<"Estudiante"> | string
-  nombreTutor?: Prisma.StringFilter<"Estudiante"> | string
-  whatsapp?: Prisma.StringFilter<"Estudiante"> | string
-  telegramChatId?: Prisma.StringFilter<"Estudiante"> | string
-  estado?: Prisma.BoolFilter<"Estudiante"> | boolean
-  createdAt?: Prisma.DateTimeFilter<"Estudiante"> | Date | string
-  turnoId?: Prisma.IntNullableFilter<"Estudiante"> | number | null
-  codigoFamiliarId?: Prisma.IntNullableFilter<"Estudiante"> | number | null
-}
-
 export type EstudianteCreateWithoutAsistenciasInput = {
   codigo: string
   dni: string
@@ -898,6 +1020,7 @@ export type EstudianteCreateWithoutAsistenciasInput = {
   telegramChatId?: string
   estado?: boolean
   createdAt?: Date | string
+  colegio?: Prisma.ColegioCreateNestedOneWithoutEstudiantesInput
   turno?: Prisma.TurnoCreateNestedOneWithoutEstudiantesInput
   codigoFamiliar?: Prisma.CodigoFamiliarCreateNestedOneWithoutEstudiantesInput
   alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
@@ -908,6 +1031,7 @@ export type EstudianteCreateWithoutAsistenciasInput = {
 
 export type EstudianteUncheckedCreateWithoutAsistenciasInput = {
   id?: number
+  colegioId?: string
   codigo: string
   dni: string
   nombres: string
@@ -955,6 +1079,7 @@ export type EstudianteUpdateWithoutAsistenciasInput = {
   telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  colegio?: Prisma.ColegioUpdateOneRequiredWithoutEstudiantesNestedInput
   turno?: Prisma.TurnoUpdateOneWithoutEstudiantesNestedInput
   codigoFamiliar?: Prisma.CodigoFamiliarUpdateOneWithoutEstudiantesNestedInput
   alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
@@ -965,6 +1090,7 @@ export type EstudianteUpdateWithoutAsistenciasInput = {
 
 export type EstudianteUncheckedUpdateWithoutAsistenciasInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   codigo?: Prisma.StringFieldUpdateOperationsInput | string
   dni?: Prisma.StringFieldUpdateOperationsInput | string
   nombres?: Prisma.StringFieldUpdateOperationsInput | string
@@ -996,6 +1122,7 @@ export type EstudianteCreateWithoutAlertasAsistenciaInput = {
   telegramChatId?: string
   estado?: boolean
   createdAt?: Date | string
+  colegio?: Prisma.ColegioCreateNestedOneWithoutEstudiantesInput
   turno?: Prisma.TurnoCreateNestedOneWithoutEstudiantesInput
   codigoFamiliar?: Prisma.CodigoFamiliarCreateNestedOneWithoutEstudiantesInput
   asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
@@ -1006,6 +1133,7 @@ export type EstudianteCreateWithoutAlertasAsistenciaInput = {
 
 export type EstudianteUncheckedCreateWithoutAlertasAsistenciaInput = {
   id?: number
+  colegioId?: string
   codigo: string
   dni: string
   nombres: string
@@ -1053,6 +1181,7 @@ export type EstudianteUpdateWithoutAlertasAsistenciaInput = {
   telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  colegio?: Prisma.ColegioUpdateOneRequiredWithoutEstudiantesNestedInput
   turno?: Prisma.TurnoUpdateOneWithoutEstudiantesNestedInput
   codigoFamiliar?: Prisma.CodigoFamiliarUpdateOneWithoutEstudiantesNestedInput
   asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
@@ -1063,6 +1192,7 @@ export type EstudianteUpdateWithoutAlertasAsistenciaInput = {
 
 export type EstudianteUncheckedUpdateWithoutAlertasAsistenciaInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   codigo?: Prisma.StringFieldUpdateOperationsInput | string
   dni?: Prisma.StringFieldUpdateOperationsInput | string
   nombres?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1094,6 +1224,7 @@ export type EstudianteCreateWithoutRiesgoIAInput = {
   telegramChatId?: string
   estado?: boolean
   createdAt?: Date | string
+  colegio?: Prisma.ColegioCreateNestedOneWithoutEstudiantesInput
   turno?: Prisma.TurnoCreateNestedOneWithoutEstudiantesInput
   codigoFamiliar?: Prisma.CodigoFamiliarCreateNestedOneWithoutEstudiantesInput
   asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
@@ -1104,6 +1235,7 @@ export type EstudianteCreateWithoutRiesgoIAInput = {
 
 export type EstudianteUncheckedCreateWithoutRiesgoIAInput = {
   id?: number
+  colegioId?: string
   codigo: string
   dni: string
   nombres: string
@@ -1151,6 +1283,7 @@ export type EstudianteUpdateWithoutRiesgoIAInput = {
   telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  colegio?: Prisma.ColegioUpdateOneRequiredWithoutEstudiantesNestedInput
   turno?: Prisma.TurnoUpdateOneWithoutEstudiantesNestedInput
   codigoFamiliar?: Prisma.CodigoFamiliarUpdateOneWithoutEstudiantesNestedInput
   asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
@@ -1161,6 +1294,7 @@ export type EstudianteUpdateWithoutRiesgoIAInput = {
 
 export type EstudianteUncheckedUpdateWithoutRiesgoIAInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   codigo?: Prisma.StringFieldUpdateOperationsInput | string
   dni?: Prisma.StringFieldUpdateOperationsInput | string
   nombres?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1192,6 +1326,7 @@ export type EstudianteCreateWithoutHistorialReportesInput = {
   telegramChatId?: string
   estado?: boolean
   createdAt?: Date | string
+  colegio?: Prisma.ColegioCreateNestedOneWithoutEstudiantesInput
   turno?: Prisma.TurnoCreateNestedOneWithoutEstudiantesInput
   codigoFamiliar?: Prisma.CodigoFamiliarCreateNestedOneWithoutEstudiantesInput
   asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
@@ -1202,6 +1337,7 @@ export type EstudianteCreateWithoutHistorialReportesInput = {
 
 export type EstudianteUncheckedCreateWithoutHistorialReportesInput = {
   id?: number
+  colegioId?: string
   codigo: string
   dni: string
   nombres: string
@@ -1249,6 +1385,7 @@ export type EstudianteUpdateWithoutHistorialReportesInput = {
   telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  colegio?: Prisma.ColegioUpdateOneRequiredWithoutEstudiantesNestedInput
   turno?: Prisma.TurnoUpdateOneWithoutEstudiantesNestedInput
   codigoFamiliar?: Prisma.CodigoFamiliarUpdateOneWithoutEstudiantesNestedInput
   asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
@@ -1259,6 +1396,7 @@ export type EstudianteUpdateWithoutHistorialReportesInput = {
 
 export type EstudianteUncheckedUpdateWithoutHistorialReportesInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   codigo?: Prisma.StringFieldUpdateOperationsInput | string
   dni?: Prisma.StringFieldUpdateOperationsInput | string
   nombres?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1290,6 +1428,7 @@ export type EstudianteCreateWithoutBiometriaFacialInput = {
   telegramChatId?: string
   estado?: boolean
   createdAt?: Date | string
+  colegio?: Prisma.ColegioCreateNestedOneWithoutEstudiantesInput
   turno?: Prisma.TurnoCreateNestedOneWithoutEstudiantesInput
   codigoFamiliar?: Prisma.CodigoFamiliarCreateNestedOneWithoutEstudiantesInput
   asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
@@ -1300,6 +1439,7 @@ export type EstudianteCreateWithoutBiometriaFacialInput = {
 
 export type EstudianteUncheckedCreateWithoutBiometriaFacialInput = {
   id?: number
+  colegioId?: string
   codigo: string
   dni: string
   nombres: string
@@ -1347,6 +1487,7 @@ export type EstudianteUpdateWithoutBiometriaFacialInput = {
   telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  colegio?: Prisma.ColegioUpdateOneRequiredWithoutEstudiantesNestedInput
   turno?: Prisma.TurnoUpdateOneWithoutEstudiantesNestedInput
   codigoFamiliar?: Prisma.CodigoFamiliarUpdateOneWithoutEstudiantesNestedInput
   asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
@@ -1357,6 +1498,7 @@ export type EstudianteUpdateWithoutBiometriaFacialInput = {
 
 export type EstudianteUncheckedUpdateWithoutBiometriaFacialInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   codigo?: Prisma.StringFieldUpdateOperationsInput | string
   dni?: Prisma.StringFieldUpdateOperationsInput | string
   nombres?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1388,6 +1530,7 @@ export type EstudianteCreateWithoutCodigoFamiliarInput = {
   telegramChatId?: string
   estado?: boolean
   createdAt?: Date | string
+  colegio?: Prisma.ColegioCreateNestedOneWithoutEstudiantesInput
   turno?: Prisma.TurnoCreateNestedOneWithoutEstudiantesInput
   asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
   alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
@@ -1398,6 +1541,7 @@ export type EstudianteCreateWithoutCodigoFamiliarInput = {
 
 export type EstudianteUncheckedCreateWithoutCodigoFamiliarInput = {
   id?: number
+  colegioId?: string
   codigo: string
   dni: string
   nombres: string
@@ -1443,8 +1587,86 @@ export type EstudianteUpdateManyWithWhereWithoutCodigoFamiliarInput = {
   data: Prisma.XOR<Prisma.EstudianteUpdateManyMutationInput, Prisma.EstudianteUncheckedUpdateManyWithoutCodigoFamiliarInput>
 }
 
+export type EstudianteCreateManyColegioInput = {
+  id?: number
+  codigo: string
+  dni: string
+  nombres: string
+  apellidos: string
+  grado: string
+  seccion: string
+  nombreTutor?: string
+  whatsapp?: string
+  telegramChatId?: string
+  estado?: boolean
+  createdAt?: Date | string
+  turnoId?: number | null
+  codigoFamiliarId?: number | null
+}
+
+export type EstudianteUpdateWithoutColegioInput = {
+  codigo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.StringFieldUpdateOperationsInput | string
+  nombres?: Prisma.StringFieldUpdateOperationsInput | string
+  apellidos?: Prisma.StringFieldUpdateOperationsInput | string
+  grado?: Prisma.StringFieldUpdateOperationsInput | string
+  seccion?: Prisma.StringFieldUpdateOperationsInput | string
+  nombreTutor?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsapp?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  turno?: Prisma.TurnoUpdateOneWithoutEstudiantesNestedInput
+  codigoFamiliar?: Prisma.CodigoFamiliarUpdateOneWithoutEstudiantesNestedInput
+  asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
+  alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUpdateOneWithoutEstudianteNestedInput
+}
+
+export type EstudianteUncheckedUpdateWithoutColegioInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  codigo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.StringFieldUpdateOperationsInput | string
+  nombres?: Prisma.StringFieldUpdateOperationsInput | string
+  apellidos?: Prisma.StringFieldUpdateOperationsInput | string
+  grado?: Prisma.StringFieldUpdateOperationsInput | string
+  seccion?: Prisma.StringFieldUpdateOperationsInput | string
+  nombreTutor?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsapp?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  turnoId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  codigoFamiliarId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  asistencias?: Prisma.AsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedUpdateOneWithoutEstudianteNestedInput
+}
+
+export type EstudianteUncheckedUpdateManyWithoutColegioInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  codigo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.StringFieldUpdateOperationsInput | string
+  nombres?: Prisma.StringFieldUpdateOperationsInput | string
+  apellidos?: Prisma.StringFieldUpdateOperationsInput | string
+  grado?: Prisma.StringFieldUpdateOperationsInput | string
+  seccion?: Prisma.StringFieldUpdateOperationsInput | string
+  nombreTutor?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsapp?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  turnoId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  codigoFamiliarId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+}
+
 export type EstudianteCreateManyTurnoInput = {
   id?: number
+  colegioId?: string
   codigo: string
   dni: string
   nombres: string
@@ -1471,6 +1693,7 @@ export type EstudianteUpdateWithoutTurnoInput = {
   telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  colegio?: Prisma.ColegioUpdateOneRequiredWithoutEstudiantesNestedInput
   codigoFamiliar?: Prisma.CodigoFamiliarUpdateOneWithoutEstudiantesNestedInput
   asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
   alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
@@ -1481,6 +1704,7 @@ export type EstudianteUpdateWithoutTurnoInput = {
 
 export type EstudianteUncheckedUpdateWithoutTurnoInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   codigo?: Prisma.StringFieldUpdateOperationsInput | string
   dni?: Prisma.StringFieldUpdateOperationsInput | string
   nombres?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1502,6 +1726,7 @@ export type EstudianteUncheckedUpdateWithoutTurnoInput = {
 
 export type EstudianteUncheckedUpdateManyWithoutTurnoInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   codigo?: Prisma.StringFieldUpdateOperationsInput | string
   dni?: Prisma.StringFieldUpdateOperationsInput | string
   nombres?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1518,6 +1743,7 @@ export type EstudianteUncheckedUpdateManyWithoutTurnoInput = {
 
 export type EstudianteCreateManyCodigoFamiliarInput = {
   id?: number
+  colegioId?: string
   codigo: string
   dni: string
   nombres: string
@@ -1544,6 +1770,7 @@ export type EstudianteUpdateWithoutCodigoFamiliarInput = {
   telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  colegio?: Prisma.ColegioUpdateOneRequiredWithoutEstudiantesNestedInput
   turno?: Prisma.TurnoUpdateOneWithoutEstudiantesNestedInput
   asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
   alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
@@ -1554,6 +1781,7 @@ export type EstudianteUpdateWithoutCodigoFamiliarInput = {
 
 export type EstudianteUncheckedUpdateWithoutCodigoFamiliarInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   codigo?: Prisma.StringFieldUpdateOperationsInput | string
   dni?: Prisma.StringFieldUpdateOperationsInput | string
   nombres?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1575,6 +1803,7 @@ export type EstudianteUncheckedUpdateWithoutCodigoFamiliarInput = {
 
 export type EstudianteUncheckedUpdateManyWithoutCodigoFamiliarInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
   codigo?: Prisma.StringFieldUpdateOperationsInput | string
   dni?: Prisma.StringFieldUpdateOperationsInput | string
   nombres?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1640,6 +1869,7 @@ export type EstudianteCountOutputTypeCountHistorialReportesArgs<ExtArgs extends 
 
 export type EstudianteSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   codigo?: boolean
   dni?: boolean
   nombres?: boolean
@@ -1653,6 +1883,7 @@ export type EstudianteSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   createdAt?: boolean
   turnoId?: boolean
   codigoFamiliarId?: boolean
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   turno?: boolean | Prisma.Estudiante$turnoArgs<ExtArgs>
   codigoFamiliar?: boolean | Prisma.Estudiante$codigoFamiliarArgs<ExtArgs>
   asistencias?: boolean | Prisma.Estudiante$asistenciasArgs<ExtArgs>
@@ -1665,6 +1896,7 @@ export type EstudianteSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
 
 export type EstudianteSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   codigo?: boolean
   dni?: boolean
   nombres?: boolean
@@ -1678,12 +1910,14 @@ export type EstudianteSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   createdAt?: boolean
   turnoId?: boolean
   codigoFamiliarId?: boolean
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   turno?: boolean | Prisma.Estudiante$turnoArgs<ExtArgs>
   codigoFamiliar?: boolean | Prisma.Estudiante$codigoFamiliarArgs<ExtArgs>
 }, ExtArgs["result"]["estudiante"]>
 
 export type EstudianteSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  colegioId?: boolean
   codigo?: boolean
   dni?: boolean
   nombres?: boolean
@@ -1697,12 +1931,14 @@ export type EstudianteSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   createdAt?: boolean
   turnoId?: boolean
   codigoFamiliarId?: boolean
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   turno?: boolean | Prisma.Estudiante$turnoArgs<ExtArgs>
   codigoFamiliar?: boolean | Prisma.Estudiante$codigoFamiliarArgs<ExtArgs>
 }, ExtArgs["result"]["estudiante"]>
 
 export type EstudianteSelectScalar = {
   id?: boolean
+  colegioId?: boolean
   codigo?: boolean
   dni?: boolean
   nombres?: boolean
@@ -1718,8 +1954,9 @@ export type EstudianteSelectScalar = {
   codigoFamiliarId?: boolean
 }
 
-export type EstudianteOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "codigo" | "dni" | "nombres" | "apellidos" | "grado" | "seccion" | "nombreTutor" | "whatsapp" | "telegramChatId" | "estado" | "createdAt" | "turnoId" | "codigoFamiliarId", ExtArgs["result"]["estudiante"]>
+export type EstudianteOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "colegioId" | "codigo" | "dni" | "nombres" | "apellidos" | "grado" | "seccion" | "nombreTutor" | "whatsapp" | "telegramChatId" | "estado" | "createdAt" | "turnoId" | "codigoFamiliarId", ExtArgs["result"]["estudiante"]>
 export type EstudianteInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   turno?: boolean | Prisma.Estudiante$turnoArgs<ExtArgs>
   codigoFamiliar?: boolean | Prisma.Estudiante$codigoFamiliarArgs<ExtArgs>
   asistencias?: boolean | Prisma.Estudiante$asistenciasArgs<ExtArgs>
@@ -1730,10 +1967,12 @@ export type EstudianteInclude<ExtArgs extends runtime.Types.Extensions.InternalA
   _count?: boolean | Prisma.EstudianteCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type EstudianteIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   turno?: boolean | Prisma.Estudiante$turnoArgs<ExtArgs>
   codigoFamiliar?: boolean | Prisma.Estudiante$codigoFamiliarArgs<ExtArgs>
 }
 export type EstudianteIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   turno?: boolean | Prisma.Estudiante$turnoArgs<ExtArgs>
   codigoFamiliar?: boolean | Prisma.Estudiante$codigoFamiliarArgs<ExtArgs>
 }
@@ -1741,6 +1980,7 @@ export type EstudianteIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.E
 export type $EstudiantePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Estudiante"
   objects: {
+    colegio: Prisma.$ColegioPayload<ExtArgs>
     turno: Prisma.$TurnoPayload<ExtArgs> | null
     codigoFamiliar: Prisma.$CodigoFamiliarPayload<ExtArgs> | null
     asistencias: Prisma.$AsistenciaPayload<ExtArgs>[]
@@ -1751,6 +1991,7 @@ export type $EstudiantePayload<ExtArgs extends runtime.Types.Extensions.Internal
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
+    colegioId: string
     codigo: string
     dni: string
     nombres: string
@@ -2158,6 +2399,7 @@ readonly fields: EstudianteFieldRefs;
  */
 export interface Prisma__EstudianteClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  colegio<T extends Prisma.ColegioDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ColegioDefaultArgs<ExtArgs>>): Prisma.Prisma__ColegioClient<runtime.Types.Result.GetResult<Prisma.$ColegioPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   turno<T extends Prisma.Estudiante$turnoArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Estudiante$turnoArgs<ExtArgs>>): Prisma.Prisma__TurnoClient<runtime.Types.Result.GetResult<Prisma.$TurnoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   codigoFamiliar<T extends Prisma.Estudiante$codigoFamiliarArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Estudiante$codigoFamiliarArgs<ExtArgs>>): Prisma.Prisma__CodigoFamiliarClient<runtime.Types.Result.GetResult<Prisma.$CodigoFamiliarPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   asistencias<T extends Prisma.Estudiante$asistenciasArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Estudiante$asistenciasArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AsistenciaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2195,6 +2437,7 @@ export interface Prisma__EstudianteClient<T, Null = never, ExtArgs extends runti
  */
 export interface EstudianteFieldRefs {
   readonly id: Prisma.FieldRef<"Estudiante", 'Int'>
+  readonly colegioId: Prisma.FieldRef<"Estudiante", 'String'>
   readonly codigo: Prisma.FieldRef<"Estudiante", 'String'>
   readonly dni: Prisma.FieldRef<"Estudiante", 'String'>
   readonly nombres: Prisma.FieldRef<"Estudiante", 'String'>
