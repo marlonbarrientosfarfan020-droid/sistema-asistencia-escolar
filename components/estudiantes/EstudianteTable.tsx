@@ -618,53 +618,61 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: space-between;
-        padding: 1.2mm 2mm 0.8mm;
+        justify-content: center;
+        padding: 0.6mm 2.5mm 0.8mm;
         background: #ffffff;
       }
 
       .nombre {
-        font-size: 2.45mm;
-        line-height: 2.8mm;
+        font-size: 2.35mm;
+        line-height: 2.7mm;
         font-weight: 800;
         color: #0f172a;
         text-transform: uppercase;
         text-align: center;
-        max-height: 5.6mm;
+        max-height: 5.4mm;
         overflow: hidden;
         display: -webkit-box;
         -webkit-box-orient: vertical;
         -webkit-line-clamp: 2;
-        margin-bottom: 0.8mm;
+        margin-bottom: 0.4mm;
         word-break: break-word;
       }
 
+      /* BLOQUE DE INFORMACIÓN COMPACTO - FICHA TÉCNICA */
       .datos-grid {
         width: 100%;
+        max-width: 35mm;
         display: flex;
         flex-direction: column;
-        gap: 0.35mm;
-        margin-bottom: 0.8mm;
+        gap: 0.2mm;
+        margin: 0 auto;
+        margin-bottom: 1.6mm;
       }
 
       .dato-item {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 1.75mm;
-        line-height: 2.05mm;
-        border-bottom: 0.15mm dotted #e2e8f0;
-        padding-bottom: 0.25mm;
+        flex-direction: row;
+        align-items: baseline;
+        justify-content: flex-start;
+        font-size: 1.6mm;
+        line-height: 1.95mm;
       }
 
       .dato-label {
         font-weight: 700;
         color: #475569;
+        width: 11.5mm;
+        flex-shrink: 0;
+        letter-spacing: 0.1px;
       }
 
       .dato-valor {
         font-weight: 700;
         color: #0f172a;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
       }
 
       .qr-box {
@@ -740,8 +748,8 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
       qrImagen ||
       (await QRCode.toDataURL(estudianteQR.codigo, {
         width: 480,
-        margin: 1,
-        errorCorrectionLevel: "M",
+        margin: 4,
+        errorCorrectionLevel: "Q",
       }));
 
     const ventana = window.open("", "_blank");
@@ -828,8 +836,8 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
           estudiante,
           qr: await QRCode.toDataURL(estudiante.codigo, {
             width: 480,
-            margin: 1,
-            errorCorrectionLevel: "M",
+            margin: 4,
+            errorCorrectionLevel: "Q",
           }),
         }))
       );
