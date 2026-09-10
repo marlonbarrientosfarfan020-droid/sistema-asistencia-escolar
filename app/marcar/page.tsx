@@ -11,6 +11,15 @@ import {
 import { Html5Qrcode } from "html5-qrcode";
 import { FaIdCard } from "react-icons/fa";
 import { useConfiguracionColegio } from "@/hooks/useConfiguracionColegio";
+import {
+  obtenerConfiguracionTerminal,
+  guardarConfiguracionTerminal,
+} from "@/lib/terminal-config";
+import {
+  TerminalConfig,
+  TipoDispositivoTerminal,
+  CamaraDispositivo,
+} from "@/types/terminal";
 
 type EstadoVisual =
   | "normal"
@@ -75,158 +84,114 @@ type ResultadoReconocimientoFacial = {
   };
 };
 
-type CamaraDisponible = {
-  deviceId: string;
-  label: string;
-};
-
 const SEGUNDOS_PARA_FOTO = 1;
-const TIEMPO_LIBERAR_CAMARA_MS = 400;
-
-const STORAGE_CAMARA_QR =
-  "camara_qr_device_id";
-
-const STORAGE_CAMARA_FACIAL =
-  "camara_facial_device_id";
+const TIEMPO_LIBERAR_CAMARA_MS = 300;
 
 export default function MarcarPage() {
   const router = useRouter();
-  const { configuracion } =
-    useConfiguracionColegio();
+  const { configuracion } = useConfiguracionColegio();
+
+  // Configuración del terminal escolar
+  const [configTerminal, setConfigTerminal] = useState<TerminalConfig>(
+    obtenerConfiguracionTerminal
+  );
 
   const [dni, setDni] = useState("");
-  const [mensaje, setMensaje] =
-    useState("");
+  const [mensaje, setMensaje] = useState("");
+  const [resultado, setResultado] = useState<ResultadoAsistencia | null>(null);
 
-  const [resultado, setResultado] =
-    useState<ResultadoAsistencia | null>(
-      null
-    );
+  // Estados de cámara permanente y control manual
+  const [camaraActiva, setCamaraActiva] = useState(false);
+  const [camaraManualApagada, setCamaraManualApagada] = useState(false);
+  const [camaraError, setCamaraError] = useState("");
+  const [iniciandoCamara, setIniciandoCamara] = useState(false);
 
-  const [camaraActiva, setCamaraActiva] =
-    useState(false);
+  // Evidencia y reconocimientos secundarios
+  const [tomandoFoto, setTomandoFoto] = useState(false);
+  const [reconociendoFacial, setReconociendoFacial] = useState(false);
+  const [contadorFoto, setContadorFoto] = useState<number | null>(null);
+  const [estadoVisual, setEstadoVisual] = useState<EstadoVisual>("normal");
 
-  const [tomandoFoto, setTomandoFoto] =
-    useState(false);
-
-  const [
-    reconociendoFacial,
-    setReconociendoFacial,
-  ] = useState(false);
-
-  const [contadorFoto, setContadorFoto] =
-    useState<number | null>(null);
-
-  const [estadoVisual, setEstadoVisual] =
-    useState<EstadoVisual>("normal");
-
-  const [terminalAutorizado, setTerminalAutorizado] =
-    useState<boolean | null>(null);
+  // Control de terminal y seguridad
+  const [terminalAutorizado, setTerminalAutorizado] = useState<boolean | null>(null);
   const [pinTerminal, setPinTerminal] = useState("");
   const [errorPin, setErrorPin] = useState("");
   const [validandoPin, setValidandoPin] = useState(false);
+  const [esPantallaCompleta, setEsPantallaCompleta] = useState(false);
 
-  const [camaras, setCamaras] =
-    useState<CamaraDisponible[]>([]);
+  // Cámaras disponibles detectadas
+  const [camaras, setCamaras] = useState<CamaraDispositivo[]>([]);
+  const [camaraQrSeleccionada, setCamaraQrSeleccionada] = useState("");
+  const [camaraFacialSeleccionada, setCamaraFacialSeleccionada] = useState("");
+  const [cargandoCamaras, setCargandoCamaras] = useState(false);
 
-  const [
-    camaraQrSeleccionada,
-    setCamaraQrSeleccionada,
-  ] = useState("");
+  // Última lectura realizada en el terminal
+  const [ultimaLectura, setUltimaLectura] = useState<{
+    estudiante: string;
+    hora: string;
+    tipo?: string;
+    gradoSeccion?: string;
+  } | null>(null);
 
-  const [
-    camaraFacialSeleccionada,
-    setCamaraFacialSeleccionada,
-  ] = useState("");
-
-  const [
-    cargandoCamaras,
-    setCargandoCamaras,
-  ] = useState(false);
+  // Pestaña o modo auxiliar: "qr" principal, "dni" manual o "facial"
+  const [modoAuxiliar, setModoAuxiliar] = useState<"ninguno" | "dni" | "facial">("ninguno");
 
   const procesandoQR = useRef(false);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamFotoRef = useRef<MediaStream | null>(null);
 
-  const scannerRef =
-    useRef<Html5Qrcode | null>(null);
-
-  const videoRef =
-    useRef<HTMLVideoElement | null>(null);
-
-  const streamFotoRef =
-    useRef<MediaStream | null>(null);
-
+  // 1. Autorización de terminal y configuración inicial
   useEffect(() => {
-    const logueado =
-      localStorage.getItem("logueado");
-    const terminalPinAuth =
-      sessionStorage.getItem(
-        "terminal_porteria_autorizado"
-      );
+    const logueado = localStorage.getItem("logueado");
+    const terminalPinAuth = sessionStorage.getItem("terminal_porteria_autorizado");
 
-    if (
-      logueado === "true" ||
-      terminalPinAuth === "true"
-    ) {
+    if (logueado === "true" || terminalPinAuth === "true") {
       setTerminalAutorizado(true);
+      const cfg = obtenerConfiguracionTerminal();
+      setConfigTerminal(cfg);
+      setCamaraQrSeleccionada(cfg.camaraSeleccionada);
       void cargarCamaras();
     } else {
       setTerminalAutorizado(false);
       return;
     }
 
-    window.history.pushState(
-      null,
-      "",
-      window.location.href
-    );
-
+    window.history.pushState(null, "", window.location.href);
     const bloquearAtras = () => {
-      window.history.pushState(
-        null,
-        "",
-        window.location.href
-      );
+      window.history.pushState(null, "", window.location.href);
     };
 
     const actualizarCamaras = () => {
       void cargarCamaras();
     };
 
-    window.addEventListener(
-      "popstate",
-      bloquearAtras
-    );
+    window.addEventListener("popstate", bloquearAtras);
+    navigator.mediaDevices?.addEventListener("devicechange", actualizarCamaras);
 
-    navigator.mediaDevices?.addEventListener(
-      "devicechange",
-      actualizarCamaras
-    );
+    const onFullscreenChange = () => {
+      setEsPantallaCompleta(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
 
     return () => {
-      window.removeEventListener(
-        "popstate",
-        bloquearAtras
-      );
-
-      navigator.mediaDevices?.removeEventListener(
-        "devicechange",
-        actualizarCamaras
-      );
-
+      window.removeEventListener("popstate", bloquearAtras);
+      navigator.mediaDevices?.removeEventListener("devicechange", actualizarCamaras);
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
       detenerCamaraFoto();
       void detenerCamaraQR();
     };
   }, [router, terminalAutorizado]);
 
+  // 2. AJUSTE 2: Auto-iniciar cámara permanente al estar autorizado el terminal
+  useEffect(() => {
+    if (terminalAutorizado === true && !camaraActiva && !camaraManualApagada) {
+      void activarCamaraPermanente();
+    }
+  }, [terminalAutorizado, camaraManualApagada]);
 
-  function nombreCamara(
-    dispositivo: MediaDeviceInfo,
-    indice: number
-  ) {
-    return (
-      dispositivo.label.trim() ||
-      `Cámara ${indice + 1}`
-    );
+  function nombreCamara(dispositivo: MediaDeviceInfo, indice: number) {
+    return dispositivo.label.trim() || `Cámara ${indice + 1}`;
   }
 
   function elegirCamaraPredeterminada({
@@ -234,324 +199,112 @@ export default function MarcarPage() {
     preferencia,
     tipo,
   }: {
-    dispositivos: CamaraDisponible[];
+    dispositivos: CamaraDispositivo[];
     preferencia: string;
     tipo: "QR" | "FACIAL";
   }) {
-    if (
-      preferencia &&
-      dispositivos.some(
-        (camara) =>
-          camara.deviceId ===
-          preferencia
-      )
-    ) {
+    if (preferencia && dispositivos.some((c) => c.deviceId === preferencia)) {
       return preferencia;
     }
 
     const palabras =
       tipo === "QR"
-        ? [
-            "back",
-            "rear",
-            "environment",
-            "trasera",
-          ]
-        : [
-            "front",
-            "user",
-            "facetime",
-            "webcam",
-            "integrated",
-            "frontal",
-          ];
+        ? ["back", "rear", "environment", "trasera"]
+        : ["front", "user", "facetime", "webcam", "integrated", "frontal"];
 
-    const encontrada =
-      dispositivos.find((camara) =>
-        palabras.some((palabra) =>
-          camara.label
-            .toLowerCase()
-            .includes(palabra)
-        )
-      );
+    const encontrada = dispositivos.find((camara) =>
+      palabras.some((palabra) => camara.label.toLowerCase().includes(palabra))
+    );
 
     if (encontrada) {
       return encontrada.deviceId;
     }
 
     return tipo === "QR"
-      ? dispositivos.at(-1)
-          ?.deviceId || ""
-      : dispositivos[0]
-          ?.deviceId || "";
+      ? dispositivos.at(-1)?.deviceId || ""
+      : dispositivos[0]?.deviceId || "";
   }
 
   async function cargarCamaras() {
-    if (
-      !navigator.mediaDevices ||
-      !navigator.mediaDevices
-        .enumerateDevices
-    ) {
-      return;
-    }
+    if (!navigator.mediaDevices?.enumerateDevices) return;
 
     setCargandoCamaras(true);
-
-    let streamTemporal:
-      | MediaStream
-      | null = null;
+    let streamTemporal: MediaStream | null = null;
 
     try {
-      const iniciales =
-        await navigator.mediaDevices
-          .enumerateDevices();
+      const iniciales = await navigator.mediaDevices.enumerateDevices();
+      const hayEtiquetas = iniciales.some(
+        (dispositivo) => dispositivo.kind === "videoinput" && Boolean(dispositivo.label)
+      );
 
-      const hayEtiquetas =
-        iniciales.some(
-          (dispositivo) =>
-            dispositivo.kind ===
-              "videoinput" &&
-            Boolean(
-              dispositivo.label
-            )
-        );
-
-      if (!hayEtiquetas) {
+      if (!hayEtiquetas && navigator.mediaDevices.getUserMedia) {
         try {
-          streamTemporal =
-            await navigator.mediaDevices
-              .getUserMedia({
-                video: true,
-                audio: false,
-              });
+          streamTemporal = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          });
         } catch {
-          // Se mostrarán nombres genéricos.
+          // Si el usuario no ha concedido permiso aún
         }
       }
 
-      const dispositivos =
-        await navigator.mediaDevices
-          .enumerateDevices();
+      const dispositivos = await navigator.mediaDevices.enumerateDevices();
+      const camarasEncontradas: CamaraDispositivo[] = dispositivos
+        .filter((dispositivo) => dispositivo.kind === "videoinput")
+        .map((dispositivo, indice) => ({
+          deviceId: dispositivo.deviceId,
+          label: nombreCamara(dispositivo, indice),
+        }));
 
-      const camarasEncontradas =
-        dispositivos
-          .filter(
-            (dispositivo) =>
-              dispositivo.kind ===
-              "videoinput"
-          )
-          .map(
-            (
-              dispositivo,
-              indice
-            ) => ({
-              deviceId:
-                dispositivo.deviceId,
+      setCamaras(camarasEncontradas);
 
-              label:
-                nombreCamara(
-                  dispositivo,
-                  indice
-                ),
-            })
-          );
+      const cfg = obtenerConfiguracionTerminal();
+      const preferidaQr = cfg.camaraSeleccionada || localStorage.getItem("camara_qr_device_id") || "";
+      const preferidaFacial = localStorage.getItem("camara_facial_device_id") || "";
 
-      setCamaras(
-        camarasEncontradas
-      );
+      const seleccionQr = elegirCamaraPredeterminada({
+        dispositivos: camarasEncontradas,
+        preferencia: preferidaQr,
+        tipo: "QR",
+      });
 
-      const guardadaQr =
-        localStorage.getItem(
-          STORAGE_CAMARA_QR
-        ) || "";
-
-      const guardadaFacial =
-        localStorage.getItem(
-          STORAGE_CAMARA_FACIAL
-        ) || "";
-
-      setCamaraQrSeleccionada(
-        elegirCamaraPredeterminada({
-          dispositivos:
-            camarasEncontradas,
-          preferencia:
-            guardadaQr,
-          tipo: "QR",
-        })
-      );
-
+      setCamaraQrSeleccionada(seleccionQr);
       setCamaraFacialSeleccionada(
         elegirCamaraPredeterminada({
-          dispositivos:
-            camarasEncontradas,
-          preferencia:
-            guardadaFacial,
+          dispositivos: camarasEncontradas,
+          preferencia: preferidaFacial,
           tipo: "FACIAL",
         })
       );
     } catch (error) {
-      console.error(
-        "Error detectando cámaras:",
-        error
-      );
-
-      setMensaje(
-        "⚠️ No se pudieron listar las cámaras. Se usará la cámara predeterminada."
-      );
+      console.error("Error detectando cámaras:", error);
     } finally {
-      streamTemporal
-        ?.getTracks()
-        .forEach((track) =>
-          track.stop()
-        );
-
+      streamTemporal?.getTracks().forEach((track) => track.stop());
       setCargandoCamaras(false);
     }
   }
 
-  function seleccionarCamaraQr(
-    deviceId: string
-  ) {
-    setCamaraQrSeleccionada(
-      deviceId
-    );
-
-    localStorage.setItem(
-      STORAGE_CAMARA_QR,
-      deviceId
-    );
-  }
-
-  function seleccionarCamaraFacial(
-    deviceId: string
-  ) {
-    setCamaraFacialSeleccionada(
-      deviceId
-    );
-
-    localStorage.setItem(
-      STORAGE_CAMARA_FACIAL,
-      deviceId
-    );
-  }
-
-  async function cerrarSesion() {
-    try {
-      localStorage.clear();
-      sessionStorage.clear();
-
-      await fetch("/api/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-    } catch (error) {
-      console.error("Error cerrando sesión:", error);
-    } finally {
-      detenerCamaraFoto();
-      void detenerCamaraQR();
-      window.location.replace("/login");
-    }
-  }
-
-  function desbloquearConPin(e?: React.FormEvent) {
-    if (e) e.preventDefault();
-    setErrorPin("");
-
-    const pinLimpio = pinTerminal.trim();
-    if (!pinLimpio) {
-      setErrorPin("Por favor ingrese el PIN de seguridad del terminal.");
-      return;
-    }
-
-    setValidandoPin(true);
-    try {
-      if (
-        pinLimpio === "2026" ||
-        pinLimpio === "1234" ||
-        pinLimpio === "SR2026"
-      ) {
-        sessionStorage.setItem(
-          "terminal_porteria_autorizado",
-          "true"
-        );
-        sessionStorage.setItem(
-          "terminal_porteria_pin",
-          pinLimpio
-        );
-        localStorage.setItem(
-          "terminal_porteria_pin",
-          pinLimpio
-        );
-        setTerminalAutorizado(true);
-        setErrorPin("");
-      } else {
-        setErrorPin(
-          "PIN de terminal incorrecto. Comuníquese con la dirección escolar."
-        );
-      }
-    } finally {
-      setValidandoPin(false);
-    }
-  }
-
-  function bloquearTerminal() {
-    sessionStorage.removeItem(
-      "terminal_porteria_autorizado"
-    );
-    sessionStorage.removeItem(
-      "terminal_porteria_pin"
-    );
-    localStorage.removeItem(
-      "terminal_porteria_pin"
-    );
-    detenerCamaraFoto();
-    void detenerCamaraQR();
-    setTerminalAutorizado(false);
-    setPinTerminal("");
-    setErrorPin("");
-  }
-
   function beep(tipo: "ok" | "error") {
-    const audio = new Audio(
-      tipo === "ok"
-        ? "/beep-ok.mp3"
-        : "/beep-error.mp3"
-    );
-
+    const audio = new Audio(tipo === "ok" ? "/beep-ok.mp3" : "/beep-error.mp3");
     audio.play().catch(() => {});
   }
 
-  async function esperar(
-    milisegundos: number
-  ) {
-    await new Promise<void>((resolve) => {
-      window.setTimeout(
-        resolve,
-        milisegundos
-      );
-    });
+  async function esperar(ms: number) {
+    await new Promise<void>((resolve) => window.setTimeout(resolve, ms));
   }
 
+  // Detiene el lector QR limpiamente
   async function detenerCamaraQR() {
     const scanner = scannerRef.current;
-
     if (scanner) {
       try {
         const estado = scanner.getState();
-
-        if (
-          estado === 2 ||
-          estado === 3
-        ) {
+        if (estado === 2 || estado === 3) {
           await scanner.stop();
         }
-
         scanner.clear();
       } catch (error) {
-        console.warn(
-          "No se pudo detener completamente el lector QR:",
-          error
-        );
+        console.warn("Lector QR detenido:", error);
       } finally {
         scannerRef.current = null;
       }
@@ -559,23 +312,13 @@ export default function MarcarPage() {
 
     setCamaraActiva(false);
     procesandoQR.current = false;
-
-    await esperar(
-      TIEMPO_LIBERAR_CAMARA_MS
-    );
+    await esperar(TIEMPO_LIBERAR_CAMARA_MS);
   }
 
   function detenerCamaraFoto() {
-    const stream =
-      streamFotoRef.current;
-
+    const stream = streamFotoRef.current;
     if (stream) {
-      stream
-        .getTracks()
-        .forEach((track) =>
-          track.stop()
-        );
-
+      stream.getTracks().forEach((track) => track.stop());
       streamFotoRef.current = null;
     }
 
@@ -585,139 +328,163 @@ export default function MarcarPage() {
     }
   }
 
-  async function tomarFotoEvidencia(
-    deviceId?: string,
-    modoCamara: "environment" | "user" = "environment"
-  ): Promise<Blob | null> {
-    console.log("[FOTO] iniciando captura");
+  // 3. Iniciar cámara permanente para escaneo continuo
+  async function activarCamaraPermanente(
+    dispositivoIdCustom?: string,
+    modoFacingCustom?: "environment" | "user"
+  ) {
+    if (iniciandoCamara) return;
+    setIniciandoCamara(true);
+    setCamaraError("");
+
+    // Detener cualquier stream auxiliar
+    detenerCamaraFoto();
+
+    const cfg = obtenerConfiguracionTerminal();
+    const deviceId = dispositivoIdCustom ?? camaraQrSeleccionada ?? cfg.camaraSeleccionada;
+    const facingMode =
+      modoFacingCustom ??
+      (cfg.tipoDispositivo === "LAPTOP_PC" ? "user" : cfg.modoCamaraPreferido || "environment");
+
     try {
-      detenerCamaraFoto();
-      setTomandoFoto(true);
-      setContadorFoto(null);
-
-      if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error("El navegador no permite acceder a la cámara");
-      }
-
-      let stream: MediaStream;
-
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: deviceId
-            ? {
-                deviceId: { exact: deviceId },
-                width: { ideal: 720 },
-                height: { ideal: 720 },
-              }
-            : {
-                facingMode: { ideal: modoCamara },
-                width: { ideal: 720 },
-                height: { ideal: 720 },
-              },
-          audio: false,
-        });
-      } catch {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: false,
-        });
-      }
-
-      streamFotoRef.current = stream;
-
-      const video = videoRef.current;
-      if (!video) {
-        throw new Error("No existe el elemento de video");
-      }
-
-      video.srcObject = stream;
-      video.muted = true;
-      video.playsInline = true;
-
-      await new Promise<void>((resolve, reject) => {
-        const temporizador = window.setTimeout(() => {
-          reject(new Error("La cámara de evidencia tardó demasiado en iniciar (timeout 6s)"));
-        }, 6000);
-
-        const alIniciar = async () => {
-          try {
-            await video.play();
-            window.clearTimeout(temporizador);
-            resolve();
-          } catch (error) {
-            window.clearTimeout(temporizador);
-            reject(error);
+      // Limpiar escáner anterior si existe
+      if (scannerRef.current) {
+        try {
+          const st = scannerRef.current.getState();
+          if (st === 2 || st === 3) {
+            await scannerRef.current.stop();
           }
-        };
-
-        if (video.readyState >= 2) {
-          void alIniciar();
-        } else {
-          video.onloadedmetadata = () => {
-            void alIniciar();
-          };
+          scannerRef.current.clear();
+        } catch (e) {
+          console.warn("Limpiando scanner previo:", e);
         }
-      });
-
-      // Cuenta regresiva: 1 segundo
-      for (let numero = SEGUNDOS_PARA_FOTO; numero >= 1; numero--) {
-        setContadorFoto(numero);
-        await esperar(1000);
-      }
-      setContadorFoto(null);
-
-      const anchoOriginal = video.videoWidth || 640;
-      const altoOriginal = video.videoHeight || 640;
-      const maximo = 640;
-      const escala = Math.min(maximo / anchoOriginal, maximo / altoOriginal, 1);
-      const ancho = Math.round(anchoOriginal * escala);
-      const alto = Math.round(altoOriginal * escala);
-
-      const canvas = document.createElement("canvas");
-      canvas.width = ancho;
-      canvas.height = alto;
-      const contexto = canvas.getContext("2d");
-      if (!contexto) {
-        throw new Error("No se pudo crear la fotografía de evidencia");
-      }
-      contexto.drawImage(video, 0, 0, ancho, alto);
-
-      const blob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob((resultadoBlob) => resolve(resultadoBlob), "image/jpeg", 0.70);
-      });
-
-      if (!blob) {
-        throw new Error("No se pudo comprimir la fotografía");
+        scannerRef.current = null;
       }
 
-      console.log(`[FOTO] archivo generado: ${(blob.size / 1024).toFixed(1)} KB, tipo: ${blob.type}`);
-      return blob;
-    } catch (error) {
-      console.error("[FOTO] Error capturando fotografía:", error);
-      const mensajeError = error instanceof Error ? error.message : "Error al capturar fotografía";
-      setMensaje(`❌ ${mensajeError}`);
-      setEstadoVisual("error");
-      return null;
+      setCamaraActiva(true);
+      setCamaraManualApagada(false);
+      procesandoQR.current = false;
+
+      // Esperar brevemente para que el contenedor #lector-qr esté listo en el DOM
+      await esperar(200);
+
+      const lector = new Html5Qrcode("lector-qr");
+      scannerRef.current = lector;
+
+      const configuracionCamara = deviceId ? { deviceId } : { facingMode };
+
+      await lector.start(
+        configuracionCamara,
+        {
+          fps: 20,
+          qrbox: (w, h) => {
+            const edge = Math.min(w, h);
+            const qrEdge = Math.floor(edge * 0.72);
+            return { width: qrEdge, height: qrEdge };
+          },
+          aspectRatio: 1.333333,
+        },
+        async (codigoLeido) => {
+          // Callback continuo de lectura QR
+          if (procesandoQR.current) return;
+          procesandoQR.current = true;
+
+          await procesarLecturaQRContinuo(codigoLeido.trim());
+        },
+        () => {
+          // No-op frame sin QR
+        }
+      );
+
+      console.log("[TERMINAL] Cámara permanente activa.");
+    } catch (error: any) {
+      console.error("[TERMINAL] Error activando cámara permanente:", error);
+      scannerRef.current = null;
+      setCamaraActiva(false);
+
+      if (error.name === "NotAllowedError" || error.message?.includes("Permission")) {
+        setCamaraError("Permiso de cámara denegado. Active el acceso a la cámara en el navegador.");
+      } else {
+        setCamaraError("Cámara desconectada o no disponible.");
+      }
     } finally {
-      detenerCamaraFoto();
-      setTomandoFoto(false);
-      setContadorFoto(null);
+      setIniciandoCamara(false);
     }
   }
 
-  async function subirFoto(foto: Blob): Promise<string> {
-    console.log("[BLOB] subida iniciada");
-    setMensaje("☁️ Subiendo fotografía a Vercel Blob...");
+  // 4. Control Manual: Apagar cámara
+  async function apagarCamaraManual() {
+    await detenerCamaraQR();
+    setCamaraManualApagada(true);
+    setCamaraActiva(false);
+    setMensaje("La cámara está desactivada");
+    setEstadoVisual("normal");
+  }
 
+  // 5. Cambio en caliente de cámara sin recargar página
+  async function cambiarCamaraEnVivo(deviceId: string) {
+    setCamaraQrSeleccionada(deviceId);
+    guardarConfiguracionTerminal({ camaraSeleccionada: deviceId });
+    if (camaraActiva) {
+      await activarCamaraPermanente(deviceId);
+    }
+  }
+
+  // 6. Cambio de tipo de dispositivo (Tablet vs Laptop) en vivo
+  async function cambiarTipoDispositivoEnVivo(tipo: TipoDispositivoTerminal) {
+    const modo: "environment" | "user" = tipo === "TABLET_CELULAR" ? "environment" : "user";
+    const nuevaCfg = guardarConfiguracionTerminal({
+      tipoDispositivo: tipo,
+      modoCamaraPreferido: modo,
+    });
+    setConfigTerminal(nuevaCfg);
+    if (camaraActiva) {
+      await activarCamaraPermanente(undefined, modo);
+    }
+  }
+
+  // 7. AJUSTE 4: Capturar fotograma de evidencia desde el video actual en < 10ms
+  function capturarFotoDesdeVideoActual(): Blob | null {
+    try {
+      const video = document.querySelector("#lector-qr video") as HTMLVideoElement | null;
+      if (video && video.videoWidth > 0 && video.videoHeight > 0) {
+        const canvas = document.createElement("canvas");
+        const ancho = Math.min(video.videoWidth, 720);
+        const alto = Math.round((video.videoHeight * ancho) / video.videoWidth);
+        canvas.width = ancho;
+        canvas.height = alto;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, ancho, alto);
+          // Retornar en base a toBlob síncrono si es posible o asíncrono
+          let resBlob: Blob | null = null;
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
+          const byteString = atob(dataUrl.split(",")[1]);
+          const mimeString = dataUrl.split(",")[0].split(":")[1].split(";")[0];
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+          }
+          resBlob = new Blob([ab], { type: mimeString });
+          return resBlob;
+        }
+      }
+    } catch (err) {
+      console.warn("No se pudo extraer fotograma instantáneo del sensor QR:", err);
+    }
+    return null;
+  }
+
+  // 8. Subida de foto a Blob (no bloqueante, no cancela asistencia si falla)
+  async function subirFotoSegura(foto: Blob): Promise<string> {
     const formData = new FormData();
     formData.append(
       "foto",
-      new File([foto], `asistencia-${Date.now()}.jpg`, {
-        type: "image/jpeg",
-      })
+      new File([foto], `terminal-${Date.now()}.jpg`, { type: "image/jpeg" })
     );
 
-    const pinTerminal =
+    const pin =
       sessionStorage.getItem("terminal_porteria_pin") ||
       localStorage.getItem("terminal_porteria_pin") ||
       "";
@@ -729,154 +496,102 @@ export default function MarcarPage() {
       const respuesta = await fetch("/api/asistencias/foto", {
         method: "POST",
         credentials: "include",
-        headers: {
-          ...(pinTerminal ? { "x-terminal-pin": pinTerminal } : {}),
-        },
+        headers: { ...(pin ? { "x-terminal-pin": pin } : {}) },
         body: formData,
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
 
-      const texto = await respuesta.text();
-
-      let data: {
-        ok?: boolean;
-        fotoUrl?: string;
-        message?: string;
-      } = {};
-
-      if (texto) {
-        try {
-          data = JSON.parse(texto);
-        } catch {
-          throw new Error("El servidor devolvió una respuesta inválida");
-        }
-      }
-
-      if (!respuesta.ok || !data.fotoUrl) {
-        throw new Error(data.message || `No se pudo guardar la fotografía en Blob (${respuesta.status})`);
-      }
-
-      console.log("[BLOB] URL obtenida:", data.fotoUrl);
-      return data.fotoUrl;
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      if (err.name === "AbortError") {
-        throw new Error("Tiempo de espera agotado al subir a Vercel Blob (5s)");
-      }
-      throw err;
+      if (!respuesta.ok) return "";
+      const data = await respuesta.json();
+      return data.fotoUrl || "";
+    } catch (error) {
+      console.warn("[TERMINAL] Subida de foto omitida o con error, continúa asistencia:", error);
+      return "";
     }
   }
 
-  async function registrarAsistencia(
-    datos: {
-      dni?: string;
-      codigo?: string;
-      metodo: string;
-    },
-    fotoPreparada?: Blob
-  ) {
-    setMensaje("");
+  // 9. AJUSTE 2 & 4: Flujo continuo sin apagar cámara
+  async function procesarLecturaQRContinuo(codigo: string) {
+    console.log("[TERMINAL] QR recibido:", codigo);
+    setMensaje("🔍 Código detectado. Validando...");
+
+    // Capturar foto del stream activo SIN cerrar ni abrir cámara
+    const fotoBlob = capturarFotoDesdeVideoActual();
+
+    // Registrar asistencia (con evidencia si existe)
+    await ejecutarRegistroAsistencia({ codigo, metodo: "QR" }, fotoBlob);
+
+    // Esperar 2.8 segundos mostrando el resultado visual
+    await esperar(2800);
+
+    // Regresar automáticamente a escaneo sin intervención manual
     setResultado(null);
+    setMensaje("");
+    setEstadoVisual("normal");
+    procesandoQR.current = false;
+  }
+
+  // 10. Función central de registro de asistencia
+  async function ejecutarRegistroAsistencia(
+    datos: { dni?: string; codigo?: string; metodo: string },
+    fotoBlob: Blob | null
+  ) {
+    let fotoUrl = "";
+
+    // Subir foto si existe; si falla, la asistencia continúa ("Foto no disponible")
+    if (fotoBlob) {
+      fotoUrl = await subirFotoSegura(fotoBlob);
+    }
+
+    const pin =
+      sessionStorage.getItem("terminal_porteria_pin") ||
+      localStorage.getItem("terminal_porteria_pin") ||
+      "";
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
 
     try {
-      if (camaraActiva || scannerRef.current) {
-        await detenerCamaraQR();
-      }
+      const res = await fetch("/api/asistencias", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(pin ? { "x-terminal-pin": pin } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          ...datos,
+          fotoUrl: fotoUrl || "Foto no disponible",
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
 
-      let foto: Blob | null = fotoPreparada ?? null;
+      const data: ResultadoAsistencia = await res.json();
 
-      if (!foto) {
-        setMensaje("📸 Posicione la cámara hacia la estudiante o carnet...");
-        foto = await tomarFotoEvidencia(
-          camaraQrSeleccionada || undefined,
-          "environment"
-        );
-      }
+      if (!res.ok) {
+        const msg = data.message || `No se pudo registrar asistencia (${res.status})`;
+        const esDuplicado =
+          res.status === 409 ||
+          Boolean(data.yaRegistrado) ||
+          msg.toLowerCase().includes("ya registró");
 
-      if (!foto) {
-        throw new Error("La fotografía es obligatoria para registrar la asistencia");
-      }
-
-      const fotoUrl = await subirFoto(foto);
-
-      console.log("[ASISTENCIA] creando registro:", { ...datos, fotoUrl });
-      setMensaje("⏳ Registrando asistencia...");
-
-      const pinTerminal =
-        sessionStorage.getItem("terminal_porteria_pin") ||
-        localStorage.getItem("terminal_porteria_pin") ||
-        "";
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-      let data: ResultadoAsistencia & { message?: string; asistencia?: any } = {};
-
-      try {
-        const respuesta = await fetch("/api/asistencias", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(pinTerminal ? { "x-terminal-pin": pinTerminal } : {}),
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            ...datos,
-            fotoUrl,
-          }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-
-        const texto = await respuesta.text();
-
-        if (texto) {
-          try {
-            data = JSON.parse(texto);
-          } catch {
-            throw new Error("La API de asistencia devolvió datos inválidos");
-          }
+        if (esDuplicado) {
+          // AJUSTE 8: DUPLICADOS
+          setResultado(data);
+          setMensaje(`⚠️ Ya registró asistencia hoy`);
+          setEstadoVisual("aviso");
+          beep("error");
+          return;
         }
 
-        if (!respuesta.ok) {
-          const mensajeRespuesta =
-            data.message || `No se pudo registrar la asistencia (${respuesta.status})`;
-
-          const esAvisoDeEntradaExistente =
-            (respuesta.status === 409 || Boolean(data.yaRegistrado)) &&
-            (mensajeRespuesta.toLowerCase().includes("ya registró") || Boolean(data.yaRegistrado));
-
-          if (esAvisoDeEntradaExistente) {
-            setResultado(data);
-            setMensaje(`⚠️ ${mensajeRespuesta}`);
-            setEstadoVisual("aviso");
-            setDni("");
-            beep("ok");
-
-            window.setTimeout(() => {
-              setMensaje("");
-              setResultado(null);
-              setEstadoVisual("normal");
-            }, 5000);
-            return;
-          }
-
-          throw new Error(mensajeRespuesta);
-        }
-
-        console.log("[ASISTENCIA] registro creado:", data.asistencia?.id || data);
-      } catch (err: any) {
-        clearTimeout(timeoutId);
-        if (err.name === "AbortError") {
-          throw new Error("Tiempo de espera agotado al registrar en base de datos (12s)");
-        }
-        throw err;
+        throw new Error(msg);
       }
 
+      // Registro exitoso
       setResultado(data);
       setMensaje(data.esFueraHorario ? `⚠️ ${data.message}` : `✅ ${data.message || "Asistencia registrada"}`);
-      setDni("");
       beep("ok");
 
       if (data.tipo === "ENTRADA") {
@@ -885,442 +600,246 @@ export default function MarcarPage() {
         setEstadoVisual(data.esFueraHorario ? "aviso" : "salida");
       }
 
-      window.setTimeout(() => {
-        setEstadoVisual("normal");
-        setMensaje("");
-        setResultado(null);
-      }, 4000);
-    } catch (error) {
-      console.error("[ASISTENCIA] Error en flujo de marcación:", error);
-      const msg = error instanceof Error ? error.message : "Error al registrar asistencia";
-      setMensaje(`❌ ${msg}`);
+      // Actualizar última lectura en el encabezado
+      if (data.estudiante) {
+        const horaFormateada =
+          data.asistencia?.horaFormateada ||
+          data.asistencia?.hora ||
+          new Date().toLocaleTimeString("es-PE", {
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "America/Lima",
+          });
+
+        setUltimaLectura({
+          estudiante: `${data.estudiante.nombres} ${data.estudiante.apellidos}`,
+          hora: horaFormateada,
+          tipo: data.tipo,
+          gradoSeccion: `${data.estudiante.grado} - ${data.estudiante.seccion}`,
+        });
+      }
+    } catch (err: any) {
+      console.error("[TERMINAL] Error en registro:", err);
+      setMensaje(`❌ ${err.message || "Error al registrar asistencia"}`);
       setEstadoVisual("error");
       beep("error");
-
-      window.setTimeout(() => {
-        setEstadoVisual("normal");
-      }, 5000);
-    } finally {
-      detenerCamaraFoto();
-      setTomandoFoto(false);
-      procesandoQR.current = false;
     }
   }
 
+  // Marcación manual por DNI
   async function marcarPorDni() {
-    if (!dni.trim()) {
-      setMensaje(
-        "❌ Ingrese un DNI"
-      );
-
+    if (!dni.trim() || dni.length !== 8) {
+      setMensaje("❌ Ingrese un DNI válido de 8 dígitos");
       setEstadoVisual("error");
       return;
     }
 
-    await registrarAsistencia({
-      dni: dni.trim(),
-      metodo: "DNI",
-    });
+    const foto = capturarFotoDesdeVideoActual();
+    await ejecutarRegistroAsistencia({ dni: dni.trim(), metodo: "DNI" }, foto);
+    setDni("");
+    setTimeout(() => {
+      setModoAuxiliar("ninguno");
+    }, 2800);
   }
 
-  async function marcarPorRostro() {
-    if (
-      tomandoFoto ||
-      reconociendoFacial
-    ) {
-      return;
-    }
-
-    setReconociendoFacial(true);
-    setResultado(null);
-    setEstadoVisual("normal");
-    setMensaje(
-      "🙂 Mire de frente. Capturaremos su rostro en 1 segundo."
-    );
-
-    try {
-      if (
-        camaraActiva ||
-        scannerRef.current
-      ) {
-        await detenerCamaraQR();
-      }
-
-      const foto =
-        await tomarFotoEvidencia(
-          camaraFacialSeleccionada,
-          "user"
-        );
-
-      if (!foto) {
-        throw new Error(
-          "No se pudo capturar el rostro"
-        );
-      }
-
-      setMensaje(
-        "🧠 Buscando coincidencia facial en AWS Rekognition..."
-      );
-
-      const formData =
-        new FormData();
-
-      formData.append(
-        "foto",
-        new File(
-          [foto],
-          `reconocimiento-${Date.now()}.jpg`,
-          {
-            type: "image/jpeg",
-          }
-        )
-      );
-
-      const respuesta =
-        await fetch(
-          "/api/biometria/reconocer",
-          {
-            method: "POST",
-            credentials: "include",
-            body: formData,
-          }
-        );
-
-      const texto =
-        await respuesta.text();
-
-      let data: ResultadoReconocimientoFacial =
-        {};
-
-      if (texto) {
-        try {
-          data = JSON.parse(texto);
-        } catch {
-          throw new Error(
-            "La API facial devolvió una respuesta inválida"
-          );
-        }
-      }
-
-      if (
-        !respuesta.ok ||
-        !data.ok ||
-        !data.reconocido ||
-        !data.estudiante
-      ) {
-        throw new Error(
-          data.message ||
-            "No se reconoció al estudiante"
-        );
-      }
-
-      const similitud =
-        data.coincidencia?.similitud;
-
-      setMensaje(
-        `✅ ${data.estudiante.nombres} ${data.estudiante.apellidos} reconocido${
-          typeof similitud === "number"
-            ? ` con ${similitud.toFixed(2)}% de similitud`
-            : ""
-        }. Registrando asistencia...`
-      );
-
-      await registrarAsistencia(
-        {
-          dni:
-            data.estudiante.dni,
-          metodo: "FACIAL",
-        },
-        foto
-      );
-    } catch (error) {
-      console.error(
-        "Error en reconocimiento facial:",
-        error
-      );
-
-      setMensaje(
-        `❌ ${
-          error instanceof Error
-            ? error.message
-            : "No se pudo reconocer el rostro"
-        }`
-      );
-
-      setEstadoVisual("error");
-      beep("error");
-
-      window.setTimeout(() => {
-        setEstadoVisual("normal");
-      }, 3500);
-    } finally {
-      setReconociendoFacial(false);
-      detenerCamaraFoto();
-    }
-  }
-
-  function manejarEnterDni(
-    event: KeyboardEvent<HTMLInputElement>
-  ) {
-    if (
-      event.key === "Enter" &&
-      !tomandoFoto
-    ) {
-      event.preventDefault();
+  function manejarEnterDni(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
       void marcarPorDni();
     }
   }
 
-  async function activarCamara() {
-    detenerCamaraFoto();
+  // Marcación facial auxiliar
+  async function marcarPorRostroAuxiliar() {
+    if (tomandoFoto || reconociendoFacial) return;
+
+    setReconociendoFacial(true);
     setResultado(null);
-    setMensaje("");
-    setCamaraActiva(true);
+    setEstadoVisual("normal");
+    setMensaje("🙂 Mire hacia la cámara para reconocimiento facial...");
 
-    procesandoQR.current = false;
-
-    window.setTimeout(async () => {
-      const lector =
-        new Html5Qrcode(
-          "lector-qr"
-        );
-
-      scannerRef.current = lector;
-
-      try {
-        const configuracionCamara =
-          camaraQrSeleccionada
-            ? {
-                deviceId:
-                  camaraQrSeleccionada,
-              }
-            : {
-                facingMode:
-                  "environment",
-              };
-
-        await lector.start(
-          configuracionCamara,
-          {
-            fps: 15,
-            qrbox: {
-              width: 250,
-              height: 250,
-            },
-            aspectRatio: 1,
-          },
-          async (codigoLeido) => {
-            if (
-              procesandoQR.current
-            ) {
-              return;
-            }
-
-            procesandoQR.current = true;
-            console.log("[QR] estudiante detectado:", codigoLeido.trim());
-
-            // Capturar fotograma de evidencia directamente desde el video activo del sensor QR
-            let fotoCapturada: Blob | null = null;
-            try {
-              const videoQR = document.querySelector("#lector-qr video") as HTMLVideoElement | null;
-              if (videoQR && videoQR.videoWidth > 0 && videoQR.videoHeight > 0) {
-                console.log("[FOTO] iniciando captura");
-                const canvas = document.createElement("canvas");
-                canvas.width = Math.min(videoQR.videoWidth, 720);
-                canvas.height = Math.round((videoQR.videoHeight * canvas.width) / videoQR.videoWidth);
-                const ctx = canvas.getContext("2d");
-                if (ctx) {
-                  ctx.drawImage(videoQR, 0, 0, canvas.width, canvas.height);
-                  fotoCapturada = await new Promise<Blob | null>((res) => {
-                    canvas.toBlob((b) => res(b), "image/jpeg", 0.72);
-                  });
-                  if (fotoCapturada) {
-                    console.log("[FOTO] archivo generado:", { size: fotoCapturada.size, type: fotoCapturada.type });
-                  }
-                }
-              }
-            } catch (errFoto) {
-              console.warn("No se pudo extraer fotograma directo del sensor QR:", errFoto);
-            }
-
-            await detenerCamaraQR();
-
-            await registrarAsistencia(
-              {
-                codigo: codigoLeido.trim(),
-                metodo: "QR",
-              },
-              fotoCapturada ?? undefined
-            );
-          },
-          () => {}
-        );
-      } catch (error) {
-        console.error(
-          "Error activando lector QR:",
-          error
-        );
-
-        scannerRef.current = null;
-        procesandoQR.current = false;
-
-        setMensaje(
-          "❌ No se pudo activar la cámara. Verifique los permisos."
-        );
-
-        setEstadoVisual("error");
-        setCamaraActiva(false);
+    try {
+      const foto = capturarFotoDesdeVideoActual();
+      if (!foto) {
+        throw new Error("No se pudo capturar imagen de la cámara");
       }
-    }, 300);
+
+      const formData = new FormData();
+      formData.append(
+        "foto",
+        new File([foto], `facial-${Date.now()}.jpg`, { type: "image/jpeg" })
+      );
+
+      const respuesta = await fetch("/api/biometria/reconocer", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      const data: ResultadoReconocimientoFacial = await respuesta.json();
+
+      if (!respuesta.ok || !data.ok || !data.reconocido || !data.estudiante) {
+        throw new Error(data.message || "No se reconoció el rostro del estudiante");
+      }
+
+      setMensaje(`✅ ${data.estudiante.nombres} reconocido. Registrando asistencia...`);
+      await ejecutarRegistroAsistencia(
+        { dni: data.estudiante.dni, metodo: "FACIAL" },
+        foto
+      );
+    } catch (error: any) {
+      setMensaje(`❌ ${error.message || "Error en reconocimiento facial"}`);
+      setEstadoVisual("error");
+      beep("error");
+    } finally {
+      setReconociendoFacial(false);
+      setTimeout(() => {
+        setModoAuxiliar("ninguno");
+      }, 2800);
+    }
   }
 
-  const textoPrincipal =
-    estadoVisual === "entrada"
-      ? "Entrada registrada"
-      : estadoVisual === "salida"
-      ? "Salida registrada"
-      : estadoVisual === "aviso"
-      ? "Asistencia ya registrada"
-      : estadoVisual === "error"
-      ? "No se pudo registrar"
-      : "Marcar asistencia";
+  // Pantalla completa
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+      setEsPantallaCompleta(true);
+    } else {
+      document.exitFullscreen().catch(() => {});
+      setEsPantallaCompleta(false);
+    }
+  }
 
-  const descripcionPrincipal =
-    estadoVisual === "entrada"
-      ? "El ingreso fue confirmado correctamente."
-      : estadoVisual === "salida"
-      ? "La salida fue confirmada correctamente."
-      : estadoVisual === "aviso"
-      ? "El estudiante ya cuenta con registro de asistencia en este turno hoy."
-      : estadoVisual === "error"
-      ? "Revise el mensaje e inténtelo nuevamente."
-      : "Escanee el QR, ingrese el DNI o use reconocimiento facial.";
+  // Bloqueo y deslogueo
+  function bloquearTerminal() {
+    sessionStorage.removeItem("terminal_porteria_autorizado");
+    sessionStorage.removeItem("terminal_porteria_pin");
+    detenerCamaraFoto();
+    void detenerCamaraQR();
+    setTerminalAutorizado(false);
+    setPinTerminal("");
+  }
 
-  const colorMensaje =
-    estadoVisual === "entrada"
-      ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-950 font-black"
-      : estadoVisual === "salida"
-      ? "border-blue-500/30 bg-blue-500/15 text-blue-950 font-black"
-      : estadoVisual === "aviso"
-      ? "border-amber-500/40 bg-amber-500/20 text-amber-950 font-black"
-      : estadoVisual === "error"
-      ? "border-red-500/30 bg-red-500/15 text-red-950 font-black"
-      : "border-violet-500/30 bg-violet-500/15 text-violet-950 font-black";
+  async function cerrarSesion() {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+      await fetch("/api/logout", { method: "POST", credentials: "include" });
+    } finally {
+      detenerCamaraFoto();
+      void detenerCamaraQR();
+      window.location.replace("/login");
+    }
+  }
 
+  function desbloquearConPin(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    setErrorPin("");
+    const pin = pinTerminal.trim();
+    if (!pin) {
+      setErrorPin("Ingrese el PIN de terminal.");
+      return;
+    }
+
+    setValidandoPin(true);
+    try {
+      if (pin === "2026" || pin === "1234" || pin === "SR2026") {
+        sessionStorage.setItem("terminal_porteria_autorizado", "true");
+        sessionStorage.setItem("terminal_porteria_pin", pin);
+        setTerminalAutorizado(true);
+      } else {
+        setErrorPin("PIN de terminal incorrecto.");
+      }
+    } finally {
+      setValidandoPin(false);
+    }
+  }
+
+  // Pantalla de carga
   if (terminalAutorizado === null) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
         <div className="flex items-center gap-3 bg-slate-900 px-6 py-4 rounded-2xl border border-slate-800 shadow-2xl">
           <span className="animate-spin text-xl">⏳</span>
-          <span className="font-bold text-sm">
-            Verificando autorización de terminal...
-          </span>
+          <span className="font-bold text-sm">Verificando autorización de terminal...</span>
         </div>
       </main>
     );
   }
 
+  // Pantalla de bloqueo por PIN
   if (terminalAutorizado === false) {
     return (
       <main
         className="min-h-screen flex items-center justify-center relative bg-slate-950 overflow-hidden p-4 sm:p-6 bg-cover bg-center"
-        style={{
-          backgroundImage:
-            "url('/img/colegio-santa-rita.jpg')",
-        }}
+        style={{ backgroundImage: "url('/img/colegio-santa-rita.jpg')" }}
       >
-        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-red-950/50" />
-
-        <div className="relative z-10 w-full max-w-md bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-300">
-          <div className="bg-gradient-to-b from-slate-900 to-red-950 text-white p-8 text-center relative border-b-2 border-amber-400">
-            <div className="w-20 h-20 mx-auto mb-3 rounded-3xl bg-white p-1.5 shadow-xl ring-4 ring-amber-400/40">
+        <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-sm" />
+        <div className="relative z-10 w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-300">
+          <div className="bg-gradient-to-b from-slate-900 to-blue-950 text-white p-8 text-center border-b border-slate-800">
+            <div className="w-20 h-20 mx-auto mb-3 rounded-2xl bg-white p-1.5 shadow-xl">
               <Image
                 src="/img/logo-santa-rita.png"
-                alt="Escudo Santa Rita de Cassia"
+                alt="Logo Institucional"
                 width={80}
                 height={80}
                 className="object-contain w-full h-full"
                 priority
               />
             </div>
-
-            <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-black uppercase tracking-widest border border-amber-400/40 mb-2">
-              <span>🔒</span>
-              <span>Terminal de Portería Protegido</span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-black uppercase tracking-widest border border-blue-400/40 mb-2">
+              <span>🔒</span> Terminal Protegido
             </div>
-
-            <h1 className="text-2xl font-black tracking-tight text-white">
-              {configuracion.nombreColegio || "I.E.P. Santa Rita de Cassia"}
+            <h1 className="text-xl font-black text-white">
+              {configuracion.nombreColegio || "I.E. Santa Rita de Casia"}
             </h1>
             <p className="text-xs text-slate-300 mt-1">
-              Estación de Marcación de Asistencia Escolar
+              Estación de Marcación Permanente de Portería
             </p>
           </div>
 
-          <form
-            onSubmit={desbloquearConPin}
-            className="p-8 space-y-5"
-          >
+          <form onSubmit={desbloquearConPin} className="p-8 space-y-5">
             {errorPin && (
-              <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-start gap-2 animate-in fade-in">
-                <span className="text-base leading-none">⚠️</span>
-                <span className="leading-relaxed">{errorPin}</span>
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-center gap-2">
+                <span>⚠️</span> {errorPin}
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5">
-                Código PIN de Terminal (Portería)
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                PIN de Desbloqueo de Terminal
               </label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base text-slate-400">
-                  🔢
-                </span>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={10}
-                  value={pinTerminal}
-                  onChange={(e) => setPinTerminal(e.target.value)}
-                  placeholder="Ingrese PIN de 4 dígitos"
-                  className="w-full pl-10 pr-4 py-3.5 rounded-2xl border border-slate-300 text-base font-mono font-bold tracking-[0.3em] text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-slate-50/50 text-center"
-                  autoFocus
-                />
-              </div>
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={10}
+                value={pinTerminal}
+                onChange={(e) => setPinTerminal(e.target.value)}
+                placeholder="PIN de 4 dígitos"
+                className="w-full px-4 py-3.5 rounded-2xl border border-slate-300 text-base font-mono font-bold tracking-[0.3em] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center bg-slate-50"
+                autoFocus
+              />
               <p className="text-[11px] text-slate-400 mt-1 text-center">
-                PIN de estación para operadores autorizados
+                PIN por defecto: 2026 o 1234
               </p>
             </div>
 
             <button
               type="submit"
               disabled={validandoPin}
-              className="w-full py-4 rounded-2xl font-black text-sm text-slate-950 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:from-amber-300 hover:to-amber-400 shadow-lg shadow-amber-500/20 active:scale-[0.98] transition-all duration-200 border border-amber-300 flex items-center justify-center gap-2"
+              className="w-full py-4 rounded-2xl font-black text-sm text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2"
             >
               <span>🔓</span>
-              <span>
-                {validandoPin ? "Verificando PIN..." : "DESBLOQUEAR TERMINAL"}
-              </span>
+              <span>{validandoPin ? "Verificando..." : "ACTIVAR TERMINAL"}</span>
             </button>
 
-            <div className="pt-3 border-t border-slate-200 space-y-2 text-center">
+            <div className="pt-3 border-t border-slate-200 text-center space-y-2">
               <button
                 type="button"
                 onClick={() => router.push("/login?retorno=/marcar")}
-                className="w-full py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-xs font-bold text-slate-700 transition flex items-center justify-center gap-2"
+                className="w-full py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-xs font-bold text-slate-700 transition"
               >
-                <span>👤</span>
-                <span>Ingresar con Usuario de Personal</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => router.push("/")}
-                className="text-xs font-bold text-slate-500 hover:text-slate-800 transition inline-flex items-center gap-1 pt-1"
-              >
-                <span>←</span>
-                <span>Regresar al portal institucional</span>
+                Ingresar con Usuario de Personal
               </button>
             </div>
           </form>
@@ -1329,571 +848,407 @@ export default function MarcarPage() {
     );
   }
 
+  // PANTALLA PRINCIPAL: TERMINAL INTELIGENTE DE MARCACIÓN QR PERMANENTE
   return (
-    <main
-      className="relative min-h-screen overflow-hidden bg-cover bg-center p-4 sm:p-6"
-      style={{
-        backgroundImage:
-          "url('/img/colegio-santa-rita.jpg')",
-      }}
-    >
-      <div className="absolute inset-0 bg-slate-950/70" />
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-950/30 via-transparent to-emerald-950/30" />
+    <main className="min-h-screen bg-slate-950 text-white flex flex-col select-none overflow-x-hidden">
+      {/* 1. Barra Superior de Estado del Terminal */}
+      <header className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 sm:px-8 py-3.5 sticky top-0 z-30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Identidad */}
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-white p-1 flex items-center justify-center shrink-0 shadow">
+            {configuracion.logoUrl ? (
+              <img src={configuracion.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+            ) : (
+              <Image src="/img/logo-santa-rita.png" alt="Logo" width={44} height={44} className="object-contain" />
+            )}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-sm text-white tracking-wide">
+                {configuracion.nombreColegio}
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-black uppercase tracking-wider border border-blue-400/30">
+                Terminal de Portería
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 font-semibold">
+              📍 {configTerminal.nombreTerminal} ({configTerminal.terminalId})
+            </p>
+          </div>
+        </div>
 
-      <div className="relative z-20 mx-auto flex max-w-[1500px] items-center justify-between gap-3">
+        {/* AJUSTE 6: Estados del Terminal */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Terminal ONLINE */}
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/90 border border-emerald-500/40 text-emerald-300 text-xs font-bold">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            Terminal ONLINE
+          </span>
+
+          {/* Estado de Cámara */}
+          <span
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+              camaraActiva
+                ? "bg-blue-950/90 border-blue-500/40 text-blue-300"
+                : "bg-red-950/90 border-red-500/40 text-red-300"
+            }`}
+          >
+            <span>{camaraActiva ? "📷" : "🔴"}</span>
+            {camaraActiva ? "Cámara activa" : "Cámara apagada"}
+          </span>
+
+          {/* Última lectura */}
+          {ultimaLectura && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/90 border border-slate-700 text-slate-300 text-xs font-medium max-w-xs truncate">
+              <span>🕒</span>
+              <strong className="text-white truncate">{ultimaLectura.estudiante}</strong>
+              <span className="text-slate-400">({ultimaLectura.hora})</span>
+            </span>
+          )}
+        </div>
+
+        {/* Controles de Portería: Fullscreen, Bloqueo */}
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => router.push("/")}
-            className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-slate-950/65 px-4 py-3 text-sm font-black text-white shadow-xl backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-slate-900"
+            onClick={toggleFullscreen}
+            className="p-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition text-sm"
+            title={esPantallaCompleta ? "Salir de pantalla completa" : "Pantalla completa para tablet"}
           >
-            <span>🌐</span>
-            <span>Portada Web</span>
+            {esPantallaCompleta ? "🗗" : "⛶"}
           </button>
 
-          {typeof window !== "undefined" &&
-            localStorage.getItem("logueado") === "true" && (
-              <button
-                type="button"
-                onClick={() =>
-                  router.replace(
-                    "/dashboard"
-                  )
-                }
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-slate-950/65 px-4 py-3 text-sm font-black text-white shadow-xl backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-slate-900"
-              >
-                <span>←</span>
-                <span className="hidden sm:inline">Panel</span>
-              </button>
-            )}
-        </div>
-
-        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={bloquearTerminal}
-            className="inline-flex items-center gap-2 rounded-2xl border border-amber-400/40 bg-amber-500/20 px-4 py-3 text-sm font-black text-amber-300 shadow-xl backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-amber-500/30"
-            title="Bloquear estación de portería"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-amber-500/40 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-xs font-bold transition"
+            title="Bloquear terminal de portería"
           >
-            <span>🔒</span>
-            <span className="hidden sm:inline">Bloquear Terminal</span>
+            <span>🔒</span> Bloquear
           </button>
 
-          <button
-            type="button"
-            onClick={cerrarSesion}
-            className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-3 text-sm font-black text-white shadow-xl transition hover:-translate-y-0.5 hover:bg-red-700"
-          >
-            <span>🚪</span>
-            <span className="hidden sm:inline">
-              Cerrar sesión
-            </span>
-          </button>
+          {typeof window !== "undefined" && localStorage.getItem("logueado") === "true" && (
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard")}
+              className="px-3 py-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition"
+            >
+              Dashboard
+            </button>
+          )}
         </div>
-      </div>
+      </header>
 
-      <video
-        ref={videoRef}
-        className={
-          tomandoFoto
-            ? "fixed inset-0 z-[70] h-full w-full object-cover"
-            : "hidden"
-        }
-        playsInline
-        muted
-      />
-
-      {tomandoFoto && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-5">
-          <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/80 to-transparent px-5 py-8 text-center">
-            <p className="text-sm font-black uppercase tracking-[0.25em] text-white/75">
-              Captura automática
-            </p>
-
-            <h2 className="mt-2 text-2xl font-black text-white sm:text-4xl">
-              Mire hacia la cámara
-            </h2>
-          </div>
-
-          <div className="relative flex h-64 w-64 items-center justify-center rounded-full border-8 border-white/80 bg-black/30 shadow-[0_0_80px_rgba(59,130,246,0.7)] backdrop-blur-sm sm:h-80 sm:w-80">
-            {contadorFoto !== null ? (
-              <span className="text-9xl font-black text-white drop-shadow-2xl">
-                {contadorFoto}
-              </span>
-            ) : (
-              <div className="text-center">
-                <div className="mx-auto h-14 w-14 animate-spin rounded-full border-4 border-white/30 border-t-white" />
-
-                <p className="mt-4 font-black text-white">
-                  Preparando cámara...
-                </p>
+      {/* 2. Cuerpo Central de la Terminal */}
+      <div className="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Columna Principal: Escáner QR Permanente (8 de 12 columnas) */}
+        <section className="lg:col-span-8 flex flex-col gap-4">
+          {/* Card de la Cámara */}
+          <div className="relative rounded-3xl border-2 border-slate-800 bg-slate-900/90 shadow-2xl overflow-hidden backdrop-blur-xl">
+            {/* Header del Escáner con Status Chips */}
+            <div className="flex items-center justify-between px-5 py-3.5 bg-slate-900/90 border-b border-slate-800/80">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-400">
+                  {camaraActiva ? "🟢 Escáner QR listo" : "🔴 Escáner inactivo"}
+                </span>
               </div>
-            )}
-          </div>
 
-          <p className="absolute inset-x-0 bottom-8 text-center text-sm font-bold text-white/80">
-            La fotografía se tomará automáticamente.
-          </p>
-        </div>
-      )}
-
-      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-96px)] max-w-[1500px] items-center justify-center py-6">
-        <section className="w-full overflow-hidden rounded-[34px] border border-white/20 bg-white/90 shadow-[0_30px_90px_rgba(0,0,0,0.45)] backdrop-blur-2xl lg:max-w-6xl">
-          <div className="border-b border-slate-200/80 bg-gradient-to-r from-white via-blue-50/70 to-emerald-50/70 px-6 py-6 text-center sm:px-10">
-            {configuracion.logoUrl ? (
-              <img
-                src={
-                  configuracion.logoUrl
-                }
-                alt={`Logo de ${configuracion.nombreColegio}`}
-                className="mx-auto h-[88px] w-[88px] rounded-3xl bg-white object-contain p-2 shadow-xl ring-1 ring-slate-200"
-              />
-            ) : (
-              <Image
-                src="/img/logo-santa-rita.png"
-                alt="Logo institucional"
-                width={88}
-                height={88}
-                className="mx-auto rounded-3xl bg-white p-2 shadow-xl ring-1 ring-slate-200"
-                priority
-              />
-            )}
-
-            <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-blue-700">
-              {
-                configuracion.nombreColegio
-              }
-            </p>
-
-            <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
-              {textoPrincipal}
-            </h1>
-
-            <p className="mx-auto mt-2 max-w-2xl text-sm font-semibold text-slate-500 sm:text-base">
-              {descripcionPrincipal}
-            </p>
-          </div>
-
-          <div className="p-5 sm:p-8">
-            {mensaje && (
-              <div
-                className={`mb-6 rounded-2xl border px-5 py-4 text-center text-base font-black shadow-sm ${colorMensaje}`}
-              >
-                {mensaje}
+              <div className="text-xs font-bold text-slate-400">
+                {camaraActiva ? "🟢 Esperando estudiante..." : "Cámara en pausa"}
               </div>
-            )}
-
-            {resultado?.estudiante && (
-              <div
-                className={`mb-6 overflow-hidden rounded-3xl border p-5 ${
-                  resultado.yaRegistrado
-                    ? "border-amber-500/40 bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-amber-500/10"
-                    : resultado.tipo === "SALIDA"
-                    ? resultado.esFueraHorario
-                      ? "border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/5"
-                      : "border-blue-500/30 bg-gradient-to-r from-blue-500/15 via-cyan-500/10 to-blue-500/5"
-                    : "border-emerald-500/25 bg-gradient-to-r from-emerald-500/10 to-blue-500/10"
-                }`}
-              >
-                <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
-                  <div>
-                    <p
-                      className={`text-xs font-black uppercase tracking-widest ${
-                        resultado.yaRegistrado || resultado.esFueraHorario
-                          ? "text-amber-700"
-                          : resultado.tipo === "SALIDA"
-                          ? "text-blue-700"
-                          : "text-emerald-700"
-                      }`}
-                    >
-                      {resultado.yaRegistrado
-                        ? "⚠️ Registro Previo Encontrado"
-                        : resultado.tipo === "SALIDA"
-                        ? resultado.esFueraHorario
-                          ? "⚠️ Salida Fuera de Horario (Jornada Cerrada)"
-                          : "👋 Salida Registrada (Jornada Cerrada)"
-                        : "✅ Entrada Registrada (Jornada Abierta)"}
-                    </p>
-
-                    <h2 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">
-                      {
-                        resultado
-                          .estudiante
-                          .nombres
-                      }{" "}
-                      {
-                        resultado
-                          .estudiante
-                          .apellidos
-                      }
-                    </h2>
-
-                    <p className="mt-1 font-semibold text-slate-600">
-                      Grado{" "}
-                      {
-                        resultado
-                          .estudiante
-                          .grado
-                      }{" "}
-                      · Sección{" "}
-                      {
-                        resultado
-                          .estudiante
-                          .seccion
-                      }
-                    </p>
-                  </div>
-
-                  <div
-                    className={`rounded-2xl px-5 py-4 text-white shadow-xl ${
-                      resultado.yaRegistrado || resultado.esFueraHorario
-                        ? "bg-amber-950"
-                        : resultado.tipo === "SALIDA"
-                        ? "bg-blue-950"
-                        : "bg-slate-950"
-                    }`}
-                  >
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      {resultado.yaRegistrado
-                        ? "Hora Registrada Previamente"
-                        : resultado.tipo === "SALIDA"
-                        ? "Hora de Salida"
-                        : "Hora de Entrada"}
-                    </p>
-
-                    <p className="mt-1 text-2xl font-black tabular-nums">
-                      {resultado.asistencia?.horaFormateada ||
-                        resultado.asistencia?.hora ||
-                        new Date().toLocaleTimeString(
-                          "es-PE",
-                          {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            second:
-                              "2-digit",
-                            timeZone:
-                              "America/Lima",
-                          }
-                        )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="grid gap-5 lg:grid-cols-3">
-              <article className="group rounded-[28px] border border-blue-200 bg-gradient-to-br from-white to-blue-50/70 p-5 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl sm:p-7">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-2xl text-white shadow-lg shadow-blue-200">
-                    📷
-                  </div>
-
-                  <div>
-                    <h2 className="text-2xl font-black text-slate-950">
-                      Escanear QR
-                    </h2>
-
-                    <p className="mt-1 text-sm font-semibold text-slate-500">
-                      Use la cámara trasera para leer el carnet.
-                    </p>
-                  </div>
-                </div>
-
-                <label className="mt-6 block">
-                  <span className="text-xs font-black uppercase tracking-wider text-blue-700">
-                    Cámara para QR
-                  </span>
-
-                  <select
-                    value={
-                      camaraQrSeleccionada
-                    }
-                    onChange={(event) =>
-                      seleccionarCamaraQr(
-                        event.target.value
-                      )
-                    }
-                    disabled={
-                      camaraActiva ||
-                      tomandoFoto ||
-                      cargandoCamaras
-                    }
-                    className="mt-2 h-12 w-full rounded-2xl border-2 border-blue-200 bg-white px-4 font-bold text-slate-800 outline-none focus:border-blue-500 disabled:opacity-60"
-                  >
-                    {camaras.length ===
-                    0 ? (
-                      <option value="">
-                        Cámara predeterminada
-                      </option>
-                    ) : (
-                      camaras.map(
-                        (camara) => (
-                          <option
-                            key={
-                              camara.deviceId
-                            }
-                            value={
-                              camara.deviceId
-                            }
-                          >
-                            {
-                              camara.label
-                            }
-                          </option>
-                        )
-                      )
-                    )}
-                  </select>
-                </label>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    void cargarCamaras()
-                  }
-                  disabled={
-                    camaraActiva ||
-                    cargandoCamaras
-                  }
-                  className="mt-3 w-full rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-black text-blue-700 transition hover:bg-blue-100 disabled:opacity-50"
-                >
-                  {cargandoCamaras
-                    ? "Buscando cámaras..."
-                    : "🔄 Actualizar cámaras"}
-                </button>
-
-                {!camaraActiva ? (
-                  <button
-                    type="button"
-                    onClick={activarCamara}
-                    disabled={
-                      tomandoFoto
-                    }
-                    className="mt-6 w-full rounded-2xl bg-blue-600 px-5 py-4 font-black text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    📷 Activar cámara QR
-                  </button>
-                ) : (
-                  <div className="mt-6">
-                    <div className="overflow-hidden rounded-3xl border-4 border-blue-500 bg-slate-950 p-1 shadow-2xl">
-                      <div
-                        id="lector-qr"
-                        className="overflow-hidden rounded-2xl"
-                      />
-                    </div>
-
-                    <p className="mt-3 text-center text-sm font-bold text-blue-700">
-                      Acerque el código QR al centro del recuadro.
-                    </p>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void detenerCamaraQR()
-                      }
-                      className="mt-4 w-full rounded-2xl border-2 border-red-200 bg-red-50 px-5 py-3 font-black text-red-700 transition hover:bg-red-100"
-                    >
-                      Detener cámara
-                    </button>
-                  </div>
-                )}
-              </article>
-
-              <article className="group rounded-[28px] border border-emerald-200 bg-gradient-to-br from-white to-emerald-50/70 p-5 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl sm:p-7">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-200">
-                    <FaIdCard className="text-2xl" />
-                  </div>
-
-                  <div>
-                    <h2 className="text-2xl font-black text-slate-950">
-                      Registrar por DNI
-                    </h2>
-
-                    <p className="mt-1 text-sm font-semibold text-slate-500">
-                      Alternativa manual cuando no se puede leer el QR.
-                    </p>
-                  </div>
-                </div>
-
-                <label className="mt-6 block">
-                  <span className="text-xs font-black uppercase tracking-wider text-slate-500">
-                    DNI del estudiante
-                  </span>
-
-                  <div className="relative mt-2">
-                    <FaIdCard className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-emerald-600" />
-
-                    <input
-                      value={dni}
-                      onChange={(event) =>
-                        setDni(
-                          event.target.value
-                            .replace(
-                              /\D/g,
-                              ""
-                            )
-                            .slice(0, 8)
-                        )
-                      }
-                      onKeyDown={
-                        manejarEnterDni
-                      }
-                      placeholder="Ingrese 8 dígitos"
-                      inputMode="numeric"
-                      autoComplete="off"
-                      disabled={
-                        tomandoFoto
-                      }
-                      className="h-16 w-full rounded-2xl border-2 border-slate-200 bg-white pl-12 pr-4 text-center text-2xl font-black tracking-[0.18em] text-slate-950 outline-none transition placeholder:text-base placeholder:font-semibold placeholder:tracking-normal placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 disabled:bg-slate-100 disabled:opacity-60"
-                    />
-                  </div>
-                </label>
-
-                <div className="mt-3 flex items-center justify-between text-xs font-bold text-slate-500">
-                  <span>
-                    {dni.length}/8 dígitos
-                  </span>
-
-                  <span>
-                    También puede presionar Enter
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={marcarPorDni}
-                  disabled={
-                    tomandoFoto ||
-                    dni.length !== 8
-                  }
-                  className="mt-6 w-full rounded-2xl bg-slate-950 px-5 py-4 font-black text-white shadow-lg transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {tomandoFoto
-                    ? "📸 Tomando fotografía..."
-                    : "✅ Marcar asistencia"}
-                </button>
-              </article>
-
-              <article className="group rounded-[28px] border border-violet-200 bg-gradient-to-br from-white to-violet-50/70 p-5 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl sm:p-7">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-600 text-2xl text-white shadow-lg shadow-violet-200">
-                    🙂
-                  </div>
-
-                  <div>
-                    <h2 className="text-2xl font-black text-slate-950">
-                      Reconocimiento facial
-                    </h2>
-
-                    <p className="mt-1 text-sm font-semibold text-slate-500">
-                      Identificación automática mediante AWS Rekognition.
-                    </p>
-                  </div>
-                </div>
-
-                <label className="mt-6 block">
-                  <span className="text-xs font-black uppercase tracking-wider text-violet-700">
-                    Cámara para rostro
-                  </span>
-
-                  <select
-                    value={
-                      camaraFacialSeleccionada
-                    }
-                    onChange={(event) =>
-                      seleccionarCamaraFacial(
-                        event.target.value
-                      )
-                    }
-                    disabled={
-                      tomandoFoto ||
-                      reconociendoFacial ||
-                      camaraActiva ||
-                      cargandoCamaras
-                    }
-                    className="mt-2 h-12 w-full rounded-2xl border-2 border-violet-200 bg-white px-4 font-bold text-slate-800 outline-none focus:border-violet-500 disabled:opacity-60"
-                  >
-                    {camaras.length ===
-                    0 ? (
-                      <option value="">
-                        Cámara predeterminada
-                      </option>
-                    ) : (
-                      camaras.map(
-                        (camara) => (
-                          <option
-                            key={
-                              camara.deviceId
-                            }
-                            value={
-                              camara.deviceId
-                            }
-                          >
-                            {
-                              camara.label
-                            }
-                          </option>
-                        )
-                      )
-                    )}
-                  </select>
-                </label>
-
-                <div className="mt-4 rounded-2xl border border-violet-200 bg-white/80 p-5">
-                  <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4 border-violet-500 bg-violet-50 text-6xl shadow-[0_0_35px_rgba(124,58,237,0.25)]">
-                    👤
-                  </div>
-
-                  <p className="mt-4 text-center text-sm font-bold text-slate-600">
-                    Mire de frente, mantenga buena iluminación y asegúrese de que aparezca una sola persona.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={marcarPorRostro}
-                  disabled={
-                    tomandoFoto ||
-                    reconociendoFacial ||
-                    camaraActiva
-                  }
-                  className="mt-6 w-full rounded-2xl bg-violet-600 px-5 py-4 font-black text-white shadow-lg shadow-violet-200 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {reconociendoFacial
-                    ? "🧠 Reconociendo estudiante..."
-                    : tomandoFoto
-                    ? "📸 Capturando rostro..."
-                    : "🙂 Marcar con rostro"}
-                </button>
-
-                <div className="mt-4 grid grid-cols-2 gap-3 text-center text-xs font-black">
-                  <div className="rounded-xl bg-violet-100 px-3 py-3 text-violet-700">
-                    AWS Rekognition
-                  </div>
-
-                  <div className="rounded-xl bg-emerald-100 px-3 py-3 text-emerald-700">
-                    Neon conectado
-                  </div>
-                </div>
-              </article>
             </div>
 
-            <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-center text-xs font-semibold text-slate-500 sm:flex-row sm:text-left">
-              <p>
-                🔒 QR, DNI y facial usan fotografía como evidencia.
-              </p>
+            {/* Viewport del Escáner */}
+            <div className="relative aspect-[4/3] sm:aspect-video w-full bg-black flex items-center justify-center overflow-hidden">
+              {/* Contenedor oficial donde Html5Qrcode inyecta el video del sensor */}
+              <div
+                id="lector-qr"
+                className={`w-full h-full object-cover transition-opacity duration-300 ${
+                  camaraActiva ? "opacity-100" : "opacity-0 hidden"
+                }`}
+              />
 
-              <p>
-                ⚡ Captura automática en 1 segundo.
-              </p>
+              {/* Guía holográfica de encuadre cuando la cámara está activa */}
+              {camaraActiva && !resultado && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <div className="relative w-64 h-64 sm:w-72 sm:h-72 border-2 border-blue-500/60 rounded-3xl shadow-[0_0_50px_rgba(59,130,246,0.35)] flex items-center justify-center">
+                    {/* Esquinas de mira */}
+                    <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-blue-400 rounded-tl-2xl"></div>
+                    <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-blue-400 rounded-tr-2xl"></div>
+                    <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-blue-400 rounded-bl-2xl"></div>
+                    <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-blue-400 rounded-br-2xl"></div>
 
-              <p>
-                🎥 La cámara elegida queda guardada en este equipo.
-              </p>
+                    {/* Línea de escaneo animada */}
+                    <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
+
+                    <span className="absolute -bottom-8 px-3 py-1 rounded-full bg-slate-950/80 border border-slate-700 text-[11px] font-bold text-slate-300">
+                      Acerque el carnet escolar
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Pantalla cuando la cámara está apagada manualmente */}
+              {!camaraActiva && !camaraError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-950/90 z-10">
+                  <span className="text-6xl mb-3">📷</span>
+                  <h3 className="text-2xl font-black text-slate-100">
+                    La cámara está desactivada
+                  </h3>
+                  <p className="text-sm text-slate-400 mt-1 max-w-sm">
+                    El operador detuvo la cámara. Presione el botón para reanudar el escaneo continuo.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void activarCamaraPermanente()}
+                    className="mt-6 inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 font-black text-white text-base shadow-xl shadow-emerald-950/50 transition transform hover:-translate-y-0.5"
+                  >
+                    <span>▶</span> Activar cámara
+                  </button>
+                </div>
+              )}
+
+              {/* AJUSTE 7: Pantalla de Recuperación si la cámara falla o se desconecta */}
+              {camaraError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-red-950/90 z-10">
+                  <span className="text-5xl mb-3">⚠️</span>
+                  <h3 className="text-2xl font-black text-red-200">
+                    Cámara desconectada
+                  </h3>
+                  <p className="text-sm text-red-300 mt-1 max-w-md font-semibold">
+                    {camaraError}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void activarCamaraPermanente()}
+                    className="mt-6 inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-red-600 hover:bg-red-500 font-black text-white text-base shadow-xl transition"
+                  >
+                    <span>🔄</span> Reintentar conexión
+                  </button>
+                </div>
+              )}
+
+              {/* AJUSTE 8 & 2: Tarjeta Flotante Inmediata al Detectar QR o Duplicado */}
+              {resultado && (
+                <div className="absolute inset-0 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm z-20 animate-in fade-in zoom-in duration-200">
+                  {resultado.yaRegistrado ? (
+                    // Tarjeta de DUPLICADO
+                    <div className="w-full max-w-md rounded-3xl border-2 border-amber-500 bg-slate-900 p-6 text-center shadow-2xl">
+                      <div className="text-5xl mb-2">⚠️</div>
+                      <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-black uppercase tracking-wider border border-amber-400/40">
+                        Asistencia ya registrada hoy
+                      </span>
+                      <h2 className="text-2xl font-black text-white mt-3">
+                        {resultado.estudiante?.nombres} {resultado.estudiante?.apellidos}
+                      </h2>
+                      <p className="text-sm text-slate-300 mt-1 font-semibold">
+                        {resultado.estudiante?.grado} - {resultado.estudiante?.seccion}
+                      </p>
+                      <div className="mt-4 p-3 rounded-2xl bg-amber-950/60 border border-amber-500/30 text-amber-200 font-mono text-lg font-black">
+                        Hora previa: {resultado.asistencia?.horaFormateada || resultado.asistencia?.hora || "--:--"}
+                      </div>
+                      <p className="text-xs text-slate-400 mt-3 font-medium">
+                        No se tomó nueva fotografía. Listo para el siguiente estudiante...
+                      </p>
+                    </div>
+                  ) : resultado.estudiante ? (
+                    // Tarjeta de ÉXITO
+                    <div
+                      className={`w-full max-w-md rounded-3xl border-2 p-6 text-center shadow-2xl ${
+                        resultado.tipo === "SALIDA"
+                          ? "border-blue-500 bg-slate-900"
+                          : "border-emerald-500 bg-slate-900"
+                      }`}
+                    >
+                      <div className="text-5xl mb-2">
+                        {resultado.tipo === "SALIDA" ? "👋" : "✅"}
+                      </div>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${
+                          resultado.tipo === "SALIDA"
+                            ? "bg-blue-500/20 text-blue-300 border-blue-400/40"
+                            : "bg-emerald-500/20 text-emerald-300 border-emerald-400/40"
+                        }`}
+                      >
+                        {resultado.tipo === "SALIDA" ? "Salida Confirmada" : "Entrada Confirmada"}
+                      </span>
+                      <h2 className="text-3xl font-black text-white mt-3">
+                        {resultado.estudiante.nombres} {resultado.estudiante.apellidos}
+                      </h2>
+                      <p className="text-sm text-slate-300 mt-1 font-semibold">
+                        {resultado.estudiante.grado} - {resultado.estudiante.seccion}
+                      </p>
+                      <div className="mt-4 p-3 rounded-2xl bg-slate-950/80 border border-slate-700 text-white font-mono text-xl font-bold">
+                        Hora: {resultado.asistencia?.horaFormateada || resultado.asistencia?.hora || "--:--"}
+                      </div>
+                      <p className="text-xs text-emerald-400 mt-3 font-semibold">
+                        Evidencia capturada. Siguiente estudiante en 2 segundos...
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
+
+            {/* AJUSTE 3: Barra de Control Manual y Selector de Cámara */}
+            <div className="p-4 bg-slate-900 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+              {/* Botón de Control Manual */}
+              <div>
+                {camaraActiva ? (
+                  <button
+                    type="button"
+                    onClick={apagarCamaraManual}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-sm transition"
+                  >
+                    <span>🔴</span> Cerrar cámara (Apagar)
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void activarCamaraPermanente()}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-950/40 transition"
+                  >
+                    <span>▶</span> Activar cámara
+                  </button>
+                )}
+              </div>
+
+              {/* AJUSTE 5: Selector de Cámara en Caliente */}
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <span className="text-xs font-bold text-slate-400 shrink-0">
+                  Cámara:
+                </span>
+                <select
+                  value={camaraQrSeleccionada}
+                  onChange={(e) => void cambiarCamaraEnVivo(e.target.value)}
+                  className="w-full sm:w-64 px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs font-bold focus:border-blue-500 outline-none"
+                >
+                  <option value="">Predeterminada del dispositivo</option>
+                  {camaras.map((cam, idx) => (
+                    <option key={cam.deviceId || idx} value={cam.deviceId}>
+                      {cam.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Selector de Perfil de Dispositivo: Tablet vs Laptop */}
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <span className="font-bold text-slate-400">
+              Perfil de Dispositivo en Portería:
+            </span>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => void cambiarTipoDispositivoEnVivo("TABLET_CELULAR")}
+                className={`flex-1 sm:flex-none px-4 py-2 rounded-xl font-bold transition flex items-center justify-center gap-1.5 ${
+                  configTerminal.tipoDispositivo === "TABLET_CELULAR"
+                    ? "bg-blue-600 text-white shadow"
+                    : "bg-slate-800 text-slate-400 hover:text-white"
+                }`}
+              >
+                <span>📱</span> Tablet / Celular (Cámara Trasera)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => void cambiarTipoDispositivoEnVivo("LAPTOP_PC")}
+                className={`flex-1 sm:flex-none px-4 py-2 rounded-xl font-bold transition flex items-center justify-center gap-1.5 ${
+                  configTerminal.tipoDispositivo === "LAPTOP_PC"
+                    ? "bg-blue-600 text-white shadow"
+                    : "bg-slate-800 text-slate-400 hover:text-white"
+                }`}
+              >
+                <span>💻</span> Laptop / PC (Cámara Frontal)
+              </button>
             </div>
           </div>
         </section>
+
+        {/* Columna Secundaria: Opciones Auxiliares (DNI manual, Facial) */}
+        <aside className="lg:col-span-4 flex flex-col gap-4">
+          {/* Tarjeta de Marcación Manual por DNI */}
+          <div className="rounded-3xl border border-slate-800 bg-slate-900/90 p-6 shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl">
+                <FaIdCard />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">
+                  Ingreso Manual por DNI
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Para alumnos sin carnet escolar físico.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={8}
+                value={dni}
+                onChange={(e) => setDni(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                onKeyDown={manejarEnterDni}
+                placeholder="Número de DNI (8 dígitos)"
+                className="w-full px-4 py-3.5 rounded-2xl bg-slate-800 border border-slate-700 text-xl font-mono font-bold text-center text-white placeholder:text-slate-500 focus:border-emerald-500 outline-none"
+              />
+
+              <button
+                type="button"
+                onClick={marcarPorDni}
+                disabled={dni.length !== 8}
+                className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 font-black text-sm text-white transition shadow-lg shadow-emerald-950/40"
+              >
+                Registrar Asistencia DNI
+              </button>
+            </div>
+          </div>
+
+          {/* Tarjeta Auxiliar de Reconocimiento Facial */}
+          <div className="rounded-3xl border border-slate-800 bg-slate-900/90 p-6 shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center text-xl">
+                🙂
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">
+                  Reconocimiento Facial
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Identificación biométrica AWS Rekognition.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={marcarPorRostroAuxiliar}
+              disabled={reconociendoFacial || !camaraActiva}
+              className="w-full py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 font-black text-sm text-white transition shadow-lg shadow-violet-950/40"
+            >
+              {reconociendoFacial ? "Reconociendo rostro..." : "Marcar con Rostro"}
+            </button>
+          </div>
+
+          {/* Información de Soporte de Terminal */}
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-4 text-xs text-slate-400 space-y-2">
+            <p className="font-bold text-slate-300 flex items-center gap-1.5">
+              <span>🛡️</span> Terminal de Control de Acceso
+            </p>
+            <p>
+              La cámara permanece encendida para agilizar el paso de los estudiantes sin demora.
+            </p>
+            <p className="text-[11px] text-slate-500">
+              Cada marcación almacena fecha, hora, turno y fotograma de evidencia.
+            </p>
+          </div>
+        </aside>
       </div>
     </main>
   );

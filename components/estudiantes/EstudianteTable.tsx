@@ -330,266 +330,474 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
     return `${window.location.origin}/img/logo-santa-rita.png`;
   }
 }
- async function imprimirQR() {
-  if (!estudianteQR || !qrImagen) return;
+  function generarHtmlCarnet(
+    estudiante: Estudiante,
+    qrUrl: string,
+    logoParaImprimir: string,
+    nombreColegio: string
+  ): string {
+    return `
+      <div class="espacio-corte">
+        <div class="guia-corte corte-tl"></div>
+        <div class="guia-corte corte-tr"></div>
+        <div class="guia-corte corte-bl"></div>
+        <div class="guia-corte corte-br"></div>
 
-  const logoOriginal =
-    configuracion.logoUrl?.trim() ||
-    `${window.location.origin}/img/logo-santa-rita.png`;
-
-  const logoParaImprimir =
-    await convertirImagenADataUrl(logoOriginal);
-
-  const nombreColegio =
-    configuracion.nombreColegio?.trim() ||
-    "I.E. Santa Rita de Casia";
-
-  const ventana = window.open("", "_blank");
-
-  if (!ventana) {
-    setMensaje(
-      "❌ Permita las ventanas emergentes para imprimir el carnet"
-    );
-    return;
-  }
-
-  ventana.document.write(`
-    <!DOCTYPE html>
-    <html lang="es">
-      <head>
-        <meta charset="UTF-8" />
-        <title>Carnet QR Estudiante</title>
-
-        <style>
-          @page {
-            size: A4 portrait;
-            margin: 10mm;
-          }
-
-          * {
-            box-sizing: border-box;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-
-          html,
-          body {
-            margin: 0;
-            min-height: 100%;
-            font-family: Arial, sans-serif;
-            background: #e2e8f0;
-          }
-
-          body {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 12mm;
-          }
-
-          .carnet {
-            width: 54mm;
-            height: 86mm;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            border: 0.35mm solid #1e3a8a;
-            border-radius: 4mm;
-            background: #ffffff;
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.22);
-          }
-
-          .header {
-            height: 22mm;
-            flex-shrink: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: #ffffff;
-            background: linear-gradient(
-              180deg,
-              #1e3a8a 0%,
-              #2563eb 100%
-            );
-          }
-
-          .logo {
-            width: 10mm;
-            height: 10mm;
-            object-fit: contain;
-            padding: 0.8mm;
-            margin-bottom: 0.7mm;
-            border-radius: 2mm;
-            background: #ffffff;
-          }
-
-          .colegio {
-            max-width: 49mm;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            font-size: 2.8mm;
-            line-height: 3.1mm;
-            font-weight: 800;
-            text-transform: uppercase;
-          }
-
-          .subtitulo {
-            margin-top: 0.2mm;
-            font-size: 1.55mm;
-            line-height: 1.8mm;
-          }
-
-          .contenido {
-            position: relative;
-            flex: 1;
-            min-height: 0;
-            padding: 1.4mm 2mm 32mm;
-            text-align: center;
-            background: #ffffff;
-          }
-
-          .nombre {
-            height: 6.3mm;
-            margin-bottom: 0.35mm;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-box-orient: vertical;
-            -webkit-line-clamp: 2;
-            font-size: 2.55mm;
-            line-height: 2.9mm;
-            font-weight: 800;
-            color: #0f172a;
-            word-break: break-word;
-          }
-
-          .dato {
-            margin: 0;
-            font-size: 1.85mm;
-            line-height: 2.15mm;
-            font-weight: 600;
-            color: #334155;
-          }
-
-          .qr {
-            position: absolute;
-            left: 50%;
-            bottom: 1mm;
-            width: 30mm;
-            height: 30mm;
-            object-fit: contain;
-            transform: translateX(-50%);
-            background: #ffffff;
-          }
-
-          .footer {
-            height: 5mm;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.4mm;
-            border-top: 0.2mm solid #e2e8f0;
-            background: #f8fafc;
-            color: #475569;
-            font-size: 1.25mm;
-            text-align: center;
-          }
-
-          @media print {
-            html,
-            body {
-              background: #ffffff;
-            }
-
-            body {
-              display: block;
-              padding: 0;
-            }
-
-            .carnet {
-              margin: 0 auto;
-              box-shadow: none;
-            }
-          }
-        </style>
-      </head>
-
-      <body>
         <article class="carnet">
+          <div class="zona-perforacion">
+            <div class="ranura-collar" title="Zona de perforación para collar">
+              <span class="punto-guia"></span>
+            </div>
+            <span class="label-perforacion">ZONA DE PERFORACIÓN</span>
+          </div>
+
           <div class="header">
             <img
-              id="logo-colegio"
               class="logo"
               src="${logoParaImprimir}"
               alt="Logo institucional"
             />
-
             <div class="colegio">${nombreColegio}</div>
-            <div class="subtitulo">Carnet de Asistencia Escolar</div>
+            <div class="subtitulo">CARNET DE ASISTENCIA ESCOLAR</div>
           </div>
 
           <div class="contenido">
             <div class="nombre">
-              ${estudianteQR.nombres} ${estudianteQR.apellidos}
+              ${estudiante.nombres} ${estudiante.apellidos}
             </div>
 
-            <div class="dato"><strong>DNI:</strong> ${estudianteQR.dni}</div>
-            <div class="dato"><strong>Grado:</strong> ${estudianteQR.grado} - ${estudianteQR.seccion}</div>
-            <div class="dato"><strong>Turno:</strong> ${estudianteQR.turno?.nombre || "Sin turno"}</div>
-            <div class="dato"><strong>Código:</strong> ${estudianteQR.codigo}</div>
+            <div class="datos-grid">
+              <div class="dato-item">
+                <span class="dato-label">DNI:</span>
+                <span class="dato-valor">${estudiante.dni}</span>
+              </div>
+              <div class="dato-item">
+                <span class="dato-label">GRADO:</span>
+                <span class="dato-valor">${estudiante.grado}</span>
+              </div>
+              <div class="dato-item">
+                <span class="dato-label">SECCIÓN:</span>
+                <span class="dato-valor">${estudiante.seccion}</span>
+              </div>
+              <div class="dato-item">
+                <span class="dato-label">TURNO:</span>
+                <span class="dato-valor">${estudiante.turno?.nombre || "Sin turno"}</span>
+              </div>
+              <div class="dato-item">
+                <span class="dato-label">CÓDIGO:</span>
+                <span class="dato-valor">${estudiante.codigo}</span>
+              </div>
+            </div>
 
-            <img
-              id="qr-estudiante"
-              class="qr"
-              src="${qrImagen}"
-              alt="Código QR"
-            />
+            <div class="qr-box">
+              <img
+                class="qr"
+                src="${qrUrl}"
+                alt="Código QR Asistencia"
+              />
+            </div>
           </div>
 
           <div class="footer">
             Presentar este QR para registrar asistencia
           </div>
         </article>
+      </div>
+    `;
+  }
 
-        <script>
-          function esperarImagen(imagen) {
-            return new Promise(function(resolve) {
-              if (!imagen) {
-                resolve();
-                return;
-              }
+  function obtenerEstilosImpresion(): string {
+    return `
+      @page {
+        size: A4 portrait;
+        margin: 0mm;
+      }
 
-              if (imagen.complete && imagen.naturalWidth > 0) {
-                resolve();
-                return;
-              }
+      * {
+        box-sizing: border-box;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
 
-              imagen.onload = resolve;
-              imagen.onerror = resolve;
-            });
-          }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #ffffff;
+      }
 
-          window.onload = async function() {
-            const imagenes = Array.from(
-              document.querySelectorAll("img")
-            );
+      .hoja-a4 {
+        width: 210mm;
+        height: 297mm;
+        max-width: 210mm;
+        max-height: 297mm;
+        box-sizing: border-box;
+        padding: 24mm 10mm;
+        display: grid;
+        grid-template-columns: repeat(3, 50mm);
+        grid-template-rows: repeat(2, 100mm);
+        column-gap: 20mm;
+        row-gap: 24mm;
+        justify-content: center;
+        align-content: center;
+        page-break-after: always;
+        break-after: page;
+        page-break-inside: avoid;
+        break-inside: avoid;
+        overflow: hidden;
+        background: #ffffff;
+      }
 
-            await Promise.all(imagenes.map(esperarImagen));
+      .hoja-a4:last-child {
+        page-break-after: auto;
+        break-after: auto;
+      }
 
-            setTimeout(function() {
-              window.focus();
-              window.print();
-            }, 350);
-          };
-        </script>
-      </body>
-    </html>
-  `);
+      .hoja-a4-individual {
+        width: 210mm;
+        height: 297mm;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        page-break-after: auto;
+        break-after: auto;
+        overflow: hidden;
+        background: #ffffff;
+      }
 
-  ventana.document.close();
-}
+      .espacio-corte {
+        position: relative;
+        width: 50mm;
+        height: 100mm;
+        box-sizing: border-box;
+      }
+
+      .guia-corte {
+        position: absolute;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      .corte-tl {
+        top: -3.5mm;
+        left: -3.5mm;
+        width: 4.5mm;
+        height: 4.5mm;
+        border-top: 0.35mm solid #64748b;
+        border-left: 0.35mm solid #64748b;
+      }
+
+      .corte-tr {
+        top: -3.5mm;
+        right: -3.5mm;
+        width: 4.5mm;
+        height: 4.5mm;
+        border-top: 0.35mm solid #64748b;
+        border-right: 0.35mm solid #64748b;
+      }
+
+      .corte-bl {
+        bottom: -3.5mm;
+        left: -3.5mm;
+        width: 4.5mm;
+        height: 4.5mm;
+        border-bottom: 0.35mm solid #64748b;
+        border-left: 0.35mm solid #64748b;
+      }
+
+      .corte-br {
+        bottom: -3.5mm;
+        right: -3.5mm;
+        width: 4.5mm;
+        height: 4.5mm;
+        border-bottom: 0.35mm solid #64748b;
+        border-right: 0.35mm solid #64748b;
+      }
+
+      .carnet {
+        width: 50mm;
+        height: 100mm;
+        box-sizing: border-box;
+        border: 0.35mm dashed #64748b;
+        border-radius: 4mm;
+        background: #ffffff;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      .zona-perforacion {
+        height: 8.5mm;
+        flex-shrink: 0;
+        background: #f8fafc;
+        border-bottom: 0.25mm dashed #cbd5e1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 0.4mm 1mm;
+      }
+
+      .ranura-collar {
+        width: 12mm;
+        height: 3mm;
+        border: 0.35mm dashed #64748b;
+        border-radius: 1.5mm;
+        background: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .punto-guia {
+        width: 1mm;
+        height: 1mm;
+        border-radius: 50%;
+        background: #94a3b8;
+      }
+
+      .label-perforacion {
+        font-size: 1.25mm;
+        line-height: 1.4mm;
+        font-weight: 700;
+        color: #64748b;
+        letter-spacing: 0.2px;
+        margin-top: 0.3mm;
+      }
+
+      .header {
+        height: 21mm;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(180deg, #1e3a8a 0%, #2563eb 100%);
+        color: #ffffff;
+        padding: 0.8mm 1.5mm;
+      }
+
+      .logo {
+        width: 9.5mm;
+        height: 9.5mm;
+        object-fit: contain;
+        padding: 0.5mm;
+        border-radius: 1.8mm;
+        background: #ffffff;
+        margin-bottom: 0.4mm;
+      }
+
+      .colegio {
+        max-width: 47mm;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        font-size: 2.5mm;
+        line-height: 2.8mm;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #ffffff;
+        text-align: center;
+      }
+
+      .subtitulo {
+        font-size: 1.45mm;
+        line-height: 1.7mm;
+        font-weight: 600;
+        color: #dbeafe;
+        letter-spacing: 0.2px;
+        margin-top: 0.2mm;
+      }
+
+      .contenido {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.2mm 2mm 0.8mm;
+        background: #ffffff;
+      }
+
+      .nombre {
+        font-size: 2.45mm;
+        line-height: 2.8mm;
+        font-weight: 800;
+        color: #0f172a;
+        text-transform: uppercase;
+        text-align: center;
+        max-height: 5.6mm;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        margin-bottom: 0.8mm;
+        word-break: break-word;
+      }
+
+      .datos-grid {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35mm;
+        margin-bottom: 0.8mm;
+      }
+
+      .dato-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 1.75mm;
+        line-height: 2.05mm;
+        border-bottom: 0.15mm dotted #e2e8f0;
+        padding-bottom: 0.25mm;
+      }
+
+      .dato-label {
+        font-weight: 700;
+        color: #475569;
+      }
+
+      .dato-valor {
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      .qr-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #ffffff;
+        padding: 0.8mm;
+        border: 0.25mm solid #cbd5e1;
+        border-radius: 1.8mm;
+      }
+
+      .qr {
+        width: 36mm;
+        height: 36mm;
+        min-width: 36mm;
+        min-height: 36mm;
+        object-fit: contain;
+        display: block;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: pixelated;
+      }
+
+      .footer {
+        height: 4.5mm;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8fafc;
+        border-top: 0.2mm solid #e2e8f0;
+        font-size: 1.25mm;
+        font-weight: 600;
+        color: #475569;
+        text-align: center;
+      }
+
+      @media screen {
+        body {
+          padding: 12mm;
+          background: #475569;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 10mm;
+        }
+
+        .hoja-a4,
+        .hoja-a4-individual {
+          background: #ffffff;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+          border-radius: 2mm;
+        }
+      }
+    `;
+  }
+
+  async function imprimirQR() {
+    if (!estudianteQR) return;
+
+    const logoOriginal =
+      configuracion.logoUrl?.trim() ||
+      `${window.location.origin}/img/logo-santa-rita.png`;
+
+    const logoParaImprimir =
+      await convertirImagenADataUrl(logoOriginal);
+
+    const nombreColegio =
+      configuracion.nombreColegio?.trim() ||
+      "I.E. Santa Rita de Casia";
+
+    const qrParaImprimir =
+      qrImagen ||
+      (await QRCode.toDataURL(estudianteQR.codigo, {
+        width: 480,
+        margin: 1,
+        errorCorrectionLevel: "M",
+      }));
+
+    const ventana = window.open("", "_blank");
+
+    if (!ventana) {
+      setMensaje(
+        "❌ Permita las ventanas emergentes para imprimir el carnet"
+      );
+      return;
+    }
+
+    const carnetHtml = generarHtmlCarnet(
+      estudianteQR,
+      qrParaImprimir,
+      logoParaImprimir,
+      nombreColegio
+    );
+
+    ventana.document.write(`
+      <!DOCTYPE html>
+      <html lang="es">
+        <head>
+          <meta charset="UTF-8" />
+          <title>Carnet QR - ${estudianteQR.nombres} ${estudianteQR.apellidos}</title>
+          <style>${obtenerEstilosImpresion()}</style>
+        </head>
+        <body>
+          <main class="hoja-a4-individual">
+            ${carnetHtml}
+          </main>
+
+          <script>
+            function esperarImagen(imagen) {
+              return new Promise(function(resolve) {
+                if (!imagen) { resolve(); return; }
+                if (imagen.complete && imagen.naturalWidth > 0) { resolve(); return; }
+                imagen.onload = resolve;
+                imagen.onerror = resolve;
+              });
+            }
+
+            window.onload = async function() {
+              const imagenes = Array.from(document.querySelectorAll("img"));
+              await Promise.all(imagenes.map(esperarImagen));
+              setTimeout(function() {
+                window.focus();
+                window.print();
+              }, 350);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+
+    ventana.document.close();
+  }
 
   async function imprimirCarnetsSeleccionados() {
     const seleccionados = estudiantes.filter((estudiante) =>
@@ -619,7 +827,7 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
         seleccionados.map(async (estudiante) => ({
           estudiante,
           qr: await QRCode.toDataURL(estudiante.codigo, {
-            width: 420,
+            width: 480,
             margin: 1,
             errorCorrectionLevel: "M",
           }),
@@ -635,61 +843,23 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
         return;
       }
 
-      const tarjetasHtml = carnets
-        .map(
-          ({ estudiante, qr }) => `
-            <div class="espacio-corte">
-              <article class="carnet-lote">
-                <div class="header-lote">
-                  <img
-                    class="logo-lote"
-                    src="${logoParaImprimir}"
-                    alt="Logo institucional"
-                  />
+      // Dividir en páginas fijas de exactamente 6 carnets (3 columnas x 2 filas)
+      const CARNETS_POR_HOJA = 6;
+      const paginas: typeof carnets[] = [];
+      for (let i = 0; i < carnets.length; i += CARNETS_POR_HOJA) {
+        paginas.push(carnets.slice(i, i + CARNETS_POR_HOJA));
+      }
 
-                  <div class="colegio-lote">${nombreColegio}</div>
-                  <div class="subtitulo-lote">
-                    Carnet de Asistencia Escolar
-                  </div>
-                </div>
+      const paginasHtml = paginas
+        .map((grupoCarnets) => {
+          const tarjetasHtml = grupoCarnets
+            .map(({ estudiante, qr }) =>
+              generarHtmlCarnet(estudiante, qr, logoParaImprimir, nombreColegio)
+            )
+            .join("");
 
-                <div class="contenido-lote">
-                  <div class="nombre-lote">
-                    ${estudiante.nombres} ${estudiante.apellidos}
-                  </div>
-
-                  <div class="dato-lote">
-                    <strong>DNI:</strong> ${estudiante.dni}
-                  </div>
-
-                  <div class="dato-lote">
-                    <strong>Grado:</strong>
-                    ${estudiante.grado} - ${estudiante.seccion}
-                  </div>
-
-                  <div class="dato-lote">
-                    <strong>Turno:</strong>
-                    ${estudiante.turno?.nombre || "Sin turno"}
-                  </div>
-
-                  <div class="dato-lote">
-                    <strong>Código:</strong> ${estudiante.codigo}
-                  </div>
-
-                  <img
-                    class="qr-lote"
-                    src="${qr}"
-                    alt="Código QR"
-                  />
-                </div>
-
-                <div class="footer-lote">
-                  Presentar este QR para registrar asistencia
-                </div>
-              </article>
-            </div>
-          `
-        )
+          return `<main class="hoja-a4">${tarjetasHtml}</main>`;
+        })
         .join("");
 
       ventana.document.write(`
@@ -697,215 +867,25 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
         <html lang="es">
           <head>
             <meta charset="UTF-8" />
-            <title>Carnets de estudiantes</title>
-
-            <style>
-              @page {
-                size: A4 landscape;
-                margin: 8mm;
-              }
-
-              * {
-                box-sizing: border-box;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-              }
-
-              html,
-              body {
-                margin: 0;
-                padding: 0;
-                font-family: Arial, sans-serif;
-                background: #ffffff;
-              }
-
-              .hoja {
-                width: 281mm;
-                margin: 0 auto;
-                display: grid;
-                grid-template-columns: repeat(5, 54mm);
-                grid-auto-rows: 86mm;
-                column-gap: 2mm;
-                row-gap: 4mm;
-                justify-content: center;
-                align-content: start;
-              }
-
-              .espacio-corte {
-                width: 54mm;
-                height: 86mm;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                break-inside: avoid;
-                page-break-inside: avoid;
-                outline: 0.2mm dashed #94a3b8;
-              }
-
-              .carnet-lote {
-                width: 54mm;
-                height: 86mm;
-                overflow: hidden;
-                display: flex;
-                flex-direction: column;
-                border: 0.35mm solid #1e3a8a;
-                border-radius: 4mm;
-                background: #ffffff;
-              }
-
-              .header-lote {
-                height: 22mm;
-                flex-shrink: 0;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                color: #ffffff;
-                background: linear-gradient(
-                  180deg,
-                  #1e3a8a 0%,
-                  #2563eb 100%
-                );
-              }
-
-              .logo-lote {
-                width: 10mm;
-                height: 10mm;
-                object-fit: contain;
-                padding: 0.8mm;
-                margin-bottom: 0.7mm;
-                border-radius: 2mm;
-                background: #ffffff;
-              }
-
-              .colegio-lote {
-                max-width: 49mm;
-                overflow: hidden;
-                white-space: nowrap;
-                text-overflow: ellipsis;
-                font-size: 2.8mm;
-                line-height: 3.1mm;
-                font-weight: 800;
-                text-transform: uppercase;
-              }
-
-              .subtitulo-lote {
-                margin-top: 0.2mm;
-                font-size: 1.55mm;
-                line-height: 1.8mm;
-              }
-
-              .contenido-lote {
-                position: relative;
-                flex: 1;
-                min-height: 0;
-                padding: 1.4mm 2mm 32mm;
-                text-align: center;
-                background: #ffffff;
-              }
-
-              .nombre-lote {
-                height: 6.3mm;
-                margin-bottom: 0.35mm;
-                overflow: hidden;
-                display: -webkit-box;
-                -webkit-box-orient: vertical;
-                -webkit-line-clamp: 2;
-                font-size: 2.55mm;
-                line-height: 2.9mm;
-                font-weight: 800;
-                color: #0f172a;
-                word-break: break-word;
-              }
-
-              .dato-lote {
-                margin: 0;
-                font-size: 1.85mm;
-                line-height: 2.15mm;
-                font-weight: 600;
-                color: #334155;
-              }
-
-              .qr-lote {
-                position: absolute;
-                left: 50%;
-                bottom: 1mm;
-                width: 30mm;
-                height: 30mm;
-                object-fit: contain;
-                transform: translateX(-50%);
-                background: #ffffff;
-              }
-
-              .footer-lote {
-                height: 5mm;
-                flex-shrink: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 0.4mm;
-                border-top: 0.2mm solid #e2e8f0;
-                background: #f8fafc;
-                color: #475569;
-                font-size: 1.25mm;
-                text-align: center;
-              }
-
-              @media screen {
-                body {
-                  padding: 8mm;
-                  background: #e2e8f0;
-                }
-
-                .hoja {
-                  min-height: 194mm;
-                  background: #ffffff;
-                  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.18);
-                }
-              }
-
-              @media print {
-                .espacio-corte:nth-child(10n) {
-                  break-after: page;
-                  page-break-after: always;
-                }
-
-                .espacio-corte:last-child {
-                  break-after: auto;
-                  page-break-after: auto;
-                }
-              }
-            </style>
+            <title>Carnets de estudiantes (${seleccionados.length})</title>
+            <style>${obtenerEstilosImpresion()}</style>
           </head>
-
           <body>
-            <main class="hoja">${tarjetasHtml}</main>
+            ${paginasHtml}
 
             <script>
               function esperarImagen(imagen) {
                 return new Promise(function(resolve) {
-                  if (!imagen) {
-                    resolve();
-                    return;
-                  }
-
-                  if (imagen.complete && imagen.naturalWidth > 0) {
-                    resolve();
-                    return;
-                  }
-
+                  if (!imagen) { resolve(); return; }
+                  if (imagen.complete && imagen.naturalWidth > 0) { resolve(); return; }
                   imagen.onload = resolve;
                   imagen.onerror = resolve;
                 });
               }
 
               window.onload = async function() {
-                const imagenes = Array.from(
-                  document.querySelectorAll("img")
-                );
-
+                const imagenes = Array.from(document.querySelectorAll("img"));
                 await Promise.all(imagenes.map(esperarImagen));
-
                 setTimeout(function() {
                   window.focus();
                   window.print();
@@ -919,7 +899,7 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
       ventana.document.close();
 
       setMensaje(
-        `✅ ${seleccionados.length} carnets preparados para imprimir`
+        `✅ ${seleccionados.length} carnets preparados para imprimir (${paginas.length} ${paginas.length === 1 ? "hoja" : "hojas"})`
       );
     } catch (error) {
       console.error("Error preparando carnets por lote:", error);
@@ -1127,9 +1107,9 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
 
             <button
               onClick={() => imprimirQR()}
-              className="mt-6 bg-slate-900 text-white px-5 py-3 rounded-xl font-bold"
+              className="mt-6 bg-slate-900 text-white px-5 py-3 rounded-xl font-bold hover:bg-slate-800 transition"
             >
-              Imprimir QR
+              🖨 Imprimir Carnet Escolar
             </button>
             
           </div>

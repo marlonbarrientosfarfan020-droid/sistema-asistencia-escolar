@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CanalesConfiguracion } from "@/components/configuracion/CanalesConfiguracion";
+import { TerminalConfiguracion } from "@/components/configuracion/TerminalConfiguracion";
 
 type Configuracion = {
   nombreColegio: string;
@@ -98,6 +99,7 @@ export default function ConfiguracionPage() {
   const [enviandoPadres, setEnviandoPadres] = useState(false);
 const [archivoLogo, setArchivoLogo] = useState<File | null>(null);
 const [subiendoLogo, setSubiendoLogo] = useState(false);
+const [tabActiva, setTabActiva] = useState<"general" | "terminal">("general");
   
 
   async function cargarConfiguracion() {
@@ -468,6 +470,35 @@ async function enviarPadresAhora() {
         </div>
       )}
 
+      {/* Selector de Pestañas: General vs Terminal de Asistencia */}
+      <div className="flex border-b border-slate-200 gap-2">
+        <button
+          type="button"
+          onClick={() => setTabActiva("general")}
+          className={`px-5 py-3 font-bold text-sm rounded-t-2xl border-b-2 transition flex items-center gap-2 ${
+            tabActiva === "general"
+              ? "border-blue-600 text-blue-600 bg-white shadow-sm"
+              : "border-transparent text-slate-500 hover:text-slate-700 bg-slate-100/70"
+          }`}
+        >
+          <span>🏫</span> Datos Institucionales y Notificaciones
+        </button>
+        <button
+          type="button"
+          onClick={() => setTabActiva("terminal")}
+          className={`px-5 py-3 font-bold text-sm rounded-t-2xl border-b-2 transition flex items-center gap-2 ${
+            tabActiva === "terminal"
+              ? "border-blue-600 text-blue-600 bg-white shadow-sm"
+              : "border-transparent text-slate-500 hover:text-slate-700 bg-slate-100/70"
+          }`}
+        >
+          <span>📷</span> Terminal de Asistencia (Portería)
+        </button>
+      </div>
+
+      {tabActiva === "terminal" ? (
+        <TerminalConfiguracion />
+      ) : (
       <form onSubmit={guardar} className="space-y-7">
         {/* DATOS DEL COLEGIO */}
         <section className="bg-white rounded-3xl shadow p-6">
@@ -1027,6 +1058,7 @@ Activar reportes automáticos para padres
             : "💾 Guardar toda la configuración"}
         </button>
       </form>
+      )}
     </div>
   );
 }
