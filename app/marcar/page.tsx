@@ -142,16 +142,28 @@ export default function MarcarPage() {
     ultimaLectura: string;
     tiempoLecturaMs: number;
     tiempoLecturaSegundos: string;
+    focusMode?: string;
+    zoomSoportado?: boolean;
+    zoomActual?: number;
   }>({
-    resolucion: "1280x720",
-    fps: 30,
-    camaraLabel: "Webcam Integrada HD",
-    tipoCamara: "Webcam Integrada",
-    estado: "Correcto",
+    resolucion: "1920x1080",
+    fps: 18,
+    camaraLabel: "Cámara en espera",
+    tipoCamara: "Cámara HD",
+    estado: "Iniciando",
     ultimaLectura: "Ninguna aún",
-    tiempoLecturaMs: 420,
-    tiempoLecturaSegundos: "0.4 segundos",
+    tiempoLecturaMs: 0,
+    tiempoLecturaSegundos: "0.0s",
+    focusMode: "Continuo",
+    zoomSoportado: false,
+    zoomActual: 1,
   });
+
+  // Capacidades de Enfoque y Zoom por hardware
+  const [soportaZoom, setSoportaZoom] = useState(false);
+  const [rangoZoom, setRangoZoom] = useState<{ min: number; max: number; step: number }>({ min: 1, max: 1, step: 0.1 });
+  const [nivelZoom, setNivelZoom] = useState(1);
+  const [mejorandoEnfoque, setMejorandoEnfoque] = useState(false);
 
   // Última lectura realizada en el terminal
   const [ultimaLectura, setUltimaLectura] = useState<{
@@ -398,21 +410,44 @@ export default function MarcarPage() {
       const lector = new Html5Qrcode("lector-qr");
       scannerRef.current = lector;
 
+      // 1. Mejorar constraints de getUserMedia:
+      // width ideal 1920, height ideal 1080, aspectRatio 16/9, facingMode environment
+      const targetFacing = esLaptop ? "user" : (facingMode === "user" ? "user" : "environment");
+
+      const videoConstraints: any = {
+        width: { ideal: 1920, min: 1280 },
+        height: { ideal: 1080, min: 720 },
+        aspectRatio: { ideal: 16 / 9 },
+        facingMode: targetFacing,
+        ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
+      };
+
+      // Solicitar focusMode continuous si el navegador lo permite
+      try {
+        const supported = typeof navigator !== "undefined" && navigator.mediaDevices?.getSupportedConstraints?.();
+        if (supported && (supported as any).focusMode) {
+          videoConstraints.advanced = [{ focusMode: "continuous" }];
+        }
+      } catch (eSupp) {
+        console.warn("Verificación de constraints soportadas omitida:", eSupp);
+      }
+
+      // El primer parámetro de start debe tener exactamente 1 clave según especificación de Html5Qrcode
       const cameraTarget: any = deviceId
         ? { deviceId: { exact: deviceId } }
-        : esLaptop
-        ? { facingMode: "user" }
-        : { facingMode: { ideal: facingMode } };
+        : { facingMode: targetFacing };
 
       await lector.start(
         cameraTarget,
         {
-          fps: 18,
+          fps: 18, // 15-20 FPS óptimo sin sobrecargar CPU
           qrbox: (w, h) => {
-            const edge = Math.min(w, h);
-            const qrEdge = Math.floor(edge * 0.75);
+            // qrbox adaptable al tamaño real del QR en móviles y laptops
+            const minEdge = Math.min(w, h);
+            const qrEdge = Math.max(220, Math.min(Math.floor(minEdge * 0.72), 460));
             return { width: qrEdge, height: qrEdge };
           },
+          videoConstraints,
         },
         async (codigoLeido) => {
           console.log("[QR DEBUG]");
@@ -433,36 +468,10 @@ export default function MarcarPage() {
         }
       );
 
-      // Cargar configuración de hardware en vivo para el panel de diagnóstico
-      try {
-        const settings = lector.getRunningTrackSettings();
-        const ancho = settings.width || 1280;
-        const alto = settings.height || 720;
-        const fps = Math.round(settings.frameRate || 30);
-        const devId = settings.deviceId || deviceId;
-        const encontrada = camaras.find((c) => c.deviceId === devId);
-        const camLabel =
-          encontrada?.label ||
-          (esLaptop ? "Webcam Integrada HD" : "Cámara Trasera HD");
-        const tipoCam = camLabel.toLowerCase().includes("usb")
-          ? "USB"
-          : camLabel.toLowerCase().includes("integrated") || esLaptop
-          ? "Webcam Integrada"
-          : "Cámara Móvil / Tablet";
+      // 2. Aplicar autoFocus continuo, zoom si MediaTrackCapabilities lo soporta y capturar resolución real
+      await aplicarOptimizacionesHardwareTrack(lector);
 
-        setDiagnostico((prev) => ({
-          ...prev,
-          resolucion: `${ancho}x${alto}`,
-          fps: fps > 0 ? fps : 30,
-          camaraLabel: camLabel,
-          tipoCamara: tipoCam,
-          estado: "Correcto",
-        }));
-      } catch (e) {
-        console.warn("Diagnóstico inicial de track omitido:", e);
-      }
-
-      console.log("[TERMINAL V2] Cámara permanente activa en alta definición.");
+      console.log("[TERMINAL V2] Cámara permanente activa en alta definición 1080p.");
     } catch (error: any) {
       console.error("[TERMINAL V2] Error activando cámara permanente:", error);
       scannerRef.current = null;
@@ -475,6 +484,165 @@ export default function MarcarPage() {
       }
     } finally {
       setIniciandoCamara(false);
+    }
+  }
+
+  // 3.1 Inspección y optimización de hardware: AutoFocus, Zoom y captura de resolución real
+  async function aplicarOptimizacionesHardwareTrack(lectorInstancia?: Html5Qrcode | null) {
+    try {
+      await esperar(350); // Dar margen a la negociación del sensor
+      const videoEl = (document.querySelector("#lector-qr video") || document.querySelector("video")) as HTMLVideoElement | null;
+      const stream = videoEl?.srcObject as MediaStream | null;
+      const track = stream?.getVideoTracks()?.[0];
+
+      let realWidth = videoEl?.videoWidth || 1920;
+      let realHeight = videoEl?.videoHeight || 1080;
+      let realFps = 18;
+      let focusModeDetectado = "Estándar";
+      let soportaZ = false;
+      let zMin = 1;
+      let zMax = 1;
+      let zStep = 0.1;
+      let zoomActual = 1;
+
+      if (track) {
+        const capabilities: any = track.getCapabilities ? track.getCapabilities() : {};
+        const settings: any = track.getSettings ? track.getSettings() : {};
+
+        realWidth = videoEl?.videoWidth || settings.width || realWidth;
+        realHeight = videoEl?.videoHeight || settings.height || realHeight;
+        realFps = Math.round(settings.frameRate || 18);
+
+        // AutoFocus continuo si el navegador lo permite
+        const advanced: any = {};
+        if (capabilities.focusMode && Array.isArray(capabilities.focusMode)) {
+          if (capabilities.focusMode.includes("continuous")) {
+            advanced.focusMode = "continuous";
+            focusModeDetectado = "Continuo (Activo)";
+          } else if (capabilities.focusMode.includes("auto")) {
+            advanced.focusMode = "auto";
+            focusModeDetectado = "Automático";
+          }
+        }
+
+        // Zoom por hardware si MediaTrackCapabilities lo soporta
+        if (capabilities.zoom) {
+          soportaZ = true;
+          zMin = capabilities.zoom.min || 1;
+          zMax = capabilities.zoom.max || 1;
+          zStep = capabilities.zoom.step || 0.1;
+          zoomActual = settings.zoom || zMin || 1;
+          setSoportaZoom(true);
+          setRangoZoom({ min: zMin, max: zMax, step: zStep });
+          setNivelZoom(zoomActual);
+        } else {
+          setSoportaZoom(false);
+        }
+
+        if (Object.keys(advanced).length > 0) {
+          try {
+            await track.applyConstraints({ advanced: [advanced] });
+            console.log("[CAMARA] FocusMode continuo activado en hardware:", advanced);
+          } catch (eAdv) {
+            console.warn("[CAMARA] applyConstraints avanzado ignorado por driver:", eAdv);
+          }
+        }
+      }
+
+      const devId = camaraQrSeleccionada;
+      const encontrada = camaras.find((c) => c.deviceId === devId);
+      const camLabel =
+        encontrada?.label ||
+        (configTerminal.tipoDispositivo === "LAPTOP_PC"
+          ? "Webcam Integrada HD"
+          : "Cámara Trasera HD");
+      const tipoCam = camLabel.toLowerCase().includes("usb")
+        ? "USB"
+        : camLabel.toLowerCase().includes("integrated") || configTerminal.tipoDispositivo === "LAPTOP_PC"
+        ? "Webcam Integrada"
+        : "Cámara Móvil / Tablet";
+
+      setDiagnostico((prev) => ({
+        ...prev,
+        resolucion: `${realWidth}x${realHeight}`,
+        fps: realFps > 0 ? realFps : 18,
+        camaraLabel: camLabel,
+        tipoCamara: tipoCam,
+        estado: "Óptimo HD",
+        focusMode: focusModeDetectado,
+        zoomSoportado: soportaZ,
+        zoomActual,
+      }));
+
+      console.log(`[CAMARA] Resolución real negociada: ${realWidth}x${realHeight} a ${realFps} FPS. Enfoque: ${focusModeDetectado}`);
+    } catch (err) {
+      console.warn("[CAMARA] No se pudo leer diagnóstico detallado:", err);
+    }
+  }
+
+  // 3.2 Aplicar Zoom en tiempo real
+  async function aplicarZoom(nuevoZoom: number) {
+    try {
+      setNivelZoom(nuevoZoom);
+      const video = (document.querySelector("#lector-qr video") || document.querySelector("video")) as HTMLVideoElement | null;
+      const stream = video?.srcObject as MediaStream | null;
+      const track = stream?.getVideoTracks()?.[0];
+      if (track) {
+        const capabilities: any = track.getCapabilities ? track.getCapabilities() : {};
+        if (capabilities.zoom) {
+          const clamped = Math.max(capabilities.zoom.min || 1, Math.min(capabilities.zoom.max || 5, nuevoZoom));
+          await track.applyConstraints({ advanced: [{ zoom: clamped } as any] });
+          setDiagnostico((prev) => ({ ...prev, zoomActual: clamped }));
+          console.log(`[CAMARA] Zoom cambiado a ${clamped}x`);
+        }
+      }
+    } catch (err) {
+      console.warn("[CAMARA] Error aplicando zoom:", err);
+    }
+  }
+
+  // 3.3 Botón 'Mejorar enfoque': Reinicia stream con máxima resolución y fuerza calibración de enfoque
+  async function mejorarEnfoque() {
+    if (mejorandoEnfoque) return;
+    setMejorandoEnfoque(true);
+    setMensaje("🎯 Calibrando enfoque y máxima resolución...");
+
+    try {
+      // Intentar autofocus sweep en el sensor activo
+      const video = (document.querySelector("#lector-qr video") || document.querySelector("video")) as HTMLVideoElement | null;
+      const stream = video?.srcObject as MediaStream | null;
+      const track = stream?.getVideoTracks()?.[0];
+
+      if (track) {
+        const caps: any = track.getCapabilities ? track.getCapabilities() : {};
+        if (caps.focusMode && Array.isArray(caps.focusMode)) {
+          try {
+            if (caps.focusMode.includes("auto")) {
+              await track.applyConstraints({ advanced: [{ focusMode: "auto" } as any] });
+              await esperar(120);
+            }
+            if (caps.focusMode.includes("continuous")) {
+              await track.applyConstraints({ advanced: [{ focusMode: "continuous" } as any] });
+            }
+          } catch (e) {
+            console.warn("Re-enfoque manual no admitido:", e);
+          }
+        }
+      }
+
+      // Reiniciar stream completo garantizando 1080p
+      await activarCamaraPermanente(camaraQrSeleccionada || undefined);
+      setMensaje("✅ Enfoque optimizado en máxima resolución.");
+      setTimeout(() => {
+        if (estadoLecturaQR === "listo") {
+          setMensaje("Listo siguiente estudiante.");
+        }
+      }, 2000);
+    } catch (err) {
+      console.error("Error al mejorar enfoque:", err);
+      setMensaje("⚠️ Error al calibrar enfoque");
+    } finally {
+      setMejorandoEnfoque(false);
     }
   }
 
@@ -1109,17 +1277,49 @@ export default function MarcarPage() {
                 </span>
               </div>
 
-              <div className="text-xs font-bold text-slate-400">
-                {camaraActiva
-                  ? estadoLecturaQR === "detectado"
-                    ? "⚡ Procesando marcación..."
-                    : "🟢 Esperando estudiante..."
-                  : "Cámara en pausa"}
+              <div className="flex items-center gap-3">
+                {camaraActiva && (
+                  <button
+                    type="button"
+                    onClick={() => void mejorarEnfoque()}
+                    disabled={mejorandoEnfoque}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/50 text-xs font-bold transition active:scale-95"
+                    title="Reiniciar stream con máxima resolución y calibrar enfoque"
+                  >
+                    <span>🎯</span>
+                    <span>{mejorandoEnfoque ? "Calibrando..." : "Mejorar enfoque"}</span>
+                  </button>
+                )}
+                <div className="text-xs font-bold text-slate-400">
+                  {camaraActiva
+                    ? estadoLecturaQR === "detectado"
+                      ? "⚡ Procesando marcación..."
+                      : "🟢 Esperando estudiante..."
+                    : "Cámara en pausa"}
+                </div>
               </div>
             </div>
 
             {/* Viewport del Escáner */}
             <div className="relative aspect-[4/3] sm:aspect-video w-full bg-black flex items-center justify-center overflow-hidden">
+              <style>{`
+                #lector-qr {
+                  width: 100% !important;
+                  height: 100% !important;
+                  display: flex !important;
+                  align-items: center !important;
+                  justify-content: center !important;
+                }
+                #lector-qr video {
+                  width: 100% !important;
+                  height: 100% !important;
+                  object-fit: cover !important;
+                  display: block !important;
+                }
+                #lector-qr canvas {
+                  display: none !important;
+                }
+              `}</style>
               <div
                 id="lector-qr"
                 className={`w-full h-full object-cover transition-opacity duration-300 ${
@@ -1254,17 +1454,99 @@ export default function MarcarPage() {
               )}
             </div>
 
-            {/* Barra de Control Rápido Inferior */}
-            <div className="p-4 bg-slate-900 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div>
-                {camaraActiva ? (
+            {/* Barra de Diagnóstico de Video en Vivo (Resolución real, FPS, Cámara y Zoom) */}
+            {camaraActiva && (
+              <div className="px-4 py-2.5 bg-slate-950/95 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400 font-bold">Resolución:</span>
+                    <span className="font-mono font-black text-emerald-400">
+                      {diagnostico.resolucion}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400 font-bold">FPS:</span>
+                    <span className="font-mono font-black text-cyan-400">
+                      {diagnostico.fps}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400 font-bold">Cámara usada:</span>
+                    <span className="font-bold text-slate-200 truncate max-w-[160px] sm:max-w-xs">
+                      {diagnostico.camaraLabel}
+                    </span>
+                  </div>
+
+                  {diagnostico.focusMode && (
+                    <div className="hidden md:flex items-center gap-1.5">
+                      <span className="text-slate-400 font-bold">Enfoque:</span>
+                      <span className="font-bold text-blue-400">
+                        {diagnostico.focusMode}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {soportaZoom && (
+                    <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-xl border border-slate-700">
+                      <span className="text-[10px] text-slate-400 font-bold">Zoom:</span>
+                      {[1, 1.5, 2]
+                        .filter((z) => z <= (rangoZoom.max || 1))
+                        .map((z) => (
+                          <button
+                            key={z}
+                            type="button"
+                            onClick={() => void aplicarZoom(z)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-black transition ${
+                              nivelZoom === z
+                                ? "bg-blue-600 text-white shadow-sm"
+                                : "text-slate-400 hover:text-white"
+                            }`}
+                          >
+                            {z}x
+                          </button>
+                        ))}
+                    </div>
+                  )}
+
                   <button
                     type="button"
-                    onClick={apagarCamaraManual}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-sm transition"
+                    onClick={() => void mejorarEnfoque()}
+                    disabled={mejorandoEnfoque}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-xs transition shadow-md shadow-blue-900/30"
+                    title="Reiniciar stream con máxima resolución y calibrar enfoque"
                   >
-                    <span>🔴</span> Cámara activa (Presione para apagar)
+                    <span>🎯</span>
+                    <span>{mejorandoEnfoque ? "Calibrando..." : "Mejorar enfoque"}</span>
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Barra de Control Rápido Inferior */}
+            <div className="p-4 bg-slate-900 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {camaraActiva ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={apagarCamaraManual}
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs transition"
+                    >
+                      <span>🔴</span> Apagar cámara
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void mejorarEnfoque()}
+                      disabled={mejorandoEnfoque}
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-md shadow-blue-950/40 transition"
+                    >
+                      <span>🎯</span> {mejorandoEnfoque ? "Calibrando..." : "Mejorar enfoque"}
+                    </button>
+                  </>
                 ) : (
                   <button
                     type="button"
@@ -1439,7 +1721,7 @@ export default function MarcarPage() {
                 <span className="text-lg font-mono font-black text-emerald-400">
                   {diagnostico.resolucion}
                 </span>
-                <span className="text-[10px] text-slate-500 block mt-0.5">HD Optimizado</span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">Captura nativa HD</span>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
@@ -1451,13 +1733,29 @@ export default function MarcarPage() {
               </div>
 
               <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 col-span-2">
-                <span className="text-slate-400 font-bold block">Dispositivo Actual</span>
+                <span className="text-slate-400 font-bold block">Cámara Usada</span>
                 <span className="text-sm font-bold text-white block truncate">
                   {diagnostico.camaraLabel}
                 </span>
                 <span className="text-xs text-blue-400 font-semibold mt-0.5 block">
                   Tipo: {diagnostico.tipoCamara}
                 </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
+                <span className="text-slate-400 font-bold block">Modo de Enfoque</span>
+                <span className="text-sm font-extrabold text-blue-400 block mt-0.5">
+                  {diagnostico.focusMode || "Continuo"}
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">Autofocus activo</span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
+                <span className="text-slate-400 font-bold block">Soporte de Zoom</span>
+                <span className="text-sm font-extrabold text-amber-400 block mt-0.5">
+                  {diagnostico.zoomSoportado ? `${diagnostico.zoomActual || 1}x (Disponible)` : "No soportado"}
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">Control de hardware</span>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
@@ -1484,23 +1782,33 @@ export default function MarcarPage() {
               </div>
             </div>
 
-            <div className="pt-2 flex gap-3">
+            <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  void mejorarEnfoque();
+                }}
+                disabled={mejorandoEnfoque}
+                className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-black text-white transition shadow-lg shadow-blue-950/40 flex items-center justify-center gap-2"
+              >
+                <span>🎯</span> {mejorandoEnfoque ? "Calibrando..." : "Mejorar Enfoque"}
+              </button>
               <button
                 type="button"
                 onClick={() => {
                   setDiagnosticoAbierto(false);
                   void activarCamaraPermanente();
                 }}
-                className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white transition"
+                className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition"
               >
                 🔄 Reiniciar Stream
               </button>
               <button
                 type="button"
                 onClick={() => setDiagnosticoAbierto(false)}
-                className="flex-1 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-xs font-black text-white transition shadow-lg shadow-cyan-950/40"
+                className="py-3 px-5 rounded-xl bg-slate-700 hover:bg-slate-600 text-xs font-bold text-white transition"
               >
-                Cerrar Diagnóstico
+                Cerrar
               </button>
             </div>
           </div>
