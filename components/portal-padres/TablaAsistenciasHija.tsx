@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { AsistenciaEvidencia } from "./ModalFotoEvidencia";
+import { AsistenciaEvidencia, esUrlEvidenciaValida } from "./ModalFotoEvidencia";
 
 interface TablaAsistenciasHijaProps {
   asistencias: AsistenciaEvidencia[];
@@ -115,7 +115,9 @@ export function TablaAsistenciasHija({
                   : "En colegio";
 
                 const tieneFoto = Boolean(
-                  asist.fotoEntrada || asist.fotoSalida || asist.fotoUrl
+                  esUrlEvidenciaValida(asist.fotoEntrada) ||
+                  esUrlEvidenciaValida(asist.fotoSalida) ||
+                  esUrlEvidenciaValida(asist.fotoUrl)
                 );
 
                 return (

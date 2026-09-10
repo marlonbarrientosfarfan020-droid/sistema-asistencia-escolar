@@ -24,6 +24,26 @@ interface ModalFotoEvidenciaProps {
   onCerrar: () => void;
 }
 
+export function esUrlEvidenciaValida(url: unknown): boolean {
+  if (!url || typeof url !== "string") return false;
+  const u = url.trim();
+  if (!u) return false;
+  // Debe rechazar URL local y placeholder
+  if (
+    u.includes("sistema-asistencia.local") ||
+    u.includes("evidencia-pendiente") ||
+    u.includes("placeholder") ||
+    u.includes("localhost")
+  ) {
+    return false;
+  }
+  // Debe ser URL http/https o data:image
+  if (!u.startsWith("http://") && !u.startsWith("https://") && !u.startsWith("data:image/")) {
+    return false;
+  }
+  return true;
+}
+
 export function ModalFotoEvidencia({
   asistencia,
   nombreEstudiante,
@@ -31,16 +51,25 @@ export function ModalFotoEvidencia({
 }: ModalFotoEvidenciaProps) {
   if (!asistencia) return null;
 
-  const tieneFotoEntrada = Boolean(asistencia.fotoEntrada || (!asistencia.fotoSalida && asistencia.fotoUrl));
-  const tieneFotoSalida = Boolean(asistencia.fotoSalida);
+  const tieneFotoEntrada = esUrlEvidenciaValida(asistencia.fotoEntrada) || (!esUrlEvidenciaValida(asistencia.fotoSalida) && esUrlEvidenciaValida(asistencia.fotoUrl));
+  const tieneFotoSalida = esUrlEvidenciaValida(asistencia.fotoSalida);
 
   const [tabFoto, setTabFoto] = React.useState<"ENTRADA" | "SALIDA">(
     tieneFotoEntrada ? "ENTRADA" : tieneFotoSalida ? "SALIDA" : "ENTRADA"
   );
 
-  const urlFoto = tabFoto === "ENTRADA"
+  const [errorCarga, setErrorCarga] = React.useState(false);
+
+  React.useEffect(() => {
+    setErrorCarga(false);
+  }, [tabFoto, asistencia]);
+
+  const rawFoto = tabFoto === "ENTRADA"
     ? (asistencia.fotoEntrada || asistencia.fotoUrl)
     : (asistencia.fotoSalida || asistencia.fotoUrl);
+
+  const esValida = esUrlEvidenciaValida(rawFoto);
+  const urlFoto = esValida ? String(rawFoto).trim() : null;
 
   const fechaFormateada = new Date(asistencia.fecha).toLocaleDateString("es-PE", {
     weekday: "long",
@@ -129,24 +158,33 @@ export function ModalFotoEvidencia({
 
           {/* Contenedor de la Foto */}
           <div className="relative w-full aspect-[4/3] bg-slate-950 rounded-2xl overflow-hidden border border-slate-200 shadow-inner flex items-center justify-center">
-            {urlFoto ? (
+            {urlFoto && !errorCarga ? (
               <img
                 src={urlFoto}
                 alt={`Evidencia de asistencia (${tabFoto}) de ${nombreEstudiante}`}
                 className="w-full h-full object-contain"
+                onError={() => setErrorCarga(true)}
               />
+            ) : errorCarga ? (
+              <div className="text-center p-8 text-amber-300">
+                <span className="text-4xl block mb-2">⚠</span>
+                <p className="font-bold text-base text-amber-200">⚠ No se pudo cargar la imagen desde almacenamiento.</p>
+                <p className="text-xs text-slate-400 mt-2 max-w-xs mx-auto">
+                  El archivo no se encuentra disponible temporalmente o la red no responde.
+                </p>
+              </div>
             ) : (
-              <div className="text-center p-8 text-slate-400">
-                <span className="text-4xl block mb-2">📷</span>
-                <p className="font-bold text-sm">Fotografía no disponible</p>
-                <p className="text-xs text-slate-500 mt-1">
-                  Este registro fue validado sin captura de foto en este movimiento.
+              <div className="text-center p-8 text-amber-300">
+                <span className="text-4xl block mb-2">⚠</span>
+                <p className="font-bold text-base text-amber-200">⚠ Evidencia no disponible</p>
+                <p className="text-xs text-slate-400 mt-2 max-w-xs mx-auto">
+                  La captura fotográfica no pudo completarse durante la marcación.
                 </p>
               </div>
             )}
 
             {/* Badge superpuesto en la foto */}
-            {urlFoto && (
+            {urlFoto && !errorCarga && (
               <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between bg-slate-950/80 backdrop-blur-sm px-3 py-1.5 rounded-xl text-white text-xs border border-white/10">
                 <span className="font-mono text-[11px] text-amber-300">
                   🕒 {tabFoto === "ENTRADA" ? horaEntradaStr : horaSalidaStr}

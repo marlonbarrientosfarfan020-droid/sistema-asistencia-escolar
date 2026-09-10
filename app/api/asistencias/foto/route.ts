@@ -30,13 +30,18 @@ export async function POST(request: Request) {
   const validacionFotos = await verificarModuloActivo("fotos");
   if (!validacionFotos.autorizado) {
     console.log("[FOTO API] Almacenamiento omitido: fotosActivo=false en SuperMotor");
-    return NextResponse.json({
-      ok: true,
-      activo: false,
-      omitido: true,
-      fotoUrl: "",
-      message: "Captura de evidencia fotográfica desactivada en el SuperMotor.",
-    });
+    return NextResponse.json(
+      {
+        ok: false,
+        activo: false,
+        omitido: true,
+        fotoUrl: null,
+        message: "Captura de evidencia fotográfica desactivada en el SuperMotor.",
+      },
+      {
+        status: 400,
+      }
+    );
   }
 
   try {
@@ -155,6 +160,20 @@ export async function POST(request: Request) {
       );
 
     console.log("[FOTO API] upload terminado");
+
+    if (!blob?.url || (!blob.url.startsWith("https://") && !blob.url.startsWith("http://"))) {
+      console.error("[FOTO API] No se obtuvo URL válida de Vercel Blob:", blob);
+      return NextResponse.json(
+        {
+          ok: false,
+          message: "No se obtuvo URL válida de Vercel Blob",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
     console.log("[FOTO API] URL generada:", blob.url);
 
     return NextResponse.json({

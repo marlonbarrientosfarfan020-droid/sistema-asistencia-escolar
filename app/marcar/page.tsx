@@ -37,6 +37,7 @@ type ResultadoAsistencia = {
   estadoSalida?: string;
   esFueraHorario?: boolean;
   estadoEvidencia?: string;
+  fotoUrl?: string | null;
   message?: string;
   estudiante?: {
     id?: number;
@@ -56,6 +57,8 @@ type ResultadoAsistencia = {
     horaSalida?: string;
     horaFormateada?: string;
     tipo?: string;
+    fotoUrl?: string | null;
+    fotoEntrada?: string | null;
   };
 };
 
@@ -537,10 +540,10 @@ export default function MarcarPage() {
     }
   }
 
-  // 7. Extracción de fotograma instantáneo desde el sensor en < 10ms
-  function capturarFotoDesdeVideoActual(): Blob | null {
+  // 7. Extracción de fotograma instantáneo desde el sensor mediante Canvas
+  async function capturarFotoDesdeVideoActual(): Promise<Blob | null> {
     try {
-      const video = document.querySelector("#lector-qr video") as HTMLVideoElement | null;
+      const video = (document.querySelector("#lector-qr video") || document.querySelector("video")) as HTMLVideoElement | null;
       if (video && video.videoWidth > 0 && video.videoHeight > 0) {
         const canvas = document.createElement("canvas");
         const ancho = Math.min(video.videoWidth, 720);
@@ -550,24 +553,32 @@ export default function MarcarPage() {
         const ctx = canvas.getContext("2d");
         if (ctx) {
           ctx.drawImage(video, 0, 0, ancho, alto);
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
-          const byteString = atob(dataUrl.split(",")[1]);
-          const mimeString = dataUrl.split(",")[0].split(":")[1].split(";")[0];
-          const ab = new ArrayBuffer(byteString.length);
-          const ia = new Uint8Array(ab);
-          for (let i = 0; i < byteString.length; i++) {
-            ia[i] = byteString.charCodeAt(i);
+
+          const blob = await new Promise<Blob | null>((resolve) => {
+            canvas.toBlob((b) => resolve(b), "image/jpeg", 0.82);
+          });
+
+          if (blob && blob.size > 0 && blob.type === "image/jpeg") {
+            console.log("[FOTO DEBUG]");
+            console.log("Tamaño Blob:", blob.size, "bytes");
+            console.log("Tipo MIME:", blob.type);
+            console.log("Fecha captura:", new Date().toISOString());
+            console.log("Resolución:", `${ancho}x${alto}`);
+            return blob;
+          } else {
+            console.warn("[FOTO DEBUG] canvas.toBlob() no generó un blob válido");
           }
-          return new Blob([ab], { type: mimeString });
         }
+      } else {
+        console.warn("[FOTO DEBUG] Video no disponible o dimensiones inválidas para captura");
       }
     } catch (err) {
-      console.warn("No se pudo extraer fotograma instantáneo del sensor QR:", err);
+      console.warn("[FOTO DEBUG] Error al capturar fotograma desde video:", err);
     }
     return null;
   }
 
-  // 8. Subida asíncrona de fotografía que no bloquea la asistencia
+  // 8. Subida asíncrona de fotografía a Vercel Blob con timeout real de red (máx 3000ms)
   async function subirFotoSegura(foto: Blob): Promise<string> {
     const formData = new FormData();
     formData.append(
@@ -581,7 +592,7 @@ export default function MarcarPage() {
       "";
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4500);
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
 
     try {
       const respuesta = await fetch("/api/asistencias/foto", {
@@ -593,16 +604,32 @@ export default function MarcarPage() {
       });
       clearTimeout(timeoutId);
 
-      if (!respuesta.ok) return "";
-      const data = await respuesta.json();
-      return data.fotoUrl || "";
-    } catch (error) {
-      console.warn("[TERMINAL V2] Subida de foto en segundo plano omitida:", error);
+      const data = await respuesta.json().catch(() => null);
+
+      if (!respuesta.ok || !data?.ok) {
+        console.error("[FOTO DEBUG] Error en endpoint /api/asistencias/foto:", data?.message || respuesta.statusText);
+        return "";
+      }
+
+      if (data.fotoUrl && typeof data.fotoUrl === "string" && data.fotoUrl.startsWith("http")) {
+        console.log("[FOTO DEBUG] Foto subida exitosamente a Vercel Blob:", data.fotoUrl);
+        return data.fotoUrl;
+      }
+
+      console.error("[FOTO DEBUG] Respuesta exitosa pero sin URL pública válida:", data);
+      return "";
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error?.name === "AbortError") {
+        console.warn("[FOTO DEBUG] Subida de foto cancelada por timeout de red (3000ms)");
+      } else {
+        console.warn("[FOTO DEBUG] Error en subida de foto a Vercel Blob:", error);
+      }
       return "";
     }
   }
 
-  // 9. FLUJO PROFESIONAL V2: Asistencia inmediata + Evidencia en segundo plano
+  // 9. FLUJO PROFESIONAL V2: Asistencia inmediata con captura no-bloqueante
   async function procesarLecturaQRContinuo(codigo: string) {
     const tInicio = performance.now();
     console.log("[TERMINAL V2] QR recibido:", codigo);
@@ -611,10 +638,10 @@ export default function MarcarPage() {
     setMensaje("🔍 Código detectado. Validando...");
     beep("ok");
 
-    // Capturar foto del stream activo en memoria (< 10ms)
-    const fotoBlob = capturarFotoDesdeVideoActual();
+    // Capturar foto del stream activo en memoria con canvas.toBlob()
+    const fotoBlob = await capturarFotoDesdeVideoActual();
 
-    // Registrar asistencia (la foto NO bloquea la respuesta al alumno)
+    // Registrar asistencia (la foto no bloquea la respuesta al alumno)
     await ejecutarRegistroAsistencia({ codigo, metodo: "QR" }, fotoBlob);
 
     // Medición exacta para diagnóstico
@@ -639,35 +666,27 @@ export default function MarcarPage() {
     procesandoQR.current = false;
   }
 
-  // 10. Función central de registro de asistencia con evidencia no-bloqueante
+  // 10. Función central de registro de asistencia: la foto nunca bloquea la asistencia
   async function ejecutarRegistroAsistencia(
     datos: { dni?: string; codigo?: string; metodo: string },
     fotoBlob: Blob | null
   ) {
-    let fotoUrl = "https://sistema-asistencia.local/evidencia-pendiente.jpg";
-    let estadoEvidencia = "Evidencia pendiente";
+    let fotoUrl: string | null = null;
+    let estadoEvidencia = "Evidencia no disponible";
 
-    // Disparar subida en segundo plano sin retener la terminal si el internet es lento
+    // Intentar subida con tiempo real de red (máx 3000ms)
     if (fotoBlob) {
-      const subidaPromise = subirFotoSegura(fotoBlob);
-      // Carrera ultrarrápida (320ms): si la subida es instantánea, usa la URL real de Vercel Blob
-      // si tarda más, continúa con el placeholder válido para no hacer esperar al estudiante
-      const resultadoFoto = await Promise.race([
-        subidaPromise,
-        esperar(320).then(() => "https://sistema-asistencia.local/evidencia-pendiente.jpg"),
-      ]);
-
-      if (resultadoFoto && resultadoFoto.startsWith("http") && !resultadoFoto.includes("pendiente")) {
-        fotoUrl = resultadoFoto;
+      const urlSubida = await subirFotoSegura(fotoBlob);
+      if (urlSubida && urlSubida.startsWith("http") && !urlSubida.includes("sistema-asistencia.local") && !urlSubida.includes("evidencia-pendiente")) {
+        fotoUrl = urlSubida;
         estadoEvidencia = "Evidencia capturada";
       } else {
-        // Dejar que continúe en background
-        subidaPromise
-          .then((url) => {
-            if (url) console.log("[TERMINAL V2] Evidencia guardada en background:", url);
-          })
-          .catch(() => {});
+        fotoUrl = null;
+        estadoEvidencia = "Evidencia no disponible";
       }
+    } else {
+      fotoUrl = null;
+      estadoEvidencia = "Evidencia no disponible";
     }
 
     const pin =
@@ -688,7 +707,7 @@ export default function MarcarPage() {
         credentials: "include",
         body: JSON.stringify({
           ...datos,
-          fotoUrl,
+          fotoUrl: fotoUrl || null,
         }),
         signal: controller.signal,
       });
@@ -717,7 +736,8 @@ export default function MarcarPage() {
       // Registro exitoso
       setResultado({
         ...data,
-        estadoEvidencia,
+        fotoUrl: fotoUrl || data.asistencia?.fotoUrl || null,
+        estadoEvidencia: fotoUrl ? "Evidencia capturada" : "Evidencia no disponible",
       });
 
       setMensaje(
@@ -770,7 +790,7 @@ export default function MarcarPage() {
       return;
     }
 
-    const foto = capturarFotoDesdeVideoActual();
+    const foto = await capturarFotoDesdeVideoActual();
     await ejecutarRegistroAsistencia({ dni: dni.trim(), metodo: "DNI" }, foto);
     setDni("");
     setTimeout(() => {
@@ -795,7 +815,7 @@ export default function MarcarPage() {
     setMensaje("🙂 Mire hacia la cámara para reconocimiento facial...");
 
     try {
-      const foto = capturarFotoDesdeVideoActual();
+      const foto = await capturarFotoDesdeVideoActual();
       if (!foto) {
         throw new Error("No se pudo capturar imagen de la cámara");
       }
@@ -1214,8 +1234,12 @@ export default function MarcarPage() {
                         >
                           {resultado.tipo === "SALIDA" ? "Salida Confirmada" : "Entrada Confirmada"}
                         </span>
-                        <span className="px-2.5 py-0.5 rounded-full bg-slate-800 text-[11px] font-bold text-slate-300 border border-slate-700">
-                          {resultado.estadoEvidencia || "Evidencia capturada"}
+                        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                          resultado.fotoUrl
+                            ? "bg-emerald-950/60 text-emerald-300 border-emerald-700/50"
+                            : "bg-amber-950/60 text-amber-300 border-amber-700/50"
+                        }`}>
+                          {resultado.fotoUrl ? "📸 Evidencia capturada" : "⚠ Evidencia no disponible"}
                         </span>
                       </div>
                       <h2 className="text-3xl font-black text-white mt-3">

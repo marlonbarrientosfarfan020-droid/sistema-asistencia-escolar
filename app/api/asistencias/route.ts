@@ -259,26 +259,26 @@ export async function POST(request: Request) {
       );
     }
 
-    // FASE 4.3: Validar fotosActivo por colegio
-    const validacionFotos = await verificarModuloActivo("fotos", colegioId);
-    let fotoUrlFinal = fotoUrl;
+    // FASE 4.3 & Sanitización estricta de evidencia fotográfica:
+    // Solo permitir URL real de Vercel Blob o null.
+    // Si contiene URLs falsas/locales (sistema-asistencia.local, evidencia-pendiente, placeholder), reemplazar con null.
+    let fotoUrlFinal: string | null = null;
+    if (fotoUrl && typeof fotoUrl === "string") {
+      const u = fotoUrl.trim();
+      const esFicticia =
+        u.includes("sistema-asistencia.local") ||
+        u.includes("evidencia-pendiente") ||
+        u.includes("placeholder") ||
+        u.includes("localhost");
 
-    if (validacionFotos.autorizado) {
-      // Fotos está ON: Validación estricta de evidencia fotográfica
-      if (!fotoUrl || !fotoUrl.startsWith("http")) {
-        return NextResponse.json(
-          {
-            ok: false,
-            message: "No se pudo guardar evidencia fotográfica",
-          },
-          { status: 400 }
-        );
+      if (!esFicticia && (u.startsWith("https://") || u.startsWith("http://"))) {
+        fotoUrlFinal = u;
       }
-    } else {
-      // Fotos está OFF: Se continúa la asistencia sin fotografía obligatoria
-      if (!fotoUrl || !fotoUrl.startsWith("http")) {
-        fotoUrlFinal = "";
-      }
+    }
+
+    const validacionFotos = await verificarModuloActivo("fotos", colegioId);
+    if (validacionFotos.autorizado && !fotoUrlFinal) {
+      console.warn("[ASISTENCIA API] Fotos activo pero evidencia fotográfica no disponible o falló subida. La foto nunca bloquea la asistencia; se registrará con fotoUrl = null.");
     }
 
     const condicionesBusqueda: Array<
