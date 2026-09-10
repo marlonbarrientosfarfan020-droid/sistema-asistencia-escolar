@@ -18,6 +18,9 @@ import {
 
 interface MetricasGlobales {
   totalMatriculadas: number;
+  totalOperativas?: number;
+  alumnasTurnoInactivo?: number;
+  pendientes?: number;
   presentes: number;
   puntuales: number;
   tardanzas: number;
@@ -41,7 +44,11 @@ interface TurnoItem {
   puntuales: number;
   tardanzas: number;
   ausentes?: number;
+  pendientes?: number;
+  inactivos?: number;
   totalAlumnas: number;
+  activo?: boolean;
+  estadoTurno?: string;
 }
 
 interface EvolucionSemanalItem {
@@ -179,14 +186,40 @@ export function DashboardAsistenciaPublica() {
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-white p-1.5 sm:p-2 rounded-2xl border border-slate-200 shadow-sm text-xs font-bold text-slate-700 shrink-0">
           <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl bg-slate-100 text-slate-900 flex items-center gap-1.5 text-xs">
             <span>👥</span>
-            <span>{metricas?.totalMatriculadas ?? 0} Estudiantes</span>
+            <span>{metricas?.totalMatriculadas ?? 0} Matriculadas</span>
           </div>
+          {metricas?.totalOperativas !== undefined && metricas.totalOperativas !== metricas.totalMatriculadas && (
+            <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-1.5 text-xs">
+              <span>🎯</span>
+              <span>{metricas.totalOperativas} Operativas</span>
+            </div>
+          )}
           <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1.5 font-black text-xs">
             <span>📈</span>
             <span>{metricas?.porcentajeAsistencia ?? 0}% Asistencia</span>
           </div>
         </div>
       </div>
+
+      {/* Banner Informativo Turnos Inactivos */}
+      {(metricas?.alumnasTurnoInactivo ?? 0) > 0 && (
+        <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-slate-600">
+          <div className="flex items-center gap-2.5">
+            <span className="text-base">ℹ️</span>
+            <div>
+              <span className="font-bold text-slate-800">
+                Población en turno inactivo ({metricas?.alumnasTurnoInactivo} estudiantes):
+              </span>{" "}
+              <span>
+                Asignadas a turnos no operativos en la jornada escolar. No computan ausencias ni afectan las métricas operativas.
+              </span>
+            </div>
+          </div>
+          <div className="shrink-0 font-semibold text-slate-500 text-[11px] bg-white px-2.5 py-1 rounded-xl border border-slate-200">
+            Operativas: <span className="text-slate-900 font-bold">{metricas?.totalOperativas ?? 0}</span> / Matriculadas: <span className="text-slate-900 font-bold">{metricas?.totalMatriculadas ?? 0}</span>
+          </div>
+        </div>
+      )}
 
       {/* 4 KPIs Principales (2 columnas en móvil, 4 en desktop) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
@@ -204,7 +237,11 @@ export function DashboardAsistenciaPublica() {
               <span className="text-emerald-600 font-bold">
                 {metricas?.porcentajeAsistencia ?? 0}%
               </span>
-              <span className="truncate">del alumnado</span>
+              <span className="truncate">
+                {metricas?.totalOperativas !== undefined && metricas.totalOperativas !== metricas.totalMatriculadas
+                  ? `de ${metricas.totalOperativas} operativas`
+                  : "del alumnado"}
+              </span>
             </div>
           </div>
         </div>
@@ -255,7 +292,9 @@ export function DashboardAsistenciaPublica() {
               {metricas?.ausentes ?? 0}
             </p>
             <div className="flex items-center gap-1 mt-1 sm:mt-2 text-[11px] sm:text-xs font-semibold text-slate-500">
-              <span className="truncate">Sin registro</span>
+              <span className="truncate">
+                {metricas?.ausentes === 0 ? "Sin ausencias confirmadas" : "Confirmadas"}
+              </span>
             </div>
           </div>
         </div>
@@ -401,10 +440,19 @@ export function DashboardAsistenciaPublica() {
                 />
                 <Tooltip
                   cursor={{ fill: "rgba(241, 245, 249, 0.7)" }}
-                  formatter={(value: any, name: any, item: any) => [
-                    `${value}% de asistencia (${item.payload.presentes ?? 0} presentes)`,
-                    item.payload.turno,
-                  ]}
+                  formatter={(value: any, name: any, item: any) => {
+                    const t = item?.payload;
+                    if (t?.activo === false) {
+                      return [
+                        `Turno Inactivo (${t.totalAlumnas ?? 0} alumnas asignadas)`,
+                        t.turno,
+                      ];
+                    }
+                    return [
+                      `${value}% de asistencia (${t?.presentes ?? 0} de ${t?.totalAlumnas ?? 0} alumnas)`,
+                      t?.turno,
+                    ];
+                  }}
                   contentStyle={{
                     backgroundColor: "#0f172a",
                     border: "none",
@@ -420,18 +468,19 @@ export function DashboardAsistenciaPublica() {
                   radius={[8, 8, 0, 0]}
                   fill="#8B0000"
                 >
-                  {turnos.map((entry, index) => (
-                    <Cell
-                      key={`bar-${index}`}
-                      fill={
-                        entry.turno.toLowerCase().includes("mañana") || entry.turno.toLowerCase().includes("manana")
-                          ? "#D4AF37"
-                          : entry.turno.toLowerCase().includes("tarde")
-                          ? "#B45309"
-                          : "#4338CA"
-                      }
-                    />
-                  ))}
+                  {turnos.map((entry, index) => {
+                    if (entry.activo === false) {
+                      return <Cell key={`bar-${index}`} fill="#cbd5e1" />;
+                    }
+                    const isManana = entry.turno.toLowerCase().includes("mañana") || entry.turno.toLowerCase().includes("manana");
+                    const isTarde = entry.turno.toLowerCase().includes("tarde");
+                    return (
+                      <Cell
+                        key={`bar-${index}`}
+                        fill={isManana ? "#D4AF37" : isTarde ? "#B45309" : "#4338CA"}
+                      />
+                    );
+                  })}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -439,24 +488,40 @@ export function DashboardAsistenciaPublica() {
 
           {/* Tarjetas de Turnos con Iconos */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 pt-3 border-t border-slate-100">
-            {turnos.map((t) => (
-              <div
-                key={t.turno}
-                className="bg-slate-50 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border border-slate-100 flex items-center justify-between"
-              >
-                <div>
-                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 block">
-                    {t.icono || "🏫"} Turno {t.turno}
-                  </span>
-                  <span className="text-lg sm:text-xl font-black text-slate-900">
-                    {t.porcentaje}%
-                  </span>
+            {turnos.map((t) => {
+              const esInactivo = t.activo === false;
+              return (
+                <div
+                  key={t.turno}
+                  className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border flex items-center justify-between ${
+                    esInactivo
+                      ? "bg-slate-50/70 border-slate-200 text-slate-400"
+                      : "bg-slate-50 border-slate-100 text-slate-800"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] sm:text-[11px] font-bold block">
+                        {t.icono || "🏫"} Turno {t.turno}
+                      </span>
+                      {esInactivo && (
+                        <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded">
+                          Inactivo
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-lg sm:text-xl font-black ${esInactivo ? "text-slate-400" : "text-slate-900"}`}>
+                      {esInactivo ? "—" : `${t.porcentaje}%`}
+                    </span>
+                  </div>
+                  <div className="text-right text-[9px] sm:text-[10px] font-mono">
+                    <span className={esInactivo ? "text-slate-400 font-semibold" : "text-slate-600 font-bold"}>
+                      {esInactivo ? `${t.totalAlumnas} asignadas` : `${t.presentes} / ${t.totalAlumnas} presentes`}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-right text-[9px] sm:text-[10px] text-slate-400 font-mono">
-                  <span>{t.presentes} alumnas</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

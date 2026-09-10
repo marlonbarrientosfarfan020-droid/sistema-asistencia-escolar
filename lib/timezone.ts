@@ -273,3 +273,5 @@ export function esFinDeSemanaPeru(fecha: Date = new Date()): boolean {
   return diaSemanaStr === "Sun";
 }
 
+export * from "./clasificadorAsistencia";
+

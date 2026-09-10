@@ -5,6 +5,11 @@ import {
   verificarModuloActivo,
   registrarAuditoriaBloqueo,
 } from "@/lib/supermotor-guard";
+import {
+  fechaPeru,
+  ahoraPeru,
+  crearFechaHoraPeru,
+} from "@/lib/timezone";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,9 +56,13 @@ export async function GET(request: Request) {
             include: {
               turno: {
                 select: {
+                  id: true,
                   nombre: true,
                   horaEntrada: true,
                   horaSalida: true,
+                  estado: true,
+                  minutosAlertaInicial: true,
+                  margenAlertaMinutos: true,
                 },
               },
             },
@@ -93,6 +102,8 @@ export async function GET(request: Request) {
       );
     }
 
+    const colegioId = (familia as any).colegioId || "SANTA_RITA_001";
+
     // 2. Determinar estudiante activa
     let estudianteActiva = familia.estudiantes[0];
     if (estudianteIdParam) {
@@ -104,10 +115,11 @@ export async function GET(request: Request) {
       }
     }
 
-    // 3. Obtener asistencias de la estudiante activa (últimos 60 registros)
+    // 3. Obtener asistencias de la estudiante activa (últimos 60 registros) con aislamiento multi colegio
     const asistencias = await prisma.asistencia.findMany({
       where: {
         estudianteId: estudianteActiva.id,
+        colegioId,
       },
       orderBy: {
         fecha: "desc",
@@ -129,11 +141,65 @@ export async function GET(request: Request) {
       },
     });
 
-    // 4. Calcular métricas de la estudiante
-    const totalRegistros = asistencias.length;
+    // 4. Evaluar si la jornada de hoy amerita ausencia virtual confirmada
+    const hoyStr = fechaPeru();
+    const ahora = ahoraPeru();
+    const fechaHoyBD = new Date(`${hoyStr}T00:00:00.000Z`);
+
+    const eventoNoLectivo = await prisma.calendarioEscolar.findFirst({
+      where: {
+        colegioId,
+        estado: true,
+        fechaInicio: { lte: fechaHoyBD },
+        fechaFin: { gte: fechaHoyBD },
+        OR: [
+          { todosLosTurnos: true },
+          { turnoId: (estudianteActiva as any).turnoId || undefined },
+        ],
+      },
+    }).catch(() => null);
+
+    const esDiaNoLectivo = Boolean(eventoNoLectivo);
+
+    // Comprobar si ya existe marcación registrada hoy
+    const tieneAsistenciaHoy = asistencias.some((a) => {
+      if (a.fechaDia === hoyStr) return true;
+      return fechaPeru(new Date(a.fecha)) === hoyStr;
+    });
+
+    const turno = estudianteActiva.turno;
+    const esTurnoActivo = Boolean(turno && turno.estado === true);
+    let horaSalidaSuperada = false;
+
+    if (turno?.horaSalida) {
+      const horaSalidaTurno = crearFechaHoraPeru(hoyStr, turno.horaSalida);
+      horaSalidaSuperada = ahora >= horaSalidaTurno;
+    }
+
+    // Condiciones estrictas de Ausencia Virtual Confirmada:
+    // 1. No tiene marcación de ingreso hoy
+    // 2. Pertenece a un turno activo
+    // 3. No es día no lectivo / feriado
+    // 4. La hora actual ya superó la hora de salida de su turno
+    const esAusenciaVirtualHoy =
+      !tieneAsistenciaHoy &&
+      esTurnoActivo &&
+      !esDiaNoLectivo &&
+      horaSalidaSuperada;
+
+    // 5. Calcular métricas de la estudiante (faltas = históricas + ausencia virtual de hoy)
+    const faltasHistoricas = asistencias.filter(
+      (a) => a.estado === "AUSENTE" || a.estado === "FALTA"
+    ).length;
+    const faltas = faltasHistoricas + (esAusenciaVirtualHoy ? 1 : 0);
+
     const puntuales = asistencias.filter((a) => a.estado === "PUNTUAL").length;
-    const tardanzas = asistencias.filter((a) => a.estado === "TARDANZA").length;
+    const tardanzas = asistencias.filter(
+      (a) => a.estado === "TARDANZA" || a.estado === "TARDE"
+    ).length;
     const justificados = asistencias.filter((a) => a.estado === "JUSTIFICADO").length;
+
+    const totalRegistros = asistencias.length + (esAusenciaVirtualHoy ? 1 : 0);
 
     const porcentajePuntualidad =
       totalRegistros > 0 ? Math.round((puntuales / totalRegistros) * 100) : 0;
@@ -146,6 +212,31 @@ export async function GET(request: Request) {
     if (justificados > 0) {
       distribucionDona.push({ name: "Justificado", valor: justificados, color: "#6366F1" });
     }
+
+    if (faltas > 0) {
+      distribucionDona.push({ name: "Faltas / Ausencias", valor: faltas, color: "#EF4444" });
+    }
+
+    // Proyección virtual de la ausencia en la lista de asistencias (sin tocar BD)
+    const listaAsistencias = esAusenciaVirtualHoy
+      ? [
+          {
+            id: -1,
+            fecha: ahora.toISOString(),
+            fechaDia: hoyStr,
+            horaEntrada: null,
+            horaSalida: null,
+            metodo: "SISTEMA",
+            estado: "AUSENTE",
+            estadoJornada: "CERRADA",
+            estadoSalida: null,
+            fotoEntrada: null,
+            fotoSalida: null,
+            fotoUrl: null,
+          },
+          ...asistencias,
+        ]
+      : asistencias;
 
     // Agrupación de asistencias por mes para gráfica de barras
     const mapaMeses = new Map<string, { mes: string; puntuales: number; tardanzas: number }>();
@@ -167,7 +258,7 @@ export async function GET(request: Request) {
 
       const item = mapaMeses.get(claveMes)!;
       if (a.estado === "PUNTUAL") item.puntuales++;
-      if (a.estado === "TARDANZA") item.tardanzas++;
+      if (a.estado === "TARDANZA" || a.estado === "TARDE") item.tardanzas++;
     }
 
     const barrasMeses = Array.from(mapaMeses.values());
@@ -200,17 +291,20 @@ export async function GET(request: Request) {
         grado: estudianteActiva.grado,
         seccion: estudianteActiva.seccion,
         turno: estudianteActiva.turno,
+        estadoHoy: esAusenciaVirtualHoy ? "AUSENTE" : (tieneAsistenciaHoy ? "PRESENTE" : "PENDIENTE"),
       },
       metricasEstudiante: {
         totalRegistros,
         puntuales,
         tardanzas,
         justificados,
+        faltas,
         porcentajePuntualidad,
+        estadoHoy: esAusenciaVirtualHoy ? "AUSENTE" : (tieneAsistenciaHoy ? "PRESENTE" : "PENDIENTE"),
       },
       distribucionDona,
       barrasMeses,
-      asistencias,
+      asistencias: listaAsistencias,
       infoColegio: {
         nombreColegio: config?.nombreColegio || "I.E.P. Santa Rita de Cassia",
         logoUrl: config?.logoUrl || "/img/logo-santa-rita.png",

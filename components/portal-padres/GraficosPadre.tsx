@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import {
@@ -106,9 +106,17 @@ export function GraficosPadre({
         </div>
 
         {/* 3. Faltas / Ausencias */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-rose-300 transition">
+        <div className={`p-5 rounded-3xl border shadow-sm relative overflow-hidden group transition ${
+          faltasTotal > 0
+            ? "bg-rose-50/50 border-rose-300 hover:border-rose-400"
+            : "bg-white border-slate-200 hover:border-rose-300"
+        }`}>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-rose-800 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200">
+            <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+              faltasTotal > 0
+                ? "text-rose-900 bg-rose-100 border-rose-300"
+                : "text-rose-800 bg-rose-50 border-rose-200"
+            }`}>
               Faltas / Inasistencias
             </span>
             <span className="text-sm">❌</span>
@@ -117,7 +125,7 @@ export function GraficosPadre({
             {faltasTotal}
           </p>
           <p className="text-[11px] text-slate-500 mt-1 font-medium">
-            Días sin marcación de entrada
+            {faltasTotal > 0 ? "Inasistencia confirmada en el turno" : "Sin inasistencias registradas"}
           </p>
         </div>
 
