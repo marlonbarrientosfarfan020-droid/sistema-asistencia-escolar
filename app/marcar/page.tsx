@@ -394,57 +394,37 @@ export default function MarcarPage() {
 
       await esperar(200);
 
-      // Instanciar con soporte exclusivo QR para máxima velocidad y aceleración por hardware
-      const lector = new Html5Qrcode("lector-qr", {
-        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-        verbose: false,
-        experimentalFeatures: {
-          useBarCodeDetectorIfSupported: true,
-        },
-      });
+      // Instanciar motor ZXing nativo estable y confiable (sin flags experimentales que bloquean Chromium)
+      const lector = new Html5Qrcode("lector-qr");
       scannerRef.current = lector;
 
-      // Perfil Laptop / PC: Resolución HD 1280x720 hasta 1920x1080 a 30 FPS
-      // Perfil Celular / Tablet: HD con facingMode adaptable y autofocus continuo
-      const videoConstraints: MediaTrackConstraints = deviceId
-        ? {
-            deviceId: { exact: deviceId },
-            width: { ideal: 1280, max: 1920 },
-            height: { ideal: 720, max: 1080 },
-            frameRate: { ideal: 30, min: 25 },
-          }
+      const cameraTarget: any = deviceId
+        ? { deviceId: { exact: deviceId } }
         : esLaptop
-        ? {
-            width: { ideal: 1280, max: 1920 },
-            height: { ideal: 720, max: 1080 },
-            facingMode: "user",
-            frameRate: { ideal: 30, min: 25 },
-          }
-        : {
-            width: { ideal: 1280, max: 1920 },
-            height: { ideal: 720, max: 1080 },
-            facingMode: { ideal: facingMode },
-            frameRate: { ideal: 30, min: 25 },
-            // @ts-ignore
-            focusMode: "continuous",
-          };
-
-      const cameraTarget: any = deviceId ? deviceId : videoConstraints;
+        ? { facingMode: "user" }
+        : { facingMode: { ideal: facingMode } };
 
       await lector.start(
         cameraTarget,
         {
-          fps: 28, // 25-30 FPS para detección instantánea
+          fps: 18,
           qrbox: (w, h) => {
-            // Ampliar área de análisis al 88% para tolerar movimiento y no depender del centro
-            const minEdge = Math.min(w, h);
-            const qrEdge = Math.floor(minEdge * 0.88);
+            const edge = Math.min(w, h);
+            const qrEdge = Math.floor(edge * 0.75);
             return { width: qrEdge, height: qrEdge };
           },
-          videoConstraints,
         },
         async (codigoLeido) => {
-          if (procesandoQR.current) return;
+          console.log("[QR DEBUG]");
+          console.log("Código leído:", codigoLeido);
+          console.log("Fecha:", new Date().toISOString());
+          console.log("Longitud:", codigoLeido.length);
+          console.log("Función ejecutada: procesarLecturaQRContinuo");
+
+          if (procesandoQR.current) {
+            console.log("[QR DEBUG] Lectura omitida: debounce/cooldown activo");
+            return;
+          }
           procesandoQR.current = true;
           await procesarLecturaQRContinuo(codigoLeido.trim());
         },
@@ -638,32 +618,46 @@ export default function MarcarPage() {
     setMensaje("🔍 Código detectado. Validando...");
     beep("ok");
 
-    // Capturar foto del stream activo en memoria con canvas.toBlob()
-    const fotoBlob = await capturarFotoDesdeVideoActual();
+    try {
+      // Capturar foto del stream activo en memoria con canvas.toBlob()
+      const fotoBlob = await capturarFotoDesdeVideoActual();
 
-    // Registrar asistencia (la foto no bloquea la respuesta al alumno)
-    await ejecutarRegistroAsistencia({ codigo, metodo: "QR" }, fotoBlob);
+      // Sanitizar código leído: remover prefijos como "CODIGO:", "DNI:", "ID:", espacios y saltos de línea
+      const codigoLimpio = codigo.trim().replace(/^(CODIGO|DNI|ID)[:\s]+/i, "").trim();
+      const esDniNumerico = /^\d{8}$/.test(codigoLimpio);
 
-    // Medición exacta para diagnóstico
-    const tiempoLecturaMs = Math.round(performance.now() - tInicio);
-    const tiempoSegundos = (tiempoLecturaMs / 1000).toFixed(1);
+      const payload = esDniNumerico
+        ? { dni: codigoLimpio, codigo: codigoLimpio, metodo: "QR" }
+        : { codigo: codigoLimpio, metodo: "QR" };
 
-    setDiagnostico((prev) => ({
-      ...prev,
-      tiempoLecturaMs,
-      tiempoLecturaSegundos: `${tiempoSegundos} segundos`,
-      ultimaLectura: codigo,
-    }));
+      // Registrar asistencia (la foto no bloquea la respuesta al alumno)
+      await ejecutarRegistroAsistencia(payload, fotoBlob);
 
-    // Cooldown optimizado para agilidad de portería (1400 ms: rango 1200-1500ms)
-    await esperar(1400);
+      // Medición exacta para diagnóstico
+      const tiempoLecturaMs = Math.round(performance.now() - tInicio);
+      const tiempoSegundos = (tiempoLecturaMs / 1000).toFixed(1);
 
-    // Regresar automáticamente a escaneo para el siguiente estudiante
-    setResultado(null);
-    setMensaje("Listo siguiente estudiante.");
-    setEstadoLecturaQR("listo");
-    setEstadoVisual("normal");
-    procesandoQR.current = false;
+      setDiagnostico((prev) => ({
+        ...prev,
+        tiempoLecturaMs,
+        tiempoLecturaSegundos: `${tiempoSegundos} segundos`,
+        ultimaLectura: codigoLimpio,
+      }));
+    } catch (err) {
+      console.error("[QR DEBUG] Error en procesarLecturaQRContinuo:", err);
+      setMensaje("⚠️ Error procesando marcación");
+      beep("error");
+    } finally {
+      // Cooldown optimizado para agilidad de portería (1400 ms: rango 1200-1500ms)
+      await esperar(1400);
+
+      // Regresar automáticamente a escaneo para el siguiente estudiante
+      setResultado(null);
+      setMensaje("Listo siguiente estudiante.");
+      setEstadoLecturaQR("listo");
+      setEstadoVisual("normal");
+      procesandoQR.current = false;
+    }
   }
 
   // 10. Función central de registro de asistencia: la foto nunca bloquea la asistencia

@@ -287,10 +287,20 @@ export async function POST(request: Request) {
 
     if (dni) {
       condicionesBusqueda.push({ dni });
+      // Si se envió un valor en dni pero no tiene formato de 8 dígitos y no se envió codigo,
+      // también probar buscar por codigo para mayor tolerancia a entradas del usuario
+      if (!codigo && !/^\d{8}$/.test(dni)) {
+        condicionesBusqueda.push({ codigo: dni });
+      }
     }
 
     if (codigo) {
       condicionesBusqueda.push({ codigo });
+      // Si el código enviado parece un DNI (8 dígitos numéricos) y no se especificó dni por separado,
+      // también buscar por dni para máxima compatibilidad con carnets y códigos QR
+      if (/^\d{8}$/.test(codigo) && !dni) {
+        condicionesBusqueda.push({ dni: codigo });
+      }
     }
 
     const [estudiante, configuracionCanales] =
