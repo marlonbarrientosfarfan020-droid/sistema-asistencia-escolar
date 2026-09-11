@@ -647,12 +647,39 @@ export async function POST(request: Request) {
         );
       }
 
-      // 2. Cálculo del estado de salida (REGISTRADA vs FUERA_HORARIO)
-      const { estadoSalida, esFueraHorario, limiteSalida } = calcularEstadoSalida({
+      // 2. Cálculo del estado de salida y detección de salida anticipada
+      const { estadoSalida, esAnticipada, esFueraHorario, limiteSalida } = calcularEstadoSalida({
         ahora,
         horaSalidaTurno: ventanaTurno.horaSalidaTurno,
         margenSalidaMinutos: estudiante.turno.margenSalidaMinutos,
       });
+
+      // Si la hora actual es menor a la hora oficial de salida del turno, bloquear cierre prematuro de jornada
+      if (esAnticipada || ahora < ventanaTurno.horaSalidaTurno) {
+        const horaSalidaOficial = formatoHora12(ventanaTurno.horaSalidaTurno);
+        return NextResponse.json(
+          {
+            ok: false,
+            salidaAnticipada: true,
+            tipoRestriccion: "SALIDA_ANTICIPADA",
+            tipo: "SALIDA",
+            estado: asistencia.estado,
+            estadoJornada: "ABIERTA",
+            estadoSalida: "PENDIENTE",
+            estudiante,
+            asistencia,
+            message:
+              `No se puede cerrar jornada: aún no es la hora de salida para el turno ${estudiante.turno.nombre}. ` +
+              `La salida oficial inicia a las ${horaSalidaOficial}. ` +
+              `Hora actual: ${horaActual12}. La jornada escolar permanece ABIERTA.`,
+            turno: {
+              nombre: estudiante.turno.nombre,
+              horaSalida: estudiante.turno.horaSalida,
+            },
+          },
+          { status: 409 }
+        );
+      }
 
       const mensajeSalida = esFueraHorario
         ? `Salida registrada con advertencia: fuera del horario permitido (Hora límite: ${formatoHora12(limiteSalida)})`

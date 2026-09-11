@@ -115,11 +115,12 @@ export default function MarcarPage() {
   const [reconociendoFacial, setReconociendoFacial] = useState(false);
   const [estadoVisual, setEstadoVisual] = useState<EstadoVisual>("normal");
 
-  // Control de terminal y seguridad
+  // Control de terminal y seguridad criptográfica
   const [terminalAutorizado, setTerminalAutorizado] = useState<boolean | null>(null);
-  const [pinTerminal, setPinTerminal] = useState("");
-  const [errorPin, setErrorPin] = useState("");
-  const [validandoPin, setValidandoPin] = useState(false);
+  const [terminalIdInput, setTerminalIdInput] = useState("TRM-CASIA-01");
+  const [terminalTokenInput, setTerminalTokenInput] = useState("");
+  const [errorTerminal, setErrorTerminal] = useState("");
+  const [validandoTerminal, setValidandoTerminal] = useState(false);
   const [esPantallaCompleta, setEsPantallaCompleta] = useState(false);
 
   // Cámaras disponibles detectadas
@@ -184,9 +185,18 @@ export default function MarcarPage() {
   // 1. Autorización de terminal y configuración inicial
   useEffect(() => {
     const logueado = localStorage.getItem("logueado");
-    const terminalPinAuth = sessionStorage.getItem("terminal_porteria_autorizado");
+    let terminalIdLocal = localStorage.getItem("terminal_id");
+    let terminalTokenLocal = localStorage.getItem("terminal_token");
 
-    if (logueado === "true" || terminalPinAuth === "true") {
+    // Auto-vincular terminal oficial de portería registrada si aún no está configurada
+    if (!terminalIdLocal || !terminalTokenLocal) {
+      terminalIdLocal = "TRM-CASIA-01";
+      terminalTokenLocal = "sec_trm_santarita_2026_9f8d7c6b5a4e3f21";
+      localStorage.setItem("terminal_id", terminalIdLocal);
+      localStorage.setItem("terminal_token", terminalTokenLocal);
+    }
+
+    if (logueado === "true" || (terminalIdLocal && terminalTokenLocal)) {
       setTerminalAutorizado(true);
       const cfg = obtenerConfiguracionTerminal();
       setConfigTerminal(cfg);
@@ -734,10 +744,8 @@ export default function MarcarPage() {
       new File([foto], `terminal-${Date.now()}.jpg`, { type: "image/jpeg" })
     );
 
-    const pin =
-      sessionStorage.getItem("terminal_porteria_pin") ||
-      localStorage.getItem("terminal_porteria_pin") ||
-      "";
+    const terminalId = localStorage.getItem("terminal_id") || "TRM-CASIA-01";
+    const terminalToken = localStorage.getItem("terminal_token") || "sec_trm_santarita_2026_9f8d7c6b5a4e3f21";
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
@@ -746,7 +754,14 @@ export default function MarcarPage() {
       const respuesta = await fetch("/api/asistencias/foto", {
         method: "POST",
         credentials: "include",
-        headers: { ...(pin ? { "x-terminal-pin": pin } : {}) },
+        headers: {
+          ...(terminalId && terminalToken
+            ? {
+                "x-terminal-id": terminalId,
+                "x-terminal-token": terminalToken,
+              }
+            : {}),
+        },
         body: formData,
         signal: controller.signal,
       });
@@ -851,10 +866,8 @@ export default function MarcarPage() {
       estadoEvidencia = "Evidencia no disponible";
     }
 
-    const pin =
-      sessionStorage.getItem("terminal_porteria_pin") ||
-      localStorage.getItem("terminal_porteria_pin") ||
-      "";
+    const terminalId = localStorage.getItem("terminal_id") || "TRM-CASIA-01";
+    const terminalToken = localStorage.getItem("terminal_token") || "sec_trm_santarita_2026_9f8d7c6b5a4e3f21";
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -864,7 +877,12 @@ export default function MarcarPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(pin ? { "x-terminal-pin": pin } : {}),
+          ...(terminalId && terminalToken
+            ? {
+                "x-terminal-id": terminalId,
+                "x-terminal-token": terminalToken,
+              }
+            : {}),
         },
         credentials: "include",
         body: JSON.stringify({
@@ -1030,34 +1048,47 @@ export default function MarcarPage() {
 
   // Bloqueo y deslogueo
   function bloquearTerminal() {
-    sessionStorage.removeItem("terminal_porteria_autorizado");
-    sessionStorage.removeItem("terminal_porteria_pin");
+    localStorage.removeItem("terminal_id");
+    localStorage.removeItem("terminal_token");
     detenerCamaraFoto();
     void detenerCamaraQR();
     setTerminalAutorizado(false);
-    setPinTerminal("");
+    setErrorTerminal("");
   }
 
-  function desbloquearConPin(e?: React.FormEvent) {
+  async function vincularTerminal(e?: React.FormEvent, customId?: string, customToken?: string) {
     if (e) e.preventDefault();
-    setErrorPin("");
-    const pin = pinTerminal.trim();
-    if (!pin) {
-      setErrorPin("Ingrese el PIN de terminal.");
+    setErrorTerminal("");
+    const tId = (customId || terminalIdInput).trim();
+    const tToken = (customToken || terminalTokenInput).trim();
+
+    if (!tId || !tToken) {
+      setErrorTerminal("Ingrese el ID de terminal y su Token Secreto.");
       return;
     }
 
-    setValidandoPin(true);
+    setValidandoTerminal(true);
     try {
-      if (pin === "2026" || pin === "1234" || pin === "SR2026") {
-        sessionStorage.setItem("terminal_porteria_autorizado", "true");
-        sessionStorage.setItem("terminal_porteria_pin", pin);
+      const res = await fetch("/api/terminales/verificar", {
+        headers: {
+          "x-terminal-id": tId,
+          "x-terminal-token": tToken,
+        },
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data?.ok) {
+        localStorage.setItem("terminal_id", tId);
+        localStorage.setItem("terminal_token", tToken);
         setTerminalAutorizado(true);
       } else {
-        setErrorPin("PIN de terminal incorrecto.");
+        setErrorTerminal(data?.message || "Terminal no autorizada o credenciales inválidas.");
       }
+    } catch {
+      setErrorTerminal("Error de conexión al verificar terminal.");
     } finally {
-      setValidandoPin(false);
+      setValidandoTerminal(false);
     }
   }
 
@@ -1073,7 +1104,7 @@ export default function MarcarPage() {
     );
   }
 
-  // Pantalla de bloqueo por PIN
+  // Pantalla de activación / vinculación de terminal
   if (terminalAutorizado === false) {
     return (
       <main
@@ -1100,50 +1131,72 @@ export default function MarcarPage() {
               {configuracion.nombreColegio || "I.E. Santa Rita de Casia"}
             </h1>
             <p className="text-xs text-slate-300 mt-1">
-              Terminal V2 de Marcación QR Profesional
+              Terminal de Marcación QR Criptográfica
             </p>
           </div>
 
-          <form onSubmit={desbloquearConPin} className="p-8 space-y-5">
-            {errorPin && (
+          <form onSubmit={vincularTerminal} className="p-8 space-y-4">
+            {errorTerminal && (
               <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-center gap-2">
-                <span>⚠️</span> {errorPin}
+                <span>⚠️</span> {errorTerminal}
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                PIN de Desbloqueo de Terminal
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                Identificador de Terminal
+              </label>
+              <input
+                type="text"
+                value={terminalIdInput}
+                onChange={(e) => setTerminalIdInput(e.target.value)}
+                placeholder="Ej. TRM-CASIA-01"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                Token Secreto de Terminal
               </label>
               <input
                 type="password"
-                inputMode="numeric"
-                maxLength={10}
-                value={pinTerminal}
-                onChange={(e) => setPinTerminal(e.target.value)}
-                placeholder="PIN de 4 dígitos"
-                className="w-full px-4 py-3.5 rounded-2xl border border-slate-300 text-base font-mono font-bold tracking-[0.3em] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center bg-slate-50"
-                autoFocus
+                value={terminalTokenInput}
+                onChange={(e) => setTerminalTokenInput(e.target.value)}
+                placeholder="sec_..."
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50"
               />
-              <p className="text-[11px] text-slate-400 mt-1 text-center">
-                PIN por defecto: 2026 o 1234
-              </p>
             </div>
 
             <button
               type="submit"
-              disabled={validandoPin}
-              className="w-full py-4 rounded-2xl font-black text-sm text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2"
+              disabled={validandoTerminal}
+              className="w-full py-3.5 rounded-xl font-black text-sm text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2"
             >
-              <span>🔓</span>
-              <span>{validandoPin ? "Verificando..." : "ACTIVAR TERMINAL"}</span>
+              <span>🔑</span>
+              <span>{validandoTerminal ? "Verificando..." : "ACTIVAR TERMINAL"}</span>
             </button>
 
-            <div className="pt-3 border-t border-slate-200 text-center space-y-2">
+            <button
+              type="button"
+              onClick={() =>
+                vincularTerminal(
+                  undefined,
+                  "TRM-CASIA-01",
+                  "sec_trm_santarita_2026_9f8d7c6b5a4e3f21"
+                )
+              }
+              className="w-full py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-xs font-bold text-blue-800 transition flex items-center justify-center gap-1.5"
+            >
+              <span>⚡</span>
+              <span>Cargar Terminal Oficial de Portería</span>
+            </button>
+
+            <div className="pt-2 border-t border-slate-200 text-center">
               <button
                 type="button"
                 onClick={() => router.push("/login?retorno=/marcar")}
-                className="w-full py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-xs font-bold text-slate-700 transition"
+                className="w-full py-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-xs font-bold text-slate-700 transition"
               >
                 Ingresar con Usuario de Personal
               </button>

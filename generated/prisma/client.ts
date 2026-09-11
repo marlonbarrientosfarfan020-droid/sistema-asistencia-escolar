@@ -126,3 +126,8 @@ export type SistemaControl = Prisma.SistemaControlModel
  * 
  */
 export type SystemHealthLog = Prisma.SystemHealthLogModel
+/**
+ * Model Terminal
+ * 
+ */
+export type Terminal = Prisma.TerminalModel

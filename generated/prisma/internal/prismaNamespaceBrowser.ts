@@ -67,7 +67,8 @@ export const ModelName = {
   RostroFacial: 'RostroFacial',
   CodigoFamiliar: 'CodigoFamiliar',
   SistemaControl: 'SistemaControl',
-  SystemHealthLog: 'SystemHealthLog'
+  SystemHealthLog: 'SystemHealthLog',
+  Terminal: 'Terminal'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -389,6 +390,21 @@ export const SystemHealthLogScalarFieldEnum = {
 } as const
 
 export type SystemHealthLogScalarFieldEnum = (typeof SystemHealthLogScalarFieldEnum)[keyof typeof SystemHealthLogScalarFieldEnum]
+
+
+export const TerminalScalarFieldEnum = {
+  id: 'id',
+  terminalId: 'terminalId',
+  nombre: 'nombre',
+  colegioId: 'colegioId',
+  tokenHash: 'tokenHash',
+  estado: 'estado',
+  ultimaConexion: 'ultimaConexion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TerminalScalarFieldEnum = (typeof TerminalScalarFieldEnum)[keyof typeof TerminalScalarFieldEnum]
 
 
 export const SortOrder = {

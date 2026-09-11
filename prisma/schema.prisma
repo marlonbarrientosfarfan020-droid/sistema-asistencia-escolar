@@ -32,6 +32,7 @@ model Colegio {
   auditorias        Auditoria[]
   analisisIA        AnalisisIA[]
   systemHealthLogs  SystemHealthLog[]
+  terminales        Terminal[]
 
   @@index([codigo])
   @@index([estado])
@@ -412,3 +413,22 @@ model SystemHealthLog {
   @@index([estado])
   @@index([fechaHora])
 }
+
+model Terminal {
+  id             Int       @id @default(autoincrement())
+  terminalId     String    @unique
+  nombre         String
+  colegioId      String    @default("SANTA_RITA_001")
+  tokenHash      String
+  estado         String    @default("ACTIVA") // "ACTIVA" | "INACTIVA" | "REVOCADA"
+  ultimaConexion DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  colegio Colegio @relation(fields: [colegioId], references: [codigo], onDelete: Cascade)
+
+  @@index([colegioId])
+  @@index([terminalId])
+  @@index([estado])
+}
+

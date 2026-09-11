@@ -5,6 +5,7 @@ import {
   verificarModuloActivo,
   registrarAuditoriaBloqueo,
 } from "@/lib/supermotor-guard";
+import { crearFechaHoraPeru } from "@/lib/timezone";
 
 const ZONA_HORARIA = "America/Lima";
 
@@ -206,6 +207,8 @@ const fechasMes = esMesActual
       },
     });
 
+    const ahora = new Date();
+
     const detalle = estudiantes.map((estudiante) => {
       const fechasLectivas = estudiante.turno
         ? fechasMes.filter((fecha) => {
@@ -213,11 +216,46 @@ const fechasMes = esMesActual
               return false;
             }
 
-            return !esDiaNoLectivo(
-              fecha,
-              estudiante.turnoId,
-              eventosCalendario
-            );
+            if (
+              esDiaNoLectivo(
+                fecha,
+                estudiante.turnoId,
+                eventosCalendario
+              )
+            ) {
+              return false;
+            }
+
+            // Tratamiento del día actual en el mes en curso: no computar ausencia prematura
+            if (fecha === hoy) {
+              const tieneAsistenciaHoy = estudiante.asistencias.some(
+                (asistencia) =>
+                  fechaPeruString(asistencia.fecha) === hoy
+              );
+
+              // 1. Si la estudiante ya marcó asistencia hoy, se computa como día asistido
+              if (tieneAsistenciaHoy) {
+                return true;
+              }
+
+              // 2. Si no marcó asistencia, solo evaluar como día esperado si su turno ya finalizó formalmente
+              if (
+                estudiante.turno &&
+                estudiante.turno.estado &&
+                estudiante.turno.horaSalida
+              ) {
+                const horaSalidaTurno = crearFechaHoraPeru(
+                  hoy,
+                  estudiante.turno.horaSalida
+                );
+                return ahora >= horaSalidaTurno;
+              }
+
+              // Si el turno está inactivo o la jornada aún está en curso, no contabilizar hoy como ausencia
+              return false;
+            }
+
+            return true;
           })
         : [];
 

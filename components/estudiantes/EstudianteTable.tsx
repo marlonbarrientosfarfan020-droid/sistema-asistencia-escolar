@@ -36,6 +36,23 @@ type Estudiante = {
   } | null;
 };
 
+/**
+ * Configuración de Ultra Alta Definición para Códigos QR de Carnets Escolares.
+ * - Resolución: 1200 x 1200 px nativos en formato PNG sin pérdida (lossless).
+ * - Nivel de corrección: "H" (High - 30% de tolerancia ante rayones, desgaste o reflejos por plastificado).
+ * - Margen reglamentario: 4 módulos de zona blanca ("quiet zone") garantizada.
+ * - Contraste óptico: Módulos negro puro (#000000) sobre fondo blanco (#ffffff).
+ */
+const CONFIG_QR_HD = {
+  width: 1200,
+  margin: 4,
+  errorCorrectionLevel: "H" as const,
+  color: {
+    dark: "#000000",
+    light: "#ffffff",
+  },
+};
+
 export default function EstudianteTable({ refresh }: { refresh: number }) {
   const { configuracion } = useConfiguracionColegio();
   const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
@@ -254,7 +271,7 @@ const [riesgoSeleccionado, setRiesgoSeleccionado] = useState<Estudiante | null>(
   }
 
   async function verQR(estudiante: Estudiante) {
-    const qr = await QRCode.toDataURL(estudiante.codigo);
+    const qr = await QRCode.toDataURL(estudiante.codigo, CONFIG_QR_HD);
     setQrImagen(qr);
     setEstudianteQR(estudiante);
     setModalQR(true);
@@ -693,7 +710,7 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
         object-fit: contain;
         display: block;
         image-rendering: -webkit-optimize-contrast;
-        image-rendering: pixelated;
+        image-rendering: crisp-edges;
       }
 
       .footer {
@@ -745,12 +762,7 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
       "I.E. Santa Rita de Casia";
 
     const qrParaImprimir =
-      qrImagen ||
-      (await QRCode.toDataURL(estudianteQR.codigo, {
-        width: 480,
-        margin: 4,
-        errorCorrectionLevel: "Q",
-      }));
+      await QRCode.toDataURL(estudianteQR.codigo, CONFIG_QR_HD);
 
     const ventana = window.open("", "_blank");
 
@@ -834,11 +846,7 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
       const carnets = await Promise.all(
         seleccionados.map(async (estudiante) => ({
           estudiante,
-          qr: await QRCode.toDataURL(estudiante.codigo, {
-            width: 480,
-            margin: 4,
-            errorCorrectionLevel: "Q",
-          }),
+          qr: await QRCode.toDataURL(estudiante.codigo, CONFIG_QR_HD),
         }))
       );
 
@@ -1109,7 +1117,7 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
               <img
                 src={qrImagen}
                 alt="Código QR"
-                className="mx-auto mt-6 w-64 h-64"
+                className="mx-auto mt-6 w-64 h-64 object-contain rounded-lg border border-slate-200 bg-white p-2 shadow-sm"
               />
             )}
 

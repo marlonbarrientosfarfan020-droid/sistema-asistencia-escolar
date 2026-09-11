@@ -174,7 +174,8 @@ export function calcularEstadoAsistencia(
 
 /**
  * Calcula el estado de salida: "REGISTRADA" si está dentro del margen de salida,
- * o "FUERA_HORARIO" si la marcación se realiza después de (horaSalidaTurno + margenSalidaMinutos).
+ * "FUERA_HORARIO" si la marcación se realiza después de (horaSalidaTurno + margenSalidaMinutos),
+ * y detecta si es anticipada (antes de la hora oficial de salida del turno).
  */
 export function calcularEstadoSalida({
   ahora = new Date(),
@@ -186,7 +187,10 @@ export function calcularEstadoSalida({
   margenSalidaMinutos: number;
 }): {
   estadoSalida: "REGISTRADA" | "FUERA_HORARIO";
+  esAnticipada: boolean;
   esFueraHorario: boolean;
+  dentroVentanaSalida: boolean;
+  horaSalidaTurno: Date;
   limiteSalida: Date;
 } {
   const limiteSalida = new Date(horaSalidaTurno.getTime());
@@ -194,10 +198,16 @@ export function calcularEstadoSalida({
     limiteSalida.getMinutes() + Math.max(margenSalidaMinutos, 0)
   );
 
+  const esAnticipada = ahora < horaSalidaTurno;
   const esFueraHorario = ahora > limiteSalida;
+  const dentroVentanaSalida = !esAnticipada && !esFueraHorario;
+
   return {
     estadoSalida: esFueraHorario ? "FUERA_HORARIO" : "REGISTRADA",
+    esAnticipada,
     esFueraHorario,
+    dentroVentanaSalida,
+    horaSalidaTurno,
     limiteSalida,
   };
 }

@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { validarTerminalRequest } from "@/lib/terminal-auth";
 
 const COOKIE_NAME = "sesion_santa_rita";
 
@@ -264,20 +265,32 @@ export async function exigirPersonal(request?: Request) {
 
 export async function exigirAdminOPersonal(request?: Request) {
   if (request) {
-    const pin = request.headers.get("x-terminal-pin")?.trim();
-    if (pin === "1234" || pin === "2026" || pin === "SR2026") {
+    // 1. Validar si la solicitud proviene de una Terminal Registrada (Criptográfica SHA-256)
+    const validacionTerminal = await validarTerminalRequest(request);
+    if (validacionTerminal !== null) {
+      if (validacionTerminal.autorizado) {
+        return {
+          autorizado: true as const,
+          sesion: validacionTerminal.sesion,
+        };
+      }
+
       return {
-        autorizado: true as const,
-        sesion: {
-          usuarioId: 0,
-          usuario: "terminal_porteria",
-          rol: "PERSONAL" as RolUsuario,
-          colegioId: "SANTA_RITA_001",
-        },
+        autorizado: false as const,
+        respuesta: Response.json(
+          {
+            ok: false,
+            message: validacionTerminal.motivo || "Terminal no autorizada",
+          },
+          {
+            status: validacionTerminal.status,
+          }
+        ),
       };
     }
   }
 
+  // 2. Validar sesión autenticada de usuario (Cookie / JWT Bearer)
   return exigirRoles([
     "SUPER_ADMIN",
     "ADMIN",

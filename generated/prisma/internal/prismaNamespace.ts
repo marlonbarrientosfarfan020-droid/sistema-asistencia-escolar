@@ -400,7 +400,8 @@ export const ModelName = {
   RostroFacial: 'RostroFacial',
   CodigoFamiliar: 'CodigoFamiliar',
   SistemaControl: 'SistemaControl',
-  SystemHealthLog: 'SystemHealthLog'
+  SystemHealthLog: 'SystemHealthLog',
+  Terminal: 'Terminal'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -416,7 +417,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "colegio" | "estudiante" | "turno" | "asistencia" | "usuario" | "configuracion" | "auditoria" | "alertaAsistencia" | "analisisIA" | "riesgoEstudianteIA" | "calendarioEscolar" | "historialReporteAutomatico" | "biometriaFacial" | "rostroFacial" | "codigoFamiliar" | "sistemaControl" | "systemHealthLog"
+    modelProps: "colegio" | "estudiante" | "turno" | "asistencia" | "usuario" | "configuracion" | "auditoria" | "alertaAsistencia" | "analisisIA" | "riesgoEstudianteIA" | "calendarioEscolar" | "historialReporteAutomatico" | "biometriaFacial" | "rostroFacial" | "codigoFamiliar" | "sistemaControl" | "systemHealthLog" | "terminal"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1678,6 +1679,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Terminal: {
+      payload: Prisma.$TerminalPayload<ExtArgs>
+      fields: Prisma.TerminalFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TerminalFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TerminalPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TerminalFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TerminalPayload>
+        }
+        findFirst: {
+          args: Prisma.TerminalFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TerminalPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TerminalFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TerminalPayload>
+        }
+        findMany: {
+          args: Prisma.TerminalFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TerminalPayload>[]
+        }
+        create: {
+          args: Prisma.TerminalCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TerminalPayload>
+        }
+        createMany: {
+          args: Prisma.TerminalCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TerminalCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TerminalPayload>[]
+        }
+        delete: {
+          args: Prisma.TerminalDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TerminalPayload>
+        }
+        update: {
+          args: Prisma.TerminalUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TerminalPayload>
+        }
+        deleteMany: {
+          args: Prisma.TerminalDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TerminalUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TerminalUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TerminalPayload>[]
+        }
+        upsert: {
+          args: Prisma.TerminalUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TerminalPayload>
+        }
+        aggregate: {
+          args: Prisma.TerminalAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTerminal>
+        }
+        groupBy: {
+          args: Prisma.TerminalGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TerminalGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TerminalCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TerminalCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2022,6 +2097,21 @@ export const SystemHealthLogScalarFieldEnum = {
 export type SystemHealthLogScalarFieldEnum = (typeof SystemHealthLogScalarFieldEnum)[keyof typeof SystemHealthLogScalarFieldEnum]
 
 
+export const TerminalScalarFieldEnum = {
+  id: 'id',
+  terminalId: 'terminalId',
+  nombre: 'nombre',
+  colegioId: 'colegioId',
+  tokenHash: 'tokenHash',
+  estado: 'estado',
+  ultimaConexion: 'ultimaConexion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TerminalScalarFieldEnum = (typeof TerminalScalarFieldEnum)[keyof typeof TerminalScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2241,6 +2331,7 @@ export type GlobalOmitConfig = {
   codigoFamiliar?: Prisma.CodigoFamiliarOmit
   sistemaControl?: Prisma.SistemaControlOmit
   systemHealthLog?: Prisma.SystemHealthLogOmit
+  terminal?: Prisma.TerminalOmit
 }
 
 /* Types for Logging */
