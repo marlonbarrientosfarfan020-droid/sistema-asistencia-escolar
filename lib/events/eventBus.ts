@@ -4,13 +4,15 @@ import { fechaPeru, horaPeru } from "@/lib/timezone";
 export type TipoEvento =
   | "ASISTENCIA_REGISTRADA"
   | "ASISTENCIA_SALIDA"
+  | "SALIDA_EXCEPCIONAL_REGISTRADA"
   | "SUPERMOTOR_CAMBIO_ESTADO"
   | "MODULO_ACTIVADO"
   | "MODULO_DESACTIVADO"
   | "ALERTA_GENERADA"
   | "REPORTE_GENERADO"
   | "JORNADA_INICIADA"
-  | "JORNADA_CERRADA";
+  | "JORNADA_CERRADA"
+  | "EVIDENCIA_FOTOGRAFICA_ACTUALIZADA";
 
 export interface EventoEscolar<T = any> {
   id: string;

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useRealtimeEvents } from "@/hooks/useRealtimeEvents";
 import {
   Bar,
@@ -70,6 +71,13 @@ type Asistencia = {
   horaSalida: string | null;
   metodo: string;
   estado: string;
+  estadoSalida?: string | null;
+  salidaExcepcional?: {
+    motivo: string;
+    motivoDetalle?: string | null;
+    observacion?: string;
+    usuarioRegistro?: string;
+  } | null;
   estudiante: {
     nombres: string;
     apellidos: string;
@@ -191,6 +199,9 @@ type DashboardData = {
   diaNoLectivoGeneral?: boolean;
   eventosNoLectivosHoy?: EventoNoLectivo[];
   tendenciaSemanal: TendenciaSemanal[];
+  salidasExcepcionalesHoy?: number;
+  motivosSalidaExcepcional?: Record<string, number>;
+  graficoMotivosSalida?: Array<{ name: string; value: number; color: string }>;
 };
 
 type ResumenGrado = {
@@ -224,6 +235,7 @@ const ESTADO_INICIAL: DashboardData = {
   entradas: 0,
   salidas: 0,
   salidasRegistradas: 0,
+  salidasExcepcionalesHoy: 0,
   pendientesSalida: 0,
   jornadaCompleta: 0,
   sinSalida: 0,
@@ -282,11 +294,24 @@ export default function Dashboard() {
     seccion: "TODAS",
   });
 
-  // FASE 6.4: Actualización inmediata en tiempo real sin recargar página
+  // FASE 5.1: Debounce para evitar sobrecarga de consultas en ráfagas de escaneos simultáneos
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const debouncedCargarDashboard = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = setTimeout(() => {
+      void cargarDashboard();
+    }, 1500);
+  }, []);
+
+  // FASE 5.1: Actualización optimista inmediata en tiempo real corregida para PUNTUAL/PRESENTE y TARDE/TARDANZA
   const handleAsistenciaEnVivo = useCallback((eventoDatos: any) => {
     setDatos((prev) => {
-      const esPuntual = eventoDatos.estado === "PRESENTE";
-      const esTarde = eventoDatos.estado === "TARDE";
+      const estadoUpper = String(eventoDatos.estado || "").toUpperCase();
+      const esPuntual = estadoUpper === "PRESENTE" || estadoUpper === "PUNTUAL";
+      const esTarde = estadoUpper === "TARDE" || estadoUpper === "TARDANZA";
 
       const nuevaAsistencia: Asistencia = {
         id: Number(eventoDatos.asistenciaId) || Date.now(),
@@ -294,7 +319,8 @@ export default function Dashboard() {
         horaEntrada: eventoDatos.hora || eventoDatos.hora24 || null,
         horaSalida: null,
         metodo: String(eventoDatos.metodo || "QR"),
-        estado: String(eventoDatos.estado || "PRESENTE"),
+        estado: esTarde ? "TARDE" : "PUNTUAL",
+        estadoSalida: null,
         estudiante: {
           nombres: eventoDatos.estudiante?.nombres || "Estudiante",
           apellidos: eventoDatos.estudiante?.apellidos || "",
@@ -310,31 +336,96 @@ export default function Dashboard() {
         puntuales: esPuntual ? prev.puntuales + 1 : prev.puntuales,
         tardanzas: esTarde ? prev.tardanzas + 1 : prev.tardanzas,
         entradas: (prev.entradas || 0) + 1,
+        pendientesSalida: (prev.pendientesSalida || 0) + 1,
+        sinIngreso: Math.max((prev.sinIngreso || 0) - 1, 0),
         ultimasAsistencias: [nuevaAsistencia, ...prev.ultimasAsistencias.filter((a) => a.id !== nuevaAsistencia.id).slice(0, 9)],
         actualizadoEn: new Date().toLocaleTimeString("es-PE", { hour12: false }),
       };
     });
 
-    void cargarDashboard();
-  }, []);
+    debouncedCargarDashboard();
+  }, [debouncedCargarDashboard]);
 
-  const handleSalidaEnVivo = useCallback(() => {
-    setDatos((prev) => ({
-      ...prev,
-      salidas: (prev.salidas || 0) + 1,
-      salidasRegistradas: (prev.salidasRegistradas || 0) + 1,
-      actualizadoEn: new Date().toLocaleTimeString("es-PE", { hour12: false }),
-    }));
-    void cargarDashboard();
-  }, []);
+  const handleSalidaEnVivo = useCallback((eventoDatos: any) => {
+    setDatos((prev) => {
+      const esSalidaExcepcional =
+        eventoDatos?.tipoSalida === "SALIDA_EXCEPCIONAL" ||
+        eventoDatos?.estadoSalida === "SALIDA_EXCEPCIONAL" ||
+        Boolean(eventoDatos?.motivo);
+
+      let ultimas = [...prev.ultimasAsistencias];
+      if (eventoDatos?.asistenciaId) {
+        const idx = ultimas.findIndex((a) => a.id === Number(eventoDatos.asistenciaId));
+        if (idx !== -1) {
+          ultimas[idx] = {
+            ...ultimas[idx],
+            horaSalida: eventoDatos.hora || eventoDatos.hora24 || new Date().toLocaleTimeString("es-PE"),
+            estadoSalida: esSalidaExcepcional ? "SALIDA_EXCEPCIONAL" : "SALIDA_NORMAL",
+            salidaExcepcional: esSalidaExcepcional ? {
+              motivo: eventoDatos.motivo,
+              motivoDetalle: eventoDatos.motivoDetalle,
+              observacion: eventoDatos.observacion,
+              usuarioRegistro: eventoDatos.usuarioRegistro,
+            } : null,
+          };
+        }
+      }
+
+      return {
+        ...prev,
+        salidas: (prev.salidas || 0) + 1,
+        salidasRegistradas: (prev.salidasRegistradas || 0) + 1,
+        pendientesSalida: Math.max((prev.pendientesSalida || 0) - 1, 0),
+        jornadaCompleta: esSalidaExcepcional ? prev.jornadaCompleta : (prev.jornadaCompleta || 0) + 1,
+        salidasExcepcionalesHoy: esSalidaExcepcional ? (prev.salidasExcepcionalesHoy || 0) + 1 : prev.salidasExcepcionalesHoy,
+        ultimasAsistencias: ultimas,
+        actualizadoEn: new Date().toLocaleTimeString("es-PE", { hour12: false }),
+      };
+    });
+    debouncedCargarDashboard();
+  }, [debouncedCargarDashboard]);
+
+  const handleSalidaExcepcionalEnVivo = useCallback((eventoDatos: any) => {
+    setDatos((prev) => {
+      let ultimas = [...prev.ultimasAsistencias];
+      if (eventoDatos?.asistenciaId) {
+        const idx = ultimas.findIndex((a) => a.id === Number(eventoDatos.asistenciaId));
+        if (idx !== -1) {
+          ultimas[idx] = {
+            ...ultimas[idx],
+            horaSalida: eventoDatos.hora || eventoDatos.hora24 || new Date().toLocaleTimeString("es-PE"),
+            estadoSalida: "SALIDA_EXCEPCIONAL",
+            salidaExcepcional: {
+              motivo: eventoDatos.motivo,
+              motivoDetalle: eventoDatos.motivoDetalle,
+              observacion: eventoDatos.observacion,
+              usuarioRegistro: eventoDatos.usuarioRegistro,
+            },
+          };
+        }
+      }
+
+      return {
+        ...prev,
+        salidas: (prev.salidas || 0) + 1,
+        salidasRegistradas: (prev.salidasRegistradas || 0) + 1,
+        pendientesSalida: Math.max((prev.pendientesSalida || 0) - 1, 0),
+        salidasExcepcionalesHoy: (prev.salidasExcepcionalesHoy || 0) + 1,
+        ultimasAsistencias: ultimas,
+        actualizadoEn: new Date().toLocaleTimeString("es-PE", { hour12: false }),
+      };
+    });
+    debouncedCargarDashboard();
+  }, [debouncedCargarDashboard]);
 
   const handleSuperMotorEnVivo = useCallback(() => {
-    void cargarDashboard();
-  }, []);
+    debouncedCargarDashboard();
+  }, [debouncedCargarDashboard]);
 
   const { conectado: sseConectado } = useRealtimeEvents({
     onAsistencia: handleAsistenciaEnVivo,
     onSalida: handleSalidaEnVivo,
+    onSalidaExcepcional: handleSalidaExcepcionalEnVivo,
     onSuperMotor: handleSuperMotorEnVivo,
   });
 
@@ -456,12 +547,6 @@ export default function Dashboard() {
 
     void cargarDashboard(controller.signal);
 
-    const datosIntervalo = setInterval(() => {
-      if (activo && localStorage.getItem("logueado") === "true") {
-        void cargarDashboard(controller.signal);
-      }
-    }, 5000);
-
     const relojIntervalo = setInterval(() => {
       if (activo) {
         setHoraActual(
@@ -475,22 +560,28 @@ export default function Dashboard() {
       }
     }, 1000);
 
-    setHoraActual(
-      new Date().toLocaleTimeString("es-PE", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        timeZone: "America/Lima",
-      }),
-    );
-
     return () => {
       activo = false;
       controller.abort();
-      clearInterval(datosIntervalo);
       clearInterval(relojIntervalo);
     };
   }, []);
+
+  // FASE 5.1: Polling inteligente adaptativo
+  // - Con SSE conectado: sondeo suave de fondo cada 60s (heartbeat)
+  // - Con SSE desconectado: sondeo fallback cada 10s para resiliencia
+  useEffect(() => {
+    if (localStorage.getItem("logueado") !== "true") return;
+
+    const intervaloMs = sseConectado ? 60000 : 10000;
+    const timer = setInterval(() => {
+      if (localStorage.getItem("logueado") === "true") {
+        void cargarDashboard();
+      }
+    }, intervaloMs);
+
+    return () => clearInterval(timer);
+  }, [sseConectado]);
 
   const turnosFiltrados = useMemo(() => {
     return datos.resumenTurnos.filter(
@@ -548,9 +639,89 @@ export default function Dashboard() {
     [turnosFiltrados],
   );
 
+  const hayFiltroActivo =
+    filtros.turno !== "TODOS" ||
+    filtros.grado !== "TODOS" ||
+    filtros.seccion !== "TODAS";
+
+  const metricasActivas = useMemo(() => {
+    if (!hayFiltroActivo) {
+      return {
+        totalEstudiantes: datos.totalEstudiantes,
+        totalEsperadosHoy: datos.totalEsperadosHoy,
+        presentes: datos.presentes,
+        puntuales: datos.puntuales,
+        tardanzas: datos.tardanzas,
+        ausentes: datos.ausentes,
+        entradas: datos.entradas,
+        salidas: datos.salidas,
+        salidasRegistradas: datos.salidasRegistradas,
+        pendientesSalida: datos.pendientesSalida,
+        jornadaCompleta: datos.jornadaCompleta,
+        salidasExcepcionalesHoy: datos.salidasExcepcionalesHoy || 0,
+        sinSalida: datos.sinSalida,
+        pendientesInicio: datos.pendientesInicio,
+        esperandoIngreso: datos.esperandoIngreso,
+        ingresoPendiente: datos.ingresoPendiente,
+        tardanzaSinIngreso: datos.tardanzaSinIngreso,
+        ausentesConfirmados: datos.ausentesConfirmados,
+        sinIngreso: datos.sinIngreso,
+      };
+    }
+
+    return seccionesFiltradas.reduce(
+      (acc, s) => ({
+        totalEstudiantes: acc.totalEstudiantes + (s.total || 0),
+        totalEsperadosHoy: acc.totalEsperadosHoy + (s.total || 0),
+        presentes: acc.presentes + (s.presentes || 0),
+        puntuales: acc.puntuales + (s.puntuales || 0),
+        tardanzas: acc.tardanzas + (s.tardanzas || 0),
+        ausentes: acc.ausentes + (s.ausentesConfirmados || 0),
+        entradas: acc.entradas + (s.entradas || 0),
+        salidas: acc.salidas + (s.salidas || 0),
+        salidasRegistradas: acc.salidasRegistradas + (s.salidasRegistradas || 0),
+        pendientesSalida: acc.pendientesSalida + (s.pendientesSalida || 0),
+        jornadaCompleta: acc.jornadaCompleta + (s.jornadaCompleta || 0),
+        salidasExcepcionalesHoy: acc.salidasExcepcionalesHoy + ((s as any).salidasExcepcionales || 0),
+        sinSalida: acc.sinSalida + (s.sinSalida || 0),
+        pendientesInicio: acc.pendientesInicio + (s.pendientesInicio || 0),
+        esperandoIngreso: acc.esperandoIngreso + (s.esperandoIngreso || 0),
+        ingresoPendiente: acc.ingresoPendiente + (s.ingresoPendiente || 0),
+        tardanzaSinIngreso: acc.tardanzaSinIngreso + (s.tardanzaSinIngreso || 0),
+        ausentesConfirmados: acc.ausentesConfirmados + (s.ausentesConfirmados || 0),
+        sinIngreso:
+          acc.sinIngreso +
+          (s.esperandoIngreso || 0) +
+          (s.ingresoPendiente || 0) +
+          (s.tardanzaSinIngreso || 0),
+      }),
+      {
+        totalEstudiantes: 0,
+        totalEsperadosHoy: 0,
+        presentes: 0,
+        puntuales: 0,
+        tardanzas: 0,
+        ausentes: 0,
+        entradas: 0,
+        salidas: 0,
+        salidasRegistradas: 0,
+        pendientesSalida: 0,
+        jornadaCompleta: 0,
+        salidasExcepcionalesHoy: 0,
+        sinSalida: 0,
+        pendientesInicio: 0,
+        esperandoIngreso: 0,
+        ingresoPendiente: 0,
+        tardanzaSinIngreso: 0,
+        ausentesConfirmados: 0,
+        sinIngreso: 0,
+      }
+    );
+  }, [hayFiltroActivo, datos, seccionesFiltradas]);
+
   const porcentajeAsistencia =
-    datos.totalEsperadosHoy > 0
-      ? Math.round((datos.presentes / datos.totalEsperadosHoy) * 100)
+    metricasActivas.totalEsperadosHoy > 0
+      ? Math.round((metricasActivas.presentes / metricasActivas.totalEsperadosHoy) * 100)
       : 0;
 
   const turnosJornadaGrafico = useMemo(
@@ -567,29 +738,59 @@ export default function Dashboard() {
     [turnosFiltrados],
   );
 
+  const baseEsperada =
+    metricasActivas.totalEsperadosHoy > 0
+      ? metricasActivas.totalEsperadosHoy
+      : metricasActivas.totalEstudiantes;
+
+  const sinIngresoOAusentes = Math.max(
+    baseEsperada -
+      metricasActivas.presentes -
+      metricasActivas.pendientesInicio,
+    0
+  );
+
+  const sinTurnoOInactivos = Math.max(
+    metricasActivas.totalEstudiantes - baseEsperada,
+    0
+  );
+
   const graficoEstadoActualEstudiantes = useMemo(
     () => [
-      { name: "En Colegio", value: datos.pendientesSalida, color: "#10b981" },
-      { name: "Jornada Completa", value: datos.jornadaCompleta, color: "#3b82f6" },
-      { name: "Sin Salida", value: datos.sinSalida, color: "#f97316" },
-      { name: "Sin Ingreso", value: datos.sinIngreso, color: "#64748b" },
+      { name: "En Colegio", value: metricasActivas.pendientesSalida, color: "#10b981" },
+      { name: "Jornada Completa", value: metricasActivas.jornadaCompleta, color: "#3b82f6" },
+      { name: "Salida Excepcional", value: metricasActivas.salidasExcepcionalesHoy, color: "#eab308" },
+      { name: "Sin Salida", value: metricasActivas.sinSalida, color: "#f97316" },
+      { name: "Sin Ingreso / Ausentes", value: sinIngresoOAusentes, color: "#f43f5e" },
+      { name: "Turno por Iniciar", value: metricasActivas.pendientesInicio, color: "#8b5cf6" },
+      ...(sinTurnoOInactivos > 0
+        ? [{ name: "Turno Inactivo / Sin Turno", value: sinTurnoOInactivos, color: "#64748b" }]
+        : []),
     ],
-    [datos.pendientesSalida, datos.jornadaCompleta, datos.sinSalida, datos.sinIngreso],
+    [metricasActivas, sinIngresoOAusentes, sinTurnoOInactivos],
   );
 
   const graficoEstado = [
-    { name: "Puntuales", value: datos.puntuales, color: "#10b981" },
-    { name: "Tardes", value: datos.tardanzas, color: "#f97316" },
+    { name: "Puntuales", value: metricasActivas.puntuales, color: "#10b981" },
+    { name: "Tardes", value: metricasActivas.tardanzas, color: "#f97316" },
     {
       name: "Sin ingreso",
-      value: datos.sinIngreso,
+      value: metricasActivas.sinIngreso,
       color: "#facc15",
     },
     {
       name: "Ausentes",
-      value: datos.ausentesConfirmados,
+      value: metricasActivas.ausentesConfirmados,
       color: "#f43f5e",
     },
+    {
+      name: "Por iniciar",
+      value: metricasActivas.pendientesInicio,
+      color: "#8b5cf6",
+    },
+    ...(sinTurnoOInactivos > 0
+      ? [{ name: "Sin turno / Inactivo", value: sinTurnoOInactivos, color: "#64748b" }]
+      : []),
   ];
 
   const graficoAlertas = [
@@ -756,15 +957,15 @@ export default function Dashboard() {
           )}
 
           <section className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-            <KpiCard title="Estudiantes" value={datos.totalEstudiantes} icon="👨‍🎓" tone="violet" />
-            <KpiCard title="Presentes" value={datos.presentes} icon="✅" tone="green" />
-            <KpiCard title="Puntuales" value={datos.puntuales} icon="🟢" tone="emerald" />
-            <KpiCard title="Sin ingreso" value={datos.sinIngreso} icon="🟡" tone="yellow" />
-            <KpiCard title="Tardanza crítica" value={datos.tardanzaSinIngreso} icon="🟠" tone="orange" />
-            <KpiCard title="Ausentes" value={datos.ausentesConfirmados} icon="🔴" tone="red" />
+            <KpiCard title="Estudiantes" value={metricasActivas.totalEstudiantes} icon="👨‍🎓" tone="violet" />
+            <KpiCard title="Presentes" value={metricasActivas.presentes} icon="✅" tone="green" />
+            <KpiCard title="Puntuales" value={metricasActivas.puntuales} icon="🟢" tone="emerald" />
+            <KpiCard title="Sin ingreso" value={metricasActivas.sinIngreso} icon="🟡" tone="yellow" />
+            <KpiCard title="Tardanza crítica" value={metricasActivas.tardanzaSinIngreso} icon="🟠" tone="orange" />
+            <KpiCard title="Ausentes" value={metricasActivas.ausentesConfirmados} icon="🔴" tone="red" />
           </section>
 
-          {/* CONTROL DE JORNADA ESCOLAR (4 TARJETAS REQUERIDAS) */}
+          {/* CONTROL DE JORNADA ESCOLAR */}
           <div className="mt-4">
             <div className="mb-2 flex items-center justify-between px-1">
               <p className="text-xs font-black uppercase tracking-[0.25em] text-cyan-400">
@@ -774,33 +975,77 @@ export default function Dashboard() {
                 Ciclo: Entrada abierta ➔ Salida cerrada
               </span>
             </div>
-            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <KpiCard
                 title="Salidas registradas"
-                value={datos.salidasRegistradas}
+                value={metricasActivas.salidasRegistradas}
                 icon="🚪"
                 tone="blue"
               />
               <KpiCard
+                title="Salidas excepcionales"
+                value={metricasActivas.salidasExcepcionalesHoy}
+                icon="⚠️"
+                tone="orange"
+              />
+              <KpiCard
                 title="Pendientes de salida"
-                value={datos.pendientesSalida}
+                value={metricasActivas.pendientesSalida}
                 icon="⏳"
                 tone="emerald"
               />
               <KpiCard
                 title="Jornada completa"
-                value={datos.jornadaCompleta}
+                value={metricasActivas.jornadaCompleta}
                 icon="🎓"
                 tone="indigo"
               />
               <KpiCard
                 title="Sin salida"
-                value={datos.sinSalida}
+                value={metricasActivas.sinSalida}
                 icon="⚠️"
                 tone="red"
               />
             </section>
           </div>
+
+          {/* DESGLOSE DE MOTIVOS DE SALIDAS EXCEPCIONALES */}
+          {Boolean(datos.salidasExcepcionalesHoy && datos.salidasExcepcionalesHoy > 0) && (
+            <section className="mt-4 rounded-3xl border border-amber-500/30 bg-gradient-to-r from-amber-950/20 via-slate-900 to-amber-950/20 p-5 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.25em] text-amber-400">
+                    Control de Salidas Excepcionales Hoy
+                  </p>
+                  <h3 className="text-lg font-black text-white mt-0.5">
+                    ⚠️ Motivos de Salida Excepcional ({datos.salidasExcepcionalesHoy} {datos.salidasExcepcionalesHoy === 1 ? "estudiante" : "estudiantes"})
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Estudiantes retiradas formalmente con condición de PRESENTE asegurada.
+                  </p>
+                </div>
+                <Link
+                  href="/dashboard/salidas"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition shadow-md shadow-amber-500/20 self-start sm:self-auto"
+                >
+                  <span>🚪 Ir a Gestión de Salidas</span>
+                  <span>➔</span>
+                </Link>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+                {datos.graficoMotivosSalida?.map((m) => (
+                  <div key={m.name} className="rounded-2xl border border-slate-800 bg-slate-950/80 p-3.5 flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-400">{m.name}</p>
+                      <p className="text-xl font-black text-white mt-1">{m.value}</p>
+                    </div>
+                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: m.color }} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* GRÁFICOS DE JORNADA ESCOLAR (2 GRÁFICOS REQUERIDOS) */}
           <section className="mt-4 grid gap-4 xl:grid-cols-12">
@@ -808,7 +1053,7 @@ export default function Dashboard() {
               <SectionTitle
                 title="Estado actual estudiantes"
                 subtitle="Distribución en tiempo real de la jornada escolar"
-                badge={`${datos.pendientesSalida} en colegio`}
+                badge={`${metricasActivas.pendientesSalida} en colegio`}
               />
 
               <div className="relative mt-3 h-[310px]">
@@ -834,7 +1079,7 @@ export default function Dashboard() {
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center pb-10">
                   <div className="text-center">
                     <p className="text-4xl font-black text-white">
-                      {datos.pendientesSalida}
+                      {metricasActivas.pendientesSalida}
                     </p>
                     <p className="text-xs font-black uppercase tracking-wider text-emerald-400">
                       en colegio
@@ -1622,6 +1867,12 @@ function ActividadAsistencia({
   asistencia: Asistencia;
   hora: (fecha: string | null | undefined) => string;
 }) {
+  const esSalidaExcepcional =
+    asistencia.estadoSalida === "SALIDA_EXCEPCIONAL" ||
+    Boolean(asistencia.salidaExcepcional);
+  const esSalida = Boolean(asistencia.horaSalida);
+  const horaMostrar = asistencia.horaSalida || asistencia.horaEntrada;
+
   return (
     <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-950/55 p-4 hover:border-blue-500/30">
       <div>
@@ -1631,16 +1882,44 @@ function ActividadAsistencia({
         <p className="mt-1 text-xs font-semibold text-slate-500">
           {asistencia.estudiante.grado}° {asistencia.estudiante.seccion} · {asistencia.estudiante.turno?.nombre || "Sin turno"}
         </p>
-        <div className="mt-2 flex flex-wrap gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {esSalidaExcepcional ? (
+            <span className="rounded-full border border-amber-500/30 bg-amber-500/20 px-2.5 py-1 text-[10px] font-black text-amber-300">
+              ⚠️ SALIDA EXCEPCIONAL
+            </span>
+          ) : esSalida ? (
+            <span className="rounded-full border border-blue-500/30 bg-blue-500/20 px-2.5 py-1 text-[10px] font-black text-blue-300">
+              🔵 SALIDA REGULAR
+            </span>
+          ) : (
+            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/20 px-2.5 py-1 text-[10px] font-black text-emerald-300">
+              🟢 INGRESO
+            </span>
+          )}
+
           <Badge estado={asistencia.estado} />
-          <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[10px] font-black text-blue-300">
+
+          <span className="rounded-full border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] font-bold text-slate-400">
             {asistencia.metodo}
           </span>
         </div>
+
+        {esSalidaExcepcional && asistencia.salidaExcepcional?.motivo && (
+          <p className="mt-1.5 text-[11px] text-amber-200/90 font-medium">
+            Motivo: <strong className="text-white">{asistencia.salidaExcepcional.motivo.replace(/_/g, " ")}</strong>
+            {asistencia.salidaExcepcional.observacion && ` · "${asistencia.salidaExcepcional.observacion}"`}
+          </p>
+        )}
       </div>
-      <p className="shrink-0 text-xs font-black text-slate-300">
-        {hora(asistencia.horaSalida || asistencia.horaEntrada)}
-      </p>
+
+      <div className="text-right shrink-0">
+        <p className="text-xs font-black text-slate-200">
+          {hora(horaMostrar)}
+        </p>
+        <p className="text-[10px] font-semibold text-slate-500">
+          {esSalida ? "Salida" : "Entrada"}
+        </p>
+      </div>
     </div>
   );
 }

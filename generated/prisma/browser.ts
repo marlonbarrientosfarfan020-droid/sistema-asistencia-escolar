@@ -107,3 +107,13 @@ export type SystemHealthLog = Prisma.SystemHealthLogModel
  * 
  */
 export type Terminal = Prisma.TerminalModel
+/**
+ * Model SalidaExcepcional
+ * 
+ */
+export type SalidaExcepcional = Prisma.SalidaExcepcionalModel
+/**
+ * Model EvidenciaFotografica
+ * 
+ */
+export type EvidenciaFotografica = Prisma.EvidenciaFotograficaModel

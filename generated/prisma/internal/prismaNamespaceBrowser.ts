@@ -68,7 +68,9 @@ export const ModelName = {
   CodigoFamiliar: 'CodigoFamiliar',
   SistemaControl: 'SistemaControl',
   SystemHealthLog: 'SystemHealthLog',
-  Terminal: 'Terminal'
+  Terminal: 'Terminal',
+  SalidaExcepcional: 'SalidaExcepcional',
+  EvidenciaFotografica: 'EvidenciaFotografica'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -136,6 +138,7 @@ export const TurnoScalarFieldEnum = {
   margenAlertaMinutos: 'margenAlertaMinutos',
   createdAt: 'createdAt',
   margenEntradaAnticipadaMinutos: 'margenEntradaAnticipadaMinutos',
+  margenSalidaAnticipadaMinutos: 'margenSalidaAnticipadaMinutos',
   margenSalidaMinutos: 'margenSalidaMinutos'
 } as const
 
@@ -405,6 +408,45 @@ export const TerminalScalarFieldEnum = {
 } as const
 
 export type TerminalScalarFieldEnum = (typeof TerminalScalarFieldEnum)[keyof typeof TerminalScalarFieldEnum]
+
+
+export const SalidaExcepcionalScalarFieldEnum = {
+  id: 'id',
+  colegioId: 'colegioId',
+  asistenciaId: 'asistenciaId',
+  estudianteId: 'estudianteId',
+  fecha: 'fecha',
+  fechaDia: 'fechaDia',
+  horaSalida: 'horaSalida',
+  motivo: 'motivo',
+  motivoDetalle: 'motivoDetalle',
+  observacion: 'observacion',
+  usuarioRegistro: 'usuarioRegistro',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SalidaExcepcionalScalarFieldEnum = (typeof SalidaExcepcionalScalarFieldEnum)[keyof typeof SalidaExcepcionalScalarFieldEnum]
+
+
+export const EvidenciaFotograficaScalarFieldEnum = {
+  id: 'id',
+  colegioId: 'colegioId',
+  asistenciaId: 'asistenciaId',
+  estudianteId: 'estudianteId',
+  tipo: 'tipo',
+  estado: 'estado',
+  url: 'url',
+  intentos: 'intentos',
+  ultimoIntento: 'ultimoIntento',
+  errorDetalle: 'errorDetalle',
+  tamanoBytes: 'tamanoBytes',
+  mimeType: 'mimeType',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type EvidenciaFotograficaScalarFieldEnum = (typeof EvidenciaFotograficaScalarFieldEnum)[keyof typeof EvidenciaFotograficaScalarFieldEnum]
 
 
 export const SortOrder = {

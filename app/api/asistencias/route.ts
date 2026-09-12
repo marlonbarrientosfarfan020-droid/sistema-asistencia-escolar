@@ -411,6 +411,7 @@ export async function POST(request: Request) {
         horaEntrada: estudiante.turno.horaEntrada,
         horaSalida: estudiante.turno.horaSalida,
         margenEntradaAnticipadaMinutos: estudiante.turno.margenEntradaAnticipadaMinutos,
+        margenSalidaAnticipadaMinutos: estudiante.turno.margenSalidaAnticipadaMinutos ?? 0,
         margenSalidaMinutos: estudiante.turno.margenSalidaMinutos,
         ahora,
       });
@@ -515,6 +516,30 @@ export async function POST(request: Request) {
               fotoEntrada: fotoUrlFinal,
             },
           });
+
+      // FASE 4.2.1: Registrar estado inicial en EvidenciaFotografica (PENDIENTE / COMPLETADA)
+      try {
+        await prisma.evidenciaFotografica.upsert({
+          where: {
+            asistenciaId_tipo: {
+              asistenciaId: asistencia.id,
+              tipo: "ENTRADA",
+            },
+          },
+          update: {},
+          create: {
+            asistenciaId: asistencia.id,
+            estudianteId: estudiante.id,
+            colegioId: estudiante.colegioId || colegioId,
+            tipo: "ENTRADA",
+            estado: fotoUrlFinal ? "COMPLETADA" : "PENDIENTE",
+            url: fotoUrlFinal || null,
+            intentos: fotoUrlFinal ? 1 : 0,
+          },
+        });
+      } catch (errEv) {
+        console.warn("[ASISTENCIA API] Error no crítico creando EvidenciaFotografica (ENTRADA):", errEv);
+      }
       } catch (errDb: any) {
         // Manejo de condición de carrera con restricción única P2002
         if (errDb instanceof Prisma.PrismaClientKnownRequestError && errDb.code === "P2002") {
@@ -647,15 +672,24 @@ export async function POST(request: Request) {
         );
       }
 
-      // 2. Cálculo del estado de salida y detección de salida anticipada
-      const { estadoSalida, esAnticipada, esFueraHorario, limiteSalida } = calcularEstadoSalida({
+      // 2. Cálculo del estado de salida contemplando la ventana anticipada, oficial y margen posterior
+      const {
+        estadoSalida,
+        esBloqueadoAntesVentana,
+        esAnticipada,
+        esFueraHorario,
+        inicioVentanaSalida,
+        limiteSalida,
+      } = calcularEstadoSalida({
         ahora,
         horaSalidaTurno: ventanaTurno.horaSalidaTurno,
+        margenSalidaAnticipadaMinutos: estudiante.turno.margenSalidaAnticipadaMinutos ?? 0,
         margenSalidaMinutos: estudiante.turno.margenSalidaMinutos,
       });
 
-      // Si la hora actual es menor a la hora oficial de salida del turno, bloquear cierre prematuro de jornada
-      if (esAnticipada || ahora < ventanaTurno.horaSalidaTurno) {
+      // Si la hora actual es anterior al inicio de la ventana de salida, bloquear salida prematura
+      if (esBloqueadoAntesVentana) {
+        const horaInicioSalida = formatoHora12(inicioVentanaSalida);
         const horaSalidaOficial = formatoHora12(ventanaTurno.horaSalidaTurno);
         return NextResponse.json(
           {
@@ -669,8 +703,8 @@ export async function POST(request: Request) {
             estudiante,
             asistencia,
             message:
-              `No se puede cerrar jornada: aún no es la hora de salida para el turno ${estudiante.turno.nombre}. ` +
-              `La salida oficial inicia a las ${horaSalidaOficial}. ` +
+              `La salida todavía no está habilitada para el turno ${estudiante.turno.nombre}. ` +
+              `Puede marcar salida desde las ${horaInicioSalida} (Salida oficial: ${horaSalidaOficial}). ` +
               `Hora actual: ${horaActual12}. La jornada escolar permanece ABIERTA.`,
             turno: {
               nombre: estudiante.turno.nombre,
@@ -683,6 +717,8 @@ export async function POST(request: Request) {
 
       const mensajeSalida = esFueraHorario
         ? `Salida registrada con advertencia: fuera del horario permitido (Hora límite: ${formatoHora12(limiteSalida)})`
+        : esAnticipada
+        ? "Salida anticipada autorizada registrada"
         : "Salida registrada correctamente";
 
       // 3. Actualización atómica en base de datos con guardia de concurrencia
@@ -726,6 +762,30 @@ export async function POST(request: Request) {
       });
 
       console.log("[ASISTENCIA API] Registro de salida exitoso id:", asistencia.id, "Estado salida:", estadoSalida);
+
+      // FASE 4.2.1: Registrar estado inicial en EvidenciaFotografica (PENDIENTE / COMPLETADA) para SALIDA
+      try {
+        await prisma.evidenciaFotografica.upsert({
+          where: {
+            asistenciaId_tipo: {
+              asistenciaId: asistencia.id,
+              tipo: "SALIDA",
+            },
+          },
+          update: {},
+          create: {
+            asistenciaId: asistencia.id,
+            estudianteId: estudiante.id,
+            colegioId: estudiante.colegioId || colegioId,
+            tipo: "SALIDA",
+            estado: fotoUrlFinal ? "COMPLETADA" : "PENDIENTE",
+            url: fotoUrlFinal || null,
+            intentos: fotoUrlFinal ? 1 : 0,
+          },
+        });
+      } catch (errEv) {
+        console.warn("[ASISTENCIA API] Error no crítico creando EvidenciaFotografica (SALIDA):", errEv);
+      }
 
       // Notificaciones externas en segundo plano (NO bloqueantes)
       if (configuracionCanales?.canalWhatsAppActivo && estudiante.whatsapp) {

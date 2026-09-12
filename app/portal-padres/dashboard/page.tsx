@@ -48,13 +48,17 @@ export default function PortalPadresDashboardPage() {
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
   const [evidenciaSeleccionada, setEvidenciaSeleccionada] = useState<AsistenciaEvidencia | null>(null);
   const [notificacionEnVivo, setNotificacionEnVivo] = useState<{
-    tipo: "ENTRADA" | "SALIDA";
+    tipo: "ENTRADA" | "SALIDA" | "SALIDA_EXCEPCIONAL";
     estudianteNombre: string;
     hora: string;
     fecha: string;
     estado: string;
     fotoUrl?: string;
     mensaje: string;
+    motivo?: string;
+    motivoEtiqueta?: string;
+    observacion?: string;
+    usuarioRegistro?: string;
   } | null>(null);
 
   const cargarDatos = useCallback(async (estudianteId?: number) => {
@@ -128,9 +132,44 @@ export default function PortalPadresDashboardPage() {
     [estudianteIdSeleccionada, cargarDatos]
   );
 
+  const handleSalidaExcepcionalEnVivo = useCallback(
+    (evento: any) => {
+      const nombreEstudiante =
+        typeof evento.estudiante === "string"
+          ? evento.estudiante
+          : `${evento.estudiante?.nombres || ""} ${evento.estudiante?.apellidos || ""}`.trim() ||
+            evento.estudianteNombre;
+
+      setNotificacionEnVivo({
+        tipo: "SALIDA_EXCEPCIONAL",
+        estudianteNombre: nombreEstudiante || "Su hija",
+        hora:
+          evento.hora ||
+          evento.hora24 ||
+          new Date().toLocaleTimeString("es-PE", { hour12: true }),
+        fecha: evento.fecha || new Date().toLocaleDateString("es-PE"),
+        estado: "SALIDA EXCEPCIONAL",
+        fotoUrl: evento.fotoUrl,
+        mensaje: "⚠️ Salida Excepcional Autorizada",
+        motivo: evento.motivo,
+        motivoEtiqueta: evento.motivoEtiqueta || evento.motivo,
+        observacion: evento.observacion,
+        usuarioRegistro: evento.usuarioRegistro,
+      });
+
+      if (estudianteIdSeleccionada && Number(evento.estudianteId) === estudianteIdSeleccionada) {
+        cargarDatos(estudianteIdSeleccionada);
+      } else {
+        cargarDatos();
+      }
+    },
+    [estudianteIdSeleccionada, cargarDatos]
+  );
+
   const { conectado: sseConectado } = useRealtimeEvents({
     onAsistencia: handleAsistenciaEnVivo,
     onSalida: handleAsistenciaEnVivo,
+    onSalidaExcepcional: handleSalidaExcepcionalEnVivo,
   });
 
   async function handleLogout() {
@@ -220,18 +259,50 @@ export default function PortalPadresDashboardPage() {
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-6">
         {/* Banner de Monitoreo en Vivo */}
         {notificacionEnVivo && (
-          <div className="rounded-2xl border-2 border-emerald-500/80 bg-gradient-to-r from-emerald-900/95 via-slate-900 to-emerald-950/95 p-4 text-white shadow-xl flex flex-wrap items-center justify-between gap-4 animate-in fade-in slide-in-from-top duration-300">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-2xl">
-                {notificacionEnVivo.tipo === "ENTRADA" ? "🟢" : "👋"}
+          <div
+            className={`rounded-2xl border-2 p-4 text-white shadow-xl flex flex-wrap items-center justify-between gap-4 animate-in fade-in slide-in-from-top duration-300 ${
+              notificacionEnVivo.tipo === "SALIDA_EXCEPCIONAL"
+                ? "border-amber-500/80 bg-gradient-to-r from-amber-950 via-slate-900 to-amber-950"
+                : notificacionEnVivo.tipo === "ENTRADA"
+                ? "border-emerald-500/80 bg-gradient-to-r from-emerald-900/95 via-slate-900 to-emerald-950/95"
+                : "border-blue-500/80 bg-gradient-to-r from-blue-900/95 via-slate-900 to-blue-950/95"
+            }`}
+          >
+            <div className="flex items-start gap-3.5">
+              <div
+                className={`w-12 h-12 rounded-xl border flex items-center justify-center text-2xl shrink-0 ${
+                  notificacionEnVivo.tipo === "SALIDA_EXCEPCIONAL"
+                    ? "bg-amber-500/20 border-amber-400 text-amber-300"
+                    : notificacionEnVivo.tipo === "ENTRADA"
+                    ? "bg-emerald-500/20 border-emerald-400"
+                    : "bg-blue-500/20 border-blue-400"
+                }`}
+              >
+                {notificacionEnVivo.tipo === "SALIDA_EXCEPCIONAL"
+                  ? "⚠️"
+                  : notificacionEnVivo.tipo === "ENTRADA"
+                  ? "🟢"
+                  : "👋"}
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-black text-emerald-300 uppercase tracking-wide text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`font-black uppercase tracking-wide text-xs ${
+                      notificacionEnVivo.tipo === "SALIDA_EXCEPCIONAL"
+                        ? "text-amber-300"
+                        : "text-emerald-300"
+                    }`}
+                  >
                     {notificacionEnVivo.mensaje}
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-400/20 text-emerald-200 border border-emerald-400/40">
-                    {notificacionEnVivo.estado}
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      notificacionEnVivo.tipo === "SALIDA_EXCEPCIONAL"
+                        ? "bg-amber-400/20 text-amber-200 border-amber-400/40"
+                        : "bg-emerald-400/20 text-emerald-200 border-emerald-400/40"
+                    }`}
+                  >
+                    {notificacionEnVivo.motivoEtiqueta || notificacionEnVivo.estado}
                   </span>
                 </div>
                 <p className="font-extrabold text-base text-white mt-0.5">
@@ -240,6 +311,16 @@ export default function PortalPadresDashboardPage() {
                 <p className="text-xs text-slate-300">
                   Hora: <strong className="text-white">{notificacionEnVivo.hora}</strong> · Fecha: {notificacionEnVivo.fecha}
                 </p>
+                {notificacionEnVivo.observacion && (
+                  <p className="mt-1 text-xs text-amber-200 bg-amber-950/60 rounded-lg p-1.5 border border-amber-500/30">
+                    <strong>Motivo/Detalle:</strong> {notificacionEnVivo.observacion}
+                    {notificacionEnVivo.usuarioRegistro && (
+                      <span className="text-slate-400 ml-1">
+                        (Autorizado por: {notificacionEnVivo.usuarioRegistro})
+                      </span>
+                    )}
+                  </p>
+                )}
               </div>
             </div>
 

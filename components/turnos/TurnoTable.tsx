@@ -12,6 +12,7 @@ type Turno = {
   minutosAlertaInicial: number;
   margenAlertaMinutos: number;
   margenEntradaAnticipadaMinutos: number;
+  margenSalidaAnticipadaMinutos: number;
   margenSalidaMinutos: number;
 };
 
@@ -75,6 +76,11 @@ export default function TurnoTable({
             Number(
               turno.margenEntradaAnticipadaMinutos
             ) || 60,
+
+          margenSalidaAnticipadaMinutos:
+            Number(
+              turno.margenSalidaAnticipadaMinutos
+            ) || 0,
 
           margenSalidaMinutos:
             Number(
@@ -152,6 +158,13 @@ export default function TurnoTable({
     }
 
     if (
+      turno.margenSalidaAnticipadaMinutos < 0 ||
+      turno.margenSalidaAnticipadaMinutos > 180
+    ) {
+      return "El margen de salida anticipada debe estar entre 0 y 180 minutos";
+    }
+
+    if (
       turno.margenSalidaMinutos < 0 ||
       turno.margenSalidaMinutos > 180
     ) {
@@ -221,6 +234,11 @@ export default function TurnoTable({
             horaSalida:
               turno.horaSalida,
 
+            margenSalidaAnticipadaMinutos:
+              Number(
+                turno.margenSalidaAnticipadaMinutos
+              ),
+
             margenSalidaMinutos:
               Number(
                 turno.margenSalidaMinutos
@@ -278,7 +296,7 @@ export default function TurnoTable({
         registrar su salida.
       </p>
 
-      <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <div className="mb-5 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
           <p className="font-black text-emerald-800">
             🟢 Entrada anticipada
@@ -320,6 +338,17 @@ export default function TurnoTable({
           <p className="mt-1 text-sm text-red-700">
             Se confirma al llegar la hora de
             salida si nunca registró ingreso.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-purple-200 bg-purple-50 p-4">
+          <p className="font-black text-purple-800">
+            🟣 Salida anticipada
+          </p>
+
+          <p className="mt-1 text-sm text-purple-700">
+            Permite registrar salida antes de la hora
+            oficial según margen autorizado.
           </p>
         </div>
 
@@ -367,6 +396,10 @@ export default function TurnoTable({
 
               <th className="px-2 py-3">
                 Hora salida
+              </th>
+
+              <th className="px-2 py-3">
+                Salida anticipada
               </th>
 
               <th className="px-2 py-3">
@@ -516,6 +549,33 @@ export default function TurnoTable({
                     }
                     className="rounded-xl border p-3"
                   />
+                </td>
+
+                <td className="px-2 py-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      max={180}
+                      value={
+                        turno.margenSalidaAnticipadaMinutos
+                      }
+                      onChange={(e) =>
+                        cambiarValor(
+                          turno.id,
+                          "margenSalidaAnticipadaMinutos",
+                          Number(
+                            e.target.value
+                          )
+                        )
+                      }
+                      className="w-24 rounded-xl border border-purple-300 bg-purple-50 p-3 text-center font-bold"
+                    />
+
+                    <span className="text-sm font-bold text-slate-500">
+                      min
+                    </span>
+                  </div>
                 </td>
 
                 <td className="px-2 py-3">

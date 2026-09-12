@@ -33,6 +33,8 @@ model Colegio {
   analisisIA        AnalisisIA[]
   systemHealthLogs  SystemHealthLog[]
   terminales        Terminal[]
+  salidasExcepcionales SalidaExcepcional[]
+  evidenciasFotograficas EvidenciaFotografica[]
 
   @@index([codigo])
   @@index([estado])
@@ -66,6 +68,8 @@ model Estudiante {
   riesgoIA          RiesgoEstudianteIA?
   historialReportes HistorialReporteAutomatico[]
   biometriaFacial   BiometriaFacial?
+  salidasExcepcionales SalidaExcepcional[]
+  evidenciasFotograficas EvidenciaFotografica[]
 
   @@index([colegioId])
   @@index([turnoId])
@@ -85,6 +89,7 @@ model Turno {
   margenAlertaMinutos            Int      @default(15)
   createdAt                      DateTime @default(now())
   margenEntradaAnticipadaMinutos Int      @default(60)
+  margenSalidaAnticipadaMinutos  Int      @default(0)
   margenSalidaMinutos            Int      @default(60)
 
   colegio Colegio @relation(fields: [colegioId], references: [codigo], onDelete: Cascade)
@@ -119,6 +124,9 @@ model Asistencia {
 
   turnoId Int?
   turno   Turno? @relation(fields: [turnoId], references: [id], onDelete: SetNull)
+
+  salidaExcepcional SalidaExcepcional?
+  evidenciasFotograficas EvidenciaFotografica[]
 
   @@unique([estudianteId, fechaDia, turnoId])
   @@index([colegioId])
@@ -432,3 +440,68 @@ model Terminal {
   @@index([estado])
 }
 
+model SalidaExcepcional {
+  id              Int      @id @default(autoincrement())
+  colegioId       String   @default("SANTA_RITA_001")
+  asistenciaId    Int      @unique
+  estudianteId    Int
+  fecha           DateTime @default(now())
+  fechaDia        String
+  horaSalida      DateTime
+  motivo          String   // "PROBLEMA_SALUD" | "ACCIDENTE_ESCOLAR" | "CITA_MEDICA" | "EMERGENCIA_FAMILIAR" | "RETIRO_AUTORIZADO" | "OTRO"
+  motivoDetalle   String?  // Especificación si motivo == "OTRO"
+  observacion     String   @db.Text
+  usuarioRegistro String   // Usuario admin/personal que autorizó
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  asistencia Asistencia @relation(fields: [asistenciaId], references: [id], onDelete: Cascade)
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  colegio    Colegio    @relation(fields: [colegioId], references: [codigo], onDelete: Cascade)
+
+  @@index([colegioId])
+  @@index([estudianteId])
+  @@index([fechaDia])
+  @@index([motivo])
+  @@index([usuarioRegistro])
+}
+
+enum TipoEvidencia {
+  ENTRADA
+  SALIDA
+}
+
+enum EstadoEvidencia {
+  PENDIENTE
+  SUBIENDO
+  COMPLETADA
+  ERROR
+  ERROR_FINAL
+}
+
+model EvidenciaFotografica {
+  id            Int             @id @default(autoincrement())
+  colegioId     String          @default("SANTA_RITA_001")
+  asistenciaId  Int
+  estudianteId  Int
+  tipo          TipoEvidencia   @default(ENTRADA)
+  estado        EstadoEvidencia @default(PENDIENTE)
+  url           String?
+  intentos      Int             @default(0)
+  ultimoIntento DateTime?
+  errorDetalle  String?
+  tamanoBytes   Int?
+  mimeType      String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  asistencia Asistencia @relation(fields: [asistenciaId], references: [id], onDelete: Cascade)
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  colegio    Colegio    @relation(fields: [colegioId], references: [codigo], onDelete: Cascade)
+
+  @@unique([asistenciaId, tipo])
+  @@index([colegioId, estado])
+  @@index([asistenciaId])
+  @@index([estudianteId])
+  @@index([createdAt])
+}

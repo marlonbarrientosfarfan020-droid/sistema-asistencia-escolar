@@ -16,6 +16,12 @@ export interface AsistenciaEvidencia {
   fotoEntrada: string | null;
   fotoSalida: string | null;
   fotoUrl: string | null;
+  salidaExcepcional?: {
+    motivo: string;
+    motivoDetalle?: string | null;
+    observacion: string;
+    usuarioRegistro: string;
+  } | null;
 }
 
 interface ModalFotoEvidenciaProps {

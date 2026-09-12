@@ -9,7 +9,20 @@
 * 🟢 You can import this file directly.
 */
 
+export const TipoEvidencia = {
+  ENTRADA: 'ENTRADA',
+  SALIDA: 'SALIDA'
+} as const
+
+export type TipoEvidencia = (typeof TipoEvidencia)[keyof typeof TipoEvidencia]
 
 
-// This file is empty because there are no enums in the schema.
-export {}
+export const EstadoEvidencia = {
+  PENDIENTE: 'PENDIENTE',
+  SUBIENDO: 'SUBIENDO',
+  COMPLETADA: 'COMPLETADA',
+  ERROR: 'ERROR',
+  ERROR_FINAL: 'ERROR_FINAL'
+} as const
+
+export type EstadoEvidencia = (typeof EstadoEvidencia)[keyof typeof EstadoEvidencia]

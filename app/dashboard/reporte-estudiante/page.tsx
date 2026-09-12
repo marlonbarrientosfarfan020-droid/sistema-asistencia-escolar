@@ -315,7 +315,9 @@ export default function ReporteEstudiantePage() {
                     <td>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          salidaRegistrada
+                          item.estadoSalida === "SALIDA_EXCEPCIONAL"
+                            ? "bg-amber-100 text-amber-900 border border-amber-300"
+                            : salidaRegistrada
                             ? fueraHorario
                               ? "bg-amber-100 text-amber-700"
                               : "bg-blue-100 text-blue-700"
@@ -324,12 +326,14 @@ export default function ReporteEstudiantePage() {
                               : "bg-slate-100 text-slate-700"
                         }`}
                       >
-                        {item.estadoSalida ||
-                          (salidaRegistrada
-                            ? "REGISTRADA"
-                            : item.estadoJornada === "SIN_SALIDA"
-                              ? "SIN SALIDA"
-                              : "PENDIENTE")}
+                        {item.estadoSalida === "SALIDA_EXCEPCIONAL"
+                          ? `⚠️ SALIDA EXCEPCIONAL${(item as any).salidaExcepcional?.motivo ? ` (${(item as any).salidaExcepcional.motivo.replaceAll("_", " ")})` : ""}`
+                          : item.estadoSalida ||
+                            (salidaRegistrada
+                              ? "REGISTRADA"
+                              : item.estadoJornada === "SIN_SALIDA"
+                                ? "SIN SALIDA"
+                                : "PENDIENTE")}
                       </span>
                     </td>
                     <td className="text-slate-500 font-medium">{item.metodo}</td>

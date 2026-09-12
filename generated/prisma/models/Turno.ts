@@ -31,6 +31,7 @@ export type TurnoAvgAggregateOutputType = {
   minutosAlertaInicial: number | null
   margenAlertaMinutos: number | null
   margenEntradaAnticipadaMinutos: number | null
+  margenSalidaAnticipadaMinutos: number | null
   margenSalidaMinutos: number | null
 }
 
@@ -39,6 +40,7 @@ export type TurnoSumAggregateOutputType = {
   minutosAlertaInicial: number | null
   margenAlertaMinutos: number | null
   margenEntradaAnticipadaMinutos: number | null
+  margenSalidaAnticipadaMinutos: number | null
   margenSalidaMinutos: number | null
 }
 
@@ -53,6 +55,7 @@ export type TurnoMinAggregateOutputType = {
   margenAlertaMinutos: number | null
   createdAt: Date | null
   margenEntradaAnticipadaMinutos: number | null
+  margenSalidaAnticipadaMinutos: number | null
   margenSalidaMinutos: number | null
 }
 
@@ -67,6 +70,7 @@ export type TurnoMaxAggregateOutputType = {
   margenAlertaMinutos: number | null
   createdAt: Date | null
   margenEntradaAnticipadaMinutos: number | null
+  margenSalidaAnticipadaMinutos: number | null
   margenSalidaMinutos: number | null
 }
 
@@ -81,6 +85,7 @@ export type TurnoCountAggregateOutputType = {
   margenAlertaMinutos: number
   createdAt: number
   margenEntradaAnticipadaMinutos: number
+  margenSalidaAnticipadaMinutos: number
   margenSalidaMinutos: number
   _all: number
 }
@@ -91,6 +96,7 @@ export type TurnoAvgAggregateInputType = {
   minutosAlertaInicial?: true
   margenAlertaMinutos?: true
   margenEntradaAnticipadaMinutos?: true
+  margenSalidaAnticipadaMinutos?: true
   margenSalidaMinutos?: true
 }
 
@@ -99,6 +105,7 @@ export type TurnoSumAggregateInputType = {
   minutosAlertaInicial?: true
   margenAlertaMinutos?: true
   margenEntradaAnticipadaMinutos?: true
+  margenSalidaAnticipadaMinutos?: true
   margenSalidaMinutos?: true
 }
 
@@ -113,6 +120,7 @@ export type TurnoMinAggregateInputType = {
   margenAlertaMinutos?: true
   createdAt?: true
   margenEntradaAnticipadaMinutos?: true
+  margenSalidaAnticipadaMinutos?: true
   margenSalidaMinutos?: true
 }
 
@@ -127,6 +135,7 @@ export type TurnoMaxAggregateInputType = {
   margenAlertaMinutos?: true
   createdAt?: true
   margenEntradaAnticipadaMinutos?: true
+  margenSalidaAnticipadaMinutos?: true
   margenSalidaMinutos?: true
 }
 
@@ -141,6 +150,7 @@ export type TurnoCountAggregateInputType = {
   margenAlertaMinutos?: true
   createdAt?: true
   margenEntradaAnticipadaMinutos?: true
+  margenSalidaAnticipadaMinutos?: true
   margenSalidaMinutos?: true
   _all?: true
 }
@@ -242,6 +252,7 @@ export type TurnoGroupByOutputType = {
   margenAlertaMinutos: number
   createdAt: Date
   margenEntradaAnticipadaMinutos: number
+  margenSalidaAnticipadaMinutos: number
   margenSalidaMinutos: number
   _count: TurnoCountAggregateOutputType | null
   _avg: TurnoAvgAggregateOutputType | null
@@ -279,6 +290,7 @@ export type TurnoWhereInput = {
   margenAlertaMinutos?: Prisma.IntFilter<"Turno"> | number
   createdAt?: Prisma.DateTimeFilter<"Turno"> | Date | string
   margenEntradaAnticipadaMinutos?: Prisma.IntFilter<"Turno"> | number
+  margenSalidaAnticipadaMinutos?: Prisma.IntFilter<"Turno"> | number
   margenSalidaMinutos?: Prisma.IntFilter<"Turno"> | number
   colegio?: Prisma.XOR<Prisma.ColegioScalarRelationFilter, Prisma.ColegioWhereInput>
   estudiantes?: Prisma.EstudianteListRelationFilter
@@ -297,6 +309,7 @@ export type TurnoOrderByWithRelationInput = {
   margenAlertaMinutos?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   margenEntradaAnticipadaMinutos?: Prisma.SortOrder
+  margenSalidaAnticipadaMinutos?: Prisma.SortOrder
   margenSalidaMinutos?: Prisma.SortOrder
   colegio?: Prisma.ColegioOrderByWithRelationInput
   estudiantes?: Prisma.EstudianteOrderByRelationAggregateInput
@@ -319,6 +332,7 @@ export type TurnoWhereUniqueInput = Prisma.AtLeast<{
   margenAlertaMinutos?: Prisma.IntFilter<"Turno"> | number
   createdAt?: Prisma.DateTimeFilter<"Turno"> | Date | string
   margenEntradaAnticipadaMinutos?: Prisma.IntFilter<"Turno"> | number
+  margenSalidaAnticipadaMinutos?: Prisma.IntFilter<"Turno"> | number
   margenSalidaMinutos?: Prisma.IntFilter<"Turno"> | number
   colegio?: Prisma.XOR<Prisma.ColegioScalarRelationFilter, Prisma.ColegioWhereInput>
   estudiantes?: Prisma.EstudianteListRelationFilter
@@ -337,6 +351,7 @@ export type TurnoOrderByWithAggregationInput = {
   margenAlertaMinutos?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   margenEntradaAnticipadaMinutos?: Prisma.SortOrder
+  margenSalidaAnticipadaMinutos?: Prisma.SortOrder
   margenSalidaMinutos?: Prisma.SortOrder
   _count?: Prisma.TurnoCountOrderByAggregateInput
   _avg?: Prisma.TurnoAvgOrderByAggregateInput
@@ -359,6 +374,7 @@ export type TurnoScalarWhereWithAggregatesInput = {
   margenAlertaMinutos?: Prisma.IntWithAggregatesFilter<"Turno"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Turno"> | Date | string
   margenEntradaAnticipadaMinutos?: Prisma.IntWithAggregatesFilter<"Turno"> | number
+  margenSalidaAnticipadaMinutos?: Prisma.IntWithAggregatesFilter<"Turno"> | number
   margenSalidaMinutos?: Prisma.IntWithAggregatesFilter<"Turno"> | number
 }
 
@@ -371,6 +387,7 @@ export type TurnoCreateInput = {
   margenAlertaMinutos?: number
   createdAt?: Date | string
   margenEntradaAnticipadaMinutos?: number
+  margenSalidaAnticipadaMinutos?: number
   margenSalidaMinutos?: number
   colegio?: Prisma.ColegioCreateNestedOneWithoutTurnosInput
   estudiantes?: Prisma.EstudianteCreateNestedManyWithoutTurnoInput
@@ -389,6 +406,7 @@ export type TurnoUncheckedCreateInput = {
   margenAlertaMinutos?: number
   createdAt?: Date | string
   margenEntradaAnticipadaMinutos?: number
+  margenSalidaAnticipadaMinutos?: number
   margenSalidaMinutos?: number
   estudiantes?: Prisma.EstudianteUncheckedCreateNestedManyWithoutTurnoInput
   calendarioEscolar?: Prisma.CalendarioEscolarUncheckedCreateNestedManyWithoutTurnoInput
@@ -404,6 +422,7 @@ export type TurnoUpdateInput = {
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   margenEntradaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  margenSalidaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   margenSalidaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   colegio?: Prisma.ColegioUpdateOneRequiredWithoutTurnosNestedInput
   estudiantes?: Prisma.EstudianteUpdateManyWithoutTurnoNestedInput
@@ -422,6 +441,7 @@ export type TurnoUncheckedUpdateInput = {
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   margenEntradaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  margenSalidaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   margenSalidaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   estudiantes?: Prisma.EstudianteUncheckedUpdateManyWithoutTurnoNestedInput
   calendarioEscolar?: Prisma.CalendarioEscolarUncheckedUpdateManyWithoutTurnoNestedInput
@@ -439,6 +459,7 @@ export type TurnoCreateManyInput = {
   margenAlertaMinutos?: number
   createdAt?: Date | string
   margenEntradaAnticipadaMinutos?: number
+  margenSalidaAnticipadaMinutos?: number
   margenSalidaMinutos?: number
 }
 
@@ -451,6 +472,7 @@ export type TurnoUpdateManyMutationInput = {
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   margenEntradaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  margenSalidaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   margenSalidaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -465,6 +487,7 @@ export type TurnoUncheckedUpdateManyInput = {
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   margenEntradaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  margenSalidaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   margenSalidaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -499,6 +522,7 @@ export type TurnoCountOrderByAggregateInput = {
   margenAlertaMinutos?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   margenEntradaAnticipadaMinutos?: Prisma.SortOrder
+  margenSalidaAnticipadaMinutos?: Prisma.SortOrder
   margenSalidaMinutos?: Prisma.SortOrder
 }
 
@@ -507,6 +531,7 @@ export type TurnoAvgOrderByAggregateInput = {
   minutosAlertaInicial?: Prisma.SortOrder
   margenAlertaMinutos?: Prisma.SortOrder
   margenEntradaAnticipadaMinutos?: Prisma.SortOrder
+  margenSalidaAnticipadaMinutos?: Prisma.SortOrder
   margenSalidaMinutos?: Prisma.SortOrder
 }
 
@@ -521,6 +546,7 @@ export type TurnoMaxOrderByAggregateInput = {
   margenAlertaMinutos?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   margenEntradaAnticipadaMinutos?: Prisma.SortOrder
+  margenSalidaAnticipadaMinutos?: Prisma.SortOrder
   margenSalidaMinutos?: Prisma.SortOrder
 }
 
@@ -535,6 +561,7 @@ export type TurnoMinOrderByAggregateInput = {
   margenAlertaMinutos?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   margenEntradaAnticipadaMinutos?: Prisma.SortOrder
+  margenSalidaAnticipadaMinutos?: Prisma.SortOrder
   margenSalidaMinutos?: Prisma.SortOrder
 }
 
@@ -543,6 +570,7 @@ export type TurnoSumOrderByAggregateInput = {
   minutosAlertaInicial?: Prisma.SortOrder
   margenAlertaMinutos?: Prisma.SortOrder
   margenEntradaAnticipadaMinutos?: Prisma.SortOrder
+  margenSalidaAnticipadaMinutos?: Prisma.SortOrder
   margenSalidaMinutos?: Prisma.SortOrder
 }
 
@@ -645,6 +673,7 @@ export type TurnoCreateWithoutColegioInput = {
   margenAlertaMinutos?: number
   createdAt?: Date | string
   margenEntradaAnticipadaMinutos?: number
+  margenSalidaAnticipadaMinutos?: number
   margenSalidaMinutos?: number
   estudiantes?: Prisma.EstudianteCreateNestedManyWithoutTurnoInput
   calendarioEscolar?: Prisma.CalendarioEscolarCreateNestedManyWithoutTurnoInput
@@ -661,6 +690,7 @@ export type TurnoUncheckedCreateWithoutColegioInput = {
   margenAlertaMinutos?: number
   createdAt?: Date | string
   margenEntradaAnticipadaMinutos?: number
+  margenSalidaAnticipadaMinutos?: number
   margenSalidaMinutos?: number
   estudiantes?: Prisma.EstudianteUncheckedCreateNestedManyWithoutTurnoInput
   calendarioEscolar?: Prisma.CalendarioEscolarUncheckedCreateNestedManyWithoutTurnoInput
@@ -707,6 +737,7 @@ export type TurnoScalarWhereInput = {
   margenAlertaMinutos?: Prisma.IntFilter<"Turno"> | number
   createdAt?: Prisma.DateTimeFilter<"Turno"> | Date | string
   margenEntradaAnticipadaMinutos?: Prisma.IntFilter<"Turno"> | number
+  margenSalidaAnticipadaMinutos?: Prisma.IntFilter<"Turno"> | number
   margenSalidaMinutos?: Prisma.IntFilter<"Turno"> | number
 }
 
@@ -719,6 +750,7 @@ export type TurnoCreateWithoutEstudiantesInput = {
   margenAlertaMinutos?: number
   createdAt?: Date | string
   margenEntradaAnticipadaMinutos?: number
+  margenSalidaAnticipadaMinutos?: number
   margenSalidaMinutos?: number
   colegio?: Prisma.ColegioCreateNestedOneWithoutTurnosInput
   calendarioEscolar?: Prisma.CalendarioEscolarCreateNestedManyWithoutTurnoInput
@@ -736,6 +768,7 @@ export type TurnoUncheckedCreateWithoutEstudiantesInput = {
   margenAlertaMinutos?: number
   createdAt?: Date | string
   margenEntradaAnticipadaMinutos?: number
+  margenSalidaAnticipadaMinutos?: number
   margenSalidaMinutos?: number
   calendarioEscolar?: Prisma.CalendarioEscolarUncheckedCreateNestedManyWithoutTurnoInput
   asistencias?: Prisma.AsistenciaUncheckedCreateNestedManyWithoutTurnoInput
@@ -766,6 +799,7 @@ export type TurnoUpdateWithoutEstudiantesInput = {
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   margenEntradaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  margenSalidaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   margenSalidaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   colegio?: Prisma.ColegioUpdateOneRequiredWithoutTurnosNestedInput
   calendarioEscolar?: Prisma.CalendarioEscolarUpdateManyWithoutTurnoNestedInput
@@ -783,6 +817,7 @@ export type TurnoUncheckedUpdateWithoutEstudiantesInput = {
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   margenEntradaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  margenSalidaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   margenSalidaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   calendarioEscolar?: Prisma.CalendarioEscolarUncheckedUpdateManyWithoutTurnoNestedInput
   asistencias?: Prisma.AsistenciaUncheckedUpdateManyWithoutTurnoNestedInput
@@ -797,6 +832,7 @@ export type TurnoCreateWithoutAsistenciasInput = {
   margenAlertaMinutos?: number
   createdAt?: Date | string
   margenEntradaAnticipadaMinutos?: number
+  margenSalidaAnticipadaMinutos?: number
   margenSalidaMinutos?: number
   colegio?: Prisma.ColegioCreateNestedOneWithoutTurnosInput
   estudiantes?: Prisma.EstudianteCreateNestedManyWithoutTurnoInput
@@ -814,6 +850,7 @@ export type TurnoUncheckedCreateWithoutAsistenciasInput = {
   margenAlertaMinutos?: number
   createdAt?: Date | string
   margenEntradaAnticipadaMinutos?: number
+  margenSalidaAnticipadaMinutos?: number
   margenSalidaMinutos?: number
   estudiantes?: Prisma.EstudianteUncheckedCreateNestedManyWithoutTurnoInput
   calendarioEscolar?: Prisma.CalendarioEscolarUncheckedCreateNestedManyWithoutTurnoInput
@@ -844,6 +881,7 @@ export type TurnoUpdateWithoutAsistenciasInput = {
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   margenEntradaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  margenSalidaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   margenSalidaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   colegio?: Prisma.ColegioUpdateOneRequiredWithoutTurnosNestedInput
   estudiantes?: Prisma.EstudianteUpdateManyWithoutTurnoNestedInput
@@ -861,6 +899,7 @@ export type TurnoUncheckedUpdateWithoutAsistenciasInput = {
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   margenEntradaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  margenSalidaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   margenSalidaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   estudiantes?: Prisma.EstudianteUncheckedUpdateManyWithoutTurnoNestedInput
   calendarioEscolar?: Prisma.CalendarioEscolarUncheckedUpdateManyWithoutTurnoNestedInput
@@ -875,6 +914,7 @@ export type TurnoCreateWithoutCalendarioEscolarInput = {
   margenAlertaMinutos?: number
   createdAt?: Date | string
   margenEntradaAnticipadaMinutos?: number
+  margenSalidaAnticipadaMinutos?: number
   margenSalidaMinutos?: number
   colegio?: Prisma.ColegioCreateNestedOneWithoutTurnosInput
   estudiantes?: Prisma.EstudianteCreateNestedManyWithoutTurnoInput
@@ -892,6 +932,7 @@ export type TurnoUncheckedCreateWithoutCalendarioEscolarInput = {
   margenAlertaMinutos?: number
   createdAt?: Date | string
   margenEntradaAnticipadaMinutos?: number
+  margenSalidaAnticipadaMinutos?: number
   margenSalidaMinutos?: number
   estudiantes?: Prisma.EstudianteUncheckedCreateNestedManyWithoutTurnoInput
   asistencias?: Prisma.AsistenciaUncheckedCreateNestedManyWithoutTurnoInput
@@ -922,6 +963,7 @@ export type TurnoUpdateWithoutCalendarioEscolarInput = {
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   margenEntradaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  margenSalidaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   margenSalidaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   colegio?: Prisma.ColegioUpdateOneRequiredWithoutTurnosNestedInput
   estudiantes?: Prisma.EstudianteUpdateManyWithoutTurnoNestedInput
@@ -939,6 +981,7 @@ export type TurnoUncheckedUpdateWithoutCalendarioEscolarInput = {
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   margenEntradaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  margenSalidaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   margenSalidaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   estudiantes?: Prisma.EstudianteUncheckedUpdateManyWithoutTurnoNestedInput
   asistencias?: Prisma.AsistenciaUncheckedUpdateManyWithoutTurnoNestedInput
@@ -954,6 +997,7 @@ export type TurnoCreateManyColegioInput = {
   margenAlertaMinutos?: number
   createdAt?: Date | string
   margenEntradaAnticipadaMinutos?: number
+  margenSalidaAnticipadaMinutos?: number
   margenSalidaMinutos?: number
 }
 
@@ -966,6 +1010,7 @@ export type TurnoUpdateWithoutColegioInput = {
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   margenEntradaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  margenSalidaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   margenSalidaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   estudiantes?: Prisma.EstudianteUpdateManyWithoutTurnoNestedInput
   calendarioEscolar?: Prisma.CalendarioEscolarUpdateManyWithoutTurnoNestedInput
@@ -982,6 +1027,7 @@ export type TurnoUncheckedUpdateWithoutColegioInput = {
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   margenEntradaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  margenSalidaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   margenSalidaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   estudiantes?: Prisma.EstudianteUncheckedUpdateManyWithoutTurnoNestedInput
   calendarioEscolar?: Prisma.CalendarioEscolarUncheckedUpdateManyWithoutTurnoNestedInput
@@ -998,6 +1044,7 @@ export type TurnoUncheckedUpdateManyWithoutColegioInput = {
   margenAlertaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   margenEntradaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
+  margenSalidaAnticipadaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
   margenSalidaMinutos?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -1061,6 +1108,7 @@ export type TurnoSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   margenAlertaMinutos?: boolean
   createdAt?: boolean
   margenEntradaAnticipadaMinutos?: boolean
+  margenSalidaAnticipadaMinutos?: boolean
   margenSalidaMinutos?: boolean
   colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   estudiantes?: boolean | Prisma.Turno$estudiantesArgs<ExtArgs>
@@ -1080,6 +1128,7 @@ export type TurnoSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   margenAlertaMinutos?: boolean
   createdAt?: boolean
   margenEntradaAnticipadaMinutos?: boolean
+  margenSalidaAnticipadaMinutos?: boolean
   margenSalidaMinutos?: boolean
   colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["turno"]>
@@ -1095,6 +1144,7 @@ export type TurnoSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   margenAlertaMinutos?: boolean
   createdAt?: boolean
   margenEntradaAnticipadaMinutos?: boolean
+  margenSalidaAnticipadaMinutos?: boolean
   margenSalidaMinutos?: boolean
   colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["turno"]>
@@ -1110,10 +1160,11 @@ export type TurnoSelectScalar = {
   margenAlertaMinutos?: boolean
   createdAt?: boolean
   margenEntradaAnticipadaMinutos?: boolean
+  margenSalidaAnticipadaMinutos?: boolean
   margenSalidaMinutos?: boolean
 }
 
-export type TurnoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "colegioId" | "nombre" | "horaEntrada" | "horaSalida" | "estado" | "minutosAlertaInicial" | "margenAlertaMinutos" | "createdAt" | "margenEntradaAnticipadaMinutos" | "margenSalidaMinutos", ExtArgs["result"]["turno"]>
+export type TurnoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "colegioId" | "nombre" | "horaEntrada" | "horaSalida" | "estado" | "minutosAlertaInicial" | "margenAlertaMinutos" | "createdAt" | "margenEntradaAnticipadaMinutos" | "margenSalidaAnticipadaMinutos" | "margenSalidaMinutos", ExtArgs["result"]["turno"]>
 export type TurnoInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   colegio?: boolean | Prisma.ColegioDefaultArgs<ExtArgs>
   estudiantes?: boolean | Prisma.Turno$estudiantesArgs<ExtArgs>
@@ -1147,6 +1198,7 @@ export type $TurnoPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     margenAlertaMinutos: number
     createdAt: Date
     margenEntradaAnticipadaMinutos: number
+    margenSalidaAnticipadaMinutos: number
     margenSalidaMinutos: number
   }, ExtArgs["result"]["turno"]>
   composites: {}
@@ -1585,6 +1637,7 @@ export interface TurnoFieldRefs {
   readonly margenAlertaMinutos: Prisma.FieldRef<"Turno", 'Int'>
   readonly createdAt: Prisma.FieldRef<"Turno", 'DateTime'>
   readonly margenEntradaAnticipadaMinutos: Prisma.FieldRef<"Turno", 'Int'>
+  readonly margenSalidaAnticipadaMinutos: Prisma.FieldRef<"Turno", 'Int'>
   readonly margenSalidaMinutos: Prisma.FieldRef<"Turno", 'Int'>
 }
     

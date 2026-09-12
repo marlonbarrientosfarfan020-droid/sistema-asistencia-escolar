@@ -210,10 +210,7 @@ export async function obtenerDiagnosticoCompleto(colegioIdParam: string = "SANTA
     : "OK";
 
   // 6. VERCEL BLOB / STORAGE FOTOS
-  const blobConfigurado = Boolean(
-    process.env.BLOB_READ_WRITE_TOKEN ||
-      "vercel_blob_rw_r9pOgVzx5STmwmFx_ystFFESySyRRNJJpGeQycdY6oVuwDB"
-  );
+  const blobConfigurado = Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim());
   const ultimaFoto = await prisma.asistencia.findFirst({
     where: {
       colegioId,

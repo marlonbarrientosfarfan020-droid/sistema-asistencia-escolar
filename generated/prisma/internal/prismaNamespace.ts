@@ -401,7 +401,9 @@ export const ModelName = {
   CodigoFamiliar: 'CodigoFamiliar',
   SistemaControl: 'SistemaControl',
   SystemHealthLog: 'SystemHealthLog',
-  Terminal: 'Terminal'
+  Terminal: 'Terminal',
+  SalidaExcepcional: 'SalidaExcepcional',
+  EvidenciaFotografica: 'EvidenciaFotografica'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -417,7 +419,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "colegio" | "estudiante" | "turno" | "asistencia" | "usuario" | "configuracion" | "auditoria" | "alertaAsistencia" | "analisisIA" | "riesgoEstudianteIA" | "calendarioEscolar" | "historialReporteAutomatico" | "biometriaFacial" | "rostroFacial" | "codigoFamiliar" | "sistemaControl" | "systemHealthLog" | "terminal"
+    modelProps: "colegio" | "estudiante" | "turno" | "asistencia" | "usuario" | "configuracion" | "auditoria" | "alertaAsistencia" | "analisisIA" | "riesgoEstudianteIA" | "calendarioEscolar" | "historialReporteAutomatico" | "biometriaFacial" | "rostroFacial" | "codigoFamiliar" | "sistemaControl" | "systemHealthLog" | "terminal" | "salidaExcepcional" | "evidenciaFotografica"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1753,6 +1755,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SalidaExcepcional: {
+      payload: Prisma.$SalidaExcepcionalPayload<ExtArgs>
+      fields: Prisma.SalidaExcepcionalFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SalidaExcepcionalFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SalidaExcepcionalPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SalidaExcepcionalFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SalidaExcepcionalPayload>
+        }
+        findFirst: {
+          args: Prisma.SalidaExcepcionalFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SalidaExcepcionalPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SalidaExcepcionalFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SalidaExcepcionalPayload>
+        }
+        findMany: {
+          args: Prisma.SalidaExcepcionalFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SalidaExcepcionalPayload>[]
+        }
+        create: {
+          args: Prisma.SalidaExcepcionalCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SalidaExcepcionalPayload>
+        }
+        createMany: {
+          args: Prisma.SalidaExcepcionalCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SalidaExcepcionalCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SalidaExcepcionalPayload>[]
+        }
+        delete: {
+          args: Prisma.SalidaExcepcionalDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SalidaExcepcionalPayload>
+        }
+        update: {
+          args: Prisma.SalidaExcepcionalUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SalidaExcepcionalPayload>
+        }
+        deleteMany: {
+          args: Prisma.SalidaExcepcionalDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SalidaExcepcionalUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SalidaExcepcionalUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SalidaExcepcionalPayload>[]
+        }
+        upsert: {
+          args: Prisma.SalidaExcepcionalUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SalidaExcepcionalPayload>
+        }
+        aggregate: {
+          args: Prisma.SalidaExcepcionalAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSalidaExcepcional>
+        }
+        groupBy: {
+          args: Prisma.SalidaExcepcionalGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SalidaExcepcionalGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SalidaExcepcionalCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SalidaExcepcionalCountAggregateOutputType> | number
+        }
+      }
+    }
+    EvidenciaFotografica: {
+      payload: Prisma.$EvidenciaFotograficaPayload<ExtArgs>
+      fields: Prisma.EvidenciaFotograficaFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.EvidenciaFotograficaFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenciaFotograficaPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.EvidenciaFotograficaFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenciaFotograficaPayload>
+        }
+        findFirst: {
+          args: Prisma.EvidenciaFotograficaFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenciaFotograficaPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.EvidenciaFotograficaFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenciaFotograficaPayload>
+        }
+        findMany: {
+          args: Prisma.EvidenciaFotograficaFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenciaFotograficaPayload>[]
+        }
+        create: {
+          args: Prisma.EvidenciaFotograficaCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenciaFotograficaPayload>
+        }
+        createMany: {
+          args: Prisma.EvidenciaFotograficaCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.EvidenciaFotograficaCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenciaFotograficaPayload>[]
+        }
+        delete: {
+          args: Prisma.EvidenciaFotograficaDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenciaFotograficaPayload>
+        }
+        update: {
+          args: Prisma.EvidenciaFotograficaUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenciaFotograficaPayload>
+        }
+        deleteMany: {
+          args: Prisma.EvidenciaFotograficaDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.EvidenciaFotograficaUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.EvidenciaFotograficaUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenciaFotograficaPayload>[]
+        }
+        upsert: {
+          args: Prisma.EvidenciaFotograficaUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenciaFotograficaPayload>
+        }
+        aggregate: {
+          args: Prisma.EvidenciaFotograficaAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEvidenciaFotografica>
+        }
+        groupBy: {
+          args: Prisma.EvidenciaFotograficaGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EvidenciaFotograficaGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.EvidenciaFotograficaCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EvidenciaFotograficaCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1841,6 +1991,7 @@ export const TurnoScalarFieldEnum = {
   margenAlertaMinutos: 'margenAlertaMinutos',
   createdAt: 'createdAt',
   margenEntradaAnticipadaMinutos: 'margenEntradaAnticipadaMinutos',
+  margenSalidaAnticipadaMinutos: 'margenSalidaAnticipadaMinutos',
   margenSalidaMinutos: 'margenSalidaMinutos'
 } as const
 
@@ -2112,6 +2263,45 @@ export const TerminalScalarFieldEnum = {
 export type TerminalScalarFieldEnum = (typeof TerminalScalarFieldEnum)[keyof typeof TerminalScalarFieldEnum]
 
 
+export const SalidaExcepcionalScalarFieldEnum = {
+  id: 'id',
+  colegioId: 'colegioId',
+  asistenciaId: 'asistenciaId',
+  estudianteId: 'estudianteId',
+  fecha: 'fecha',
+  fechaDia: 'fechaDia',
+  horaSalida: 'horaSalida',
+  motivo: 'motivo',
+  motivoDetalle: 'motivoDetalle',
+  observacion: 'observacion',
+  usuarioRegistro: 'usuarioRegistro',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SalidaExcepcionalScalarFieldEnum = (typeof SalidaExcepcionalScalarFieldEnum)[keyof typeof SalidaExcepcionalScalarFieldEnum]
+
+
+export const EvidenciaFotograficaScalarFieldEnum = {
+  id: 'id',
+  colegioId: 'colegioId',
+  asistenciaId: 'asistenciaId',
+  estudianteId: 'estudianteId',
+  tipo: 'tipo',
+  estado: 'estado',
+  url: 'url',
+  intentos: 'intentos',
+  ultimoIntento: 'ultimoIntento',
+  errorDetalle: 'errorDetalle',
+  tamanoBytes: 'tamanoBytes',
+  mimeType: 'mimeType',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type EvidenciaFotograficaScalarFieldEnum = (typeof EvidenciaFotograficaScalarFieldEnum)[keyof typeof EvidenciaFotograficaScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2202,6 +2392,34 @@ export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, '
  * Reference to a field of type 'Float[]'
  */
 export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+    
+
+
+/**
+ * Reference to a field of type 'TipoEvidencia'
+ */
+export type EnumTipoEvidenciaFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TipoEvidencia'>
+    
+
+
+/**
+ * Reference to a field of type 'TipoEvidencia[]'
+ */
+export type ListEnumTipoEvidenciaFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TipoEvidencia[]'>
+    
+
+
+/**
+ * Reference to a field of type 'EstadoEvidencia'
+ */
+export type EnumEstadoEvidenciaFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EstadoEvidencia'>
+    
+
+
+/**
+ * Reference to a field of type 'EstadoEvidencia[]'
+ */
+export type ListEnumEstadoEvidenciaFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EstadoEvidencia[]'>
     
 
 /**
@@ -2332,6 +2550,8 @@ export type GlobalOmitConfig = {
   sistemaControl?: Prisma.SistemaControlOmit
   systemHealthLog?: Prisma.SystemHealthLogOmit
   terminal?: Prisma.TerminalOmit
+  salidaExcepcional?: Prisma.SalidaExcepcionalOmit
+  evidenciaFotografica?: Prisma.EvidenciaFotograficaOmit
 }
 
 /* Types for Logging */

@@ -161,20 +161,41 @@ export function TablaAsistenciasHija({
                       {esAusente ? (
                         <span className="font-mono text-slate-400 text-xs">--:--</span>
                       ) : (
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`font-mono text-xs ${
-                              asist.horaSalida
-                                ? "font-bold text-slate-800"
-                                : "font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md"
-                            }`}
-                          >
-                            {horaSalida}
-                          </span>
-                          {asist.estadoSalida === "FUERA_HORARIO" && (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
-                              Fuera Horario
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`font-mono text-xs ${
+                                asist.horaSalida
+                                  ? "font-bold text-slate-800"
+                                  : "font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md"
+                              }`}
+                            >
+                              {horaSalida}
                             </span>
+                            {asist.estadoSalida === "FUERA_HORARIO" && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                                Fuera Horario
+                              </span>
+                            )}
+                          </div>
+                          {asist.estadoSalida === "SALIDA_EXCEPCIONAL" && (
+                            <div className="mt-1.5">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
+                                ⚠️ Salida Excepcional
+                              </span>
+                              {asist.salidaExcepcional && (
+                                <div className="mt-1 p-1.5 rounded-lg bg-amber-50/90 border border-amber-200 text-[10px] text-amber-950 max-w-xs space-y-0.5">
+                                  <p>
+                                    <strong>Motivo:</strong>{" "}
+                                    {asist.salidaExcepcional.motivo.replaceAll("_", " ")}
+                                    {asist.salidaExcepcional.motivoDetalle && ` (${asist.salidaExcepcional.motivoDetalle})`}
+                                  </p>
+                                  <p className="italic text-slate-700">
+                                    &quot;{asist.salidaExcepcional.observacion}&quot;
+                                  </p>
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
                       )}
@@ -186,6 +207,8 @@ export function TablaAsistenciasHija({
                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
                           esAusente
                             ? "bg-rose-50 text-rose-800 border-rose-200"
+                            : asist.estadoSalida === "SALIDA_EXCEPCIONAL"
+                            ? "bg-amber-50 text-amber-900 border-amber-300"
                             : asist.estadoJornada === "CERRADA"
                             ? "bg-blue-50 text-blue-800 border-blue-200"
                             : asist.estadoJornada === "SIN_SALIDA"
@@ -196,6 +219,8 @@ export function TablaAsistenciasHija({
                         <span>
                           {esAusente
                             ? "🔴"
+                            : asist.estadoSalida === "SALIDA_EXCEPCIONAL"
+                            ? "⚠️"
                             : asist.estadoJornada === "CERRADA"
                             ? "🔵"
                             : asist.estadoJornada === "SIN_SALIDA"
@@ -205,6 +230,8 @@ export function TablaAsistenciasHija({
                         <span>
                           {esAusente
                             ? "Inasistencia"
+                            : asist.estadoSalida === "SALIDA_EXCEPCIONAL"
+                            ? "Salida Excepcional"
                             : asist.estadoJornada === "CERRADA"
                             ? "Cerrada"
                             : asist.estadoJornada === "SIN_SALIDA"

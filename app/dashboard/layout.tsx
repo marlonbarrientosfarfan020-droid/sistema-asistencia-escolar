@@ -216,6 +216,12 @@ export default function DashboardLayout({
         visible: puedeGestionar,
       },
       {
+        href: "/dashboard/salidas",
+        icono: "🚪",
+        texto: "Gestión de Salidas",
+        visible: puedeGestionar,
+      },
+      {
         href: "/dashboard/tardanzas",
         icono: "⏰",
         texto: "Tardanzas",

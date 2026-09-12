@@ -96,7 +96,8 @@ export async function GET(request: Request) {
           if (sesionPadre) {
             if (
               evento.tipo === "ASISTENCIA_REGISTRADA" ||
-              evento.tipo === "ASISTENCIA_SALIDA"
+              evento.tipo === "ASISTENCIA_SALIDA" ||
+              evento.tipo === "SALIDA_EXCEPCIONAL_REGISTRADA"
             ) {
               const estudianteId = evento.datos?.estudianteId;
               if (

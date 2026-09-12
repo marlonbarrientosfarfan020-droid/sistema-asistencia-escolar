@@ -171,6 +171,18 @@ export async function PUT(
       });
 
     /*
+     * Margen anticipado para marcar salida
+     * antes de la hora oficial.
+     */
+    const margenSalidaAnticipadaMinutos =
+      obtenerEntero({
+        valor:
+          body.margenSalidaAnticipadaMinutos,
+        minimo: 0,
+        maximo: 180,
+      });
+
+    /*
      * Tiempo adicional para marcar salida
      * después de la hora programada.
      */
@@ -303,6 +315,21 @@ export async function PUT(
     }
 
     if (
+      margenSalidaAnticipadaMinutos ===
+      null
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "El margen de salida anticipada debe estar entre 0 y 180 minutos",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (
       margenSalidaMinutos ===
       null
     ) {
@@ -391,6 +418,8 @@ export async function PUT(
 
           margenAlertaMinutos,
 
+          margenSalidaAnticipadaMinutos,
+
           margenSalidaMinutos,
 
           estado,
@@ -418,6 +447,7 @@ export async function PUT(
           `aviso inicial: ${turno.minutosAlertaInicial} min, ` +
           `tardanza: ${turno.margenAlertaMinutos} min, ` +
           `salida: ${turno.horaSalida}, ` +
+          `salida anticipada: ${turno.margenSalidaAnticipadaMinutos} min, ` +
           `margen de salida: ${turno.margenSalidaMinutos} min, ` +
           `estado: ${turno.estado ? "ACTIVO" : "INACTIVO"}.`,
       },

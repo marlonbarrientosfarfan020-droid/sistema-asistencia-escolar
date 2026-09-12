@@ -47,10 +47,32 @@ export async function guardarSesionPadre(sesion: SesionPadre): Promise<void> {
   });
 }
 
-export async function obtenerSesionPadre(): Promise<SesionPadre | null> {
+export async function obtenerSesionPadre(request?: Request): Promise<SesionPadre | null> {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get(COOKIE_PADRE_NAME)?.value;
+    let token: string | undefined;
+
+    if (request) {
+      const cookieHeader = request.headers.get("cookie") || "";
+      const match = cookieHeader.match(new RegExp(`${COOKIE_PADRE_NAME}=([^;]+)`));
+      if (match) {
+        token = match[1];
+      }
+      if (!token) {
+        const authHeader = request.headers.get("authorization") || "";
+        if (authHeader.startsWith("Bearer ")) {
+          token = authHeader.slice(7).trim();
+        }
+      }
+    }
+
+    if (!token) {
+      try {
+        const cookieStore = await cookies();
+        token = cookieStore.get(COOKIE_PADRE_NAME)?.value;
+      } catch {
+        // En entornos fuera del contexto de petición nativo de Next.js
+      }
+    }
 
     if (!token) return null;
 
@@ -83,8 +105,8 @@ export async function destruirSesionPadre(): Promise<void> {
   });
 }
 
-export async function exigirSesionPadre() {
-  const sesion = await obtenerSesionPadre();
+export async function exigirSesionPadre(request?: Request) {
+  const sesion = await obtenerSesionPadre(request);
 
   if (!sesion) {
     return {

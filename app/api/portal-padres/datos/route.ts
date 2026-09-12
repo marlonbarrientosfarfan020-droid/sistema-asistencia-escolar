@@ -15,7 +15,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const acceso = await exigirSesionPadre();
+  const acceso = await exigirSesionPadre(request);
   if (!acceso.autorizado) {
     return acceso.respuesta;
   }
@@ -138,6 +138,14 @@ export async function GET(request: Request) {
         fotoEntrada: true,
         fotoSalida: true,
         fotoUrl: true,
+        salidaExcepcional: {
+          select: {
+            motivo: true,
+            motivoDetalle: true,
+            observacion: true,
+            usuarioRegistro: true,
+          },
+        },
       },
     });
 

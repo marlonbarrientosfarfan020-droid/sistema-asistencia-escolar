@@ -187,6 +187,9 @@ export async function GET(request: Request) {
           orderBy: {
             fecha: "asc",
           },
+          include: {
+            salidaExcepcional: true,
+          },
         },
       },
     });
@@ -324,6 +327,14 @@ export async function GET(request: Request) {
         estadoSalida,
         estadoJornada: asistencia.estadoJornada,
         metodo: asistencia.metodo,
+        salidaExcepcional: (asistencia as any).salidaExcepcional
+          ? {
+              motivo: (asistencia as any).salidaExcepcional.motivo,
+              motivoDetalle: (asistencia as any).salidaExcepcional.motivoDetalle,
+              observacion: (asistencia as any).salidaExcepcional.observacion,
+              usuarioRegistro: (asistencia as any).salidaExcepcional.usuarioRegistro,
+            }
+          : null,
       };
     });
 

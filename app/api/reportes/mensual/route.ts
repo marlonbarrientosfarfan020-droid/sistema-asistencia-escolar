@@ -91,7 +91,7 @@ function esDiaNoLectivo(
 }
 
 export async function GET(request: Request) {
-  const acceso = await exigirAdminDemoOPersonal();
+  const acceso = await exigirAdminDemoOPersonal(request);
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
@@ -200,6 +200,9 @@ const fechasMes = esMesActual
           orderBy: {
             fecha: "asc",
           },
+          include: {
+            salidaExcepcional: true,
+          },
         },
       },
       orderBy: {
@@ -290,6 +293,10 @@ const fechasMes = esMesActual
           asistencia.horaSalida === null
       ).length;
 
+      const salidasExcepcionales = asistenciasLectivas.filter(
+        (asistencia) => asistencia.estadoSalida === "SALIDA_EXCEPCIONAL"
+      ).length;
+
       const porcentajeAsistencia =
         diasLectivosEsperados > 0
           ? Number(
@@ -321,6 +328,7 @@ const fechasMes = esMesActual
         puntuales,
         tardanzas,
         sinSalida,
+        salidasExcepcionales,
         porcentajeAsistencia,
         porcentajePuntualidad,
         fechasAusencia,
@@ -363,6 +371,12 @@ const fechasMes = esMesActual
       totalSinSalida: detalle.reduce(
         (acumulado, estudiante) =>
           acumulado + estudiante.sinSalida,
+        0
+      ),
+
+      totalSalidasExcepcionales: detalle.reduce(
+        (acumulado, estudiante) =>
+          acumulado + estudiante.salidasExcepcionales,
         0
       ),
     };

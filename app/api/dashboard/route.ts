@@ -10,6 +10,10 @@ import {
   ZONA_HORARIA,
 } from "@/lib/timezone";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type EstadoOperativo =
   | "PENDIENTE_INICIO"
   | "ESPERANDO_INGRESO"
@@ -37,6 +41,7 @@ type ResumenBase = {
   salidasRegistradas: number;
   pendientesSalida: number;
   jornadaCompleta: number;
+  salidasExcepcionales: number;
   sinSalida: number;
   alertasIngresoPendiente: number;
   alertasTardanza: number;
@@ -95,6 +100,7 @@ function crearResumenVacio(): ResumenBase {
     salidasRegistradas: 0,
     pendientesSalida: 0,
     jornadaCompleta: 0,
+    salidasExcepcionales: 0,
     sinSalida: 0,
     alertasIngresoPendiente: 0,
     alertasTardanza: 0,
@@ -162,9 +168,9 @@ function sumarAlerta(
   resumen.alertasEnviadas++;
 }
 
-export async function GET() {
+export async function GET(request?: Request) {
   const acceso =
-    await exigirAdminDirectivoODemo();
+    await exigirAdminDirectivoODemo(request);
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
@@ -173,6 +179,7 @@ export async function GET() {
   try {
     const hoy = fechaPeru();
     const ahora = ahoraPeru();
+    const colegioId = (acceso.sesion as any)?.colegioId || "SANTA_RITA_001";
     const { inicioDia, finDia } = obtenerLimitesDiaPeru(hoy);
     const fechaHoyBD = new Date(`${hoy}T00:00:00.000Z`);
 
@@ -187,8 +194,12 @@ export async function GET() {
       riesgoAlto,
       riesgoMedio,
       riesgoBajo,
+      salidasExcepcionalesHoy,
     ] = await Promise.all([
       prisma.configuracion.findFirst({
+        where: {
+          ...(colegioId ? { colegioId } : {}),
+        },
         orderBy: {
           id: "asc",
         },
@@ -197,6 +208,7 @@ export async function GET() {
       prisma.estudiante.findMany({
         where: {
           estado: true,
+          ...(colegioId ? { colegioId } : {}),
         },
 
         include: {
@@ -224,6 +236,7 @@ export async function GET() {
 
       prisma.asistencia.findMany({
         where: {
+          colegioId,
           OR: [
             { fechaDia: hoy },
             {
@@ -241,6 +254,15 @@ export async function GET() {
               turno: true,
             },
           },
+          salidaExcepcional: {
+            select: {
+              id: true,
+              motivo: true,
+              motivoDetalle: true,
+              observacion: true,
+              usuarioRegistro: true,
+            },
+          },
         },
 
         orderBy: {
@@ -251,6 +273,7 @@ export async function GET() {
       prisma.alertaAsistencia.findMany({
         where: {
           fecha: hoy,
+          ...(colegioId ? { estudiante: { colegioId } } : {}),
         },
 
         include: {
@@ -269,6 +292,7 @@ export async function GET() {
       prisma.calendarioEscolar.findMany({
         where: {
           estado: true,
+          ...(colegioId ? { colegioId } : {}),
 
           fechaInicio: {
             lte: fechaHoyBD,
@@ -289,6 +313,9 @@ export async function GET() {
       }),
 
       prisma.analisisIA.findFirst({
+        where: {
+          ...(colegioId ? { colegioId } : {}),
+        },
         orderBy: {
           createdAt: "desc",
         },
@@ -298,6 +325,7 @@ export async function GET() {
         where: {
           estudiante: {
             estado: true,
+            ...(colegioId ? { colegioId } : {}),
           },
           porcentaje: {
             gt: 0,
@@ -329,6 +357,7 @@ export async function GET() {
           nivel: "ALTO",
           estudiante: {
             estado: true,
+            ...(colegioId ? { colegioId } : {}),
           },
         },
       }),
@@ -338,6 +367,7 @@ export async function GET() {
           nivel: "MEDIO",
           estudiante: {
             estado: true,
+            ...(colegioId ? { colegioId } : {}),
           },
         },
       }),
@@ -347,7 +377,20 @@ export async function GET() {
           nivel: "BAJO",
           estudiante: {
             estado: true,
+            ...(colegioId ? { colegioId } : {}),
           },
+        },
+      }),
+
+      prisma.salidaExcepcional.findMany({
+        where: {
+          colegioId,
+          fechaDia: hoy,
+        },
+        select: {
+          id: true,
+          motivo: true,
+          estudianteId: true,
         },
       }),
     ]);
@@ -654,16 +697,27 @@ export async function GET() {
       if (asistencia.horaSalida) {
         resumenGeneral.salidas++;
         resumenGeneral.salidasRegistradas++;
-        resumenGeneral.jornadaCompleta++;
         if (turno) {
           turno.resumen.salidas++;
           turno.resumen.salidasRegistradas++;
-          turno.resumen.jornadaCompleta++;
         }
         if (seccion) {
           seccion.resumen.salidas++;
           seccion.resumen.salidasRegistradas++;
-          seccion.resumen.jornadaCompleta++;
+        }
+
+        const esSalidaExcepcional =
+          asistencia.estadoSalida === "SALIDA_EXCEPCIONAL" ||
+          Boolean(asistencia.salidaExcepcional);
+
+        if (esSalidaExcepcional) {
+          resumenGeneral.salidasExcepcionales++;
+          if (turno) turno.resumen.salidasExcepcionales++;
+          if (seccion) seccion.resumen.salidasExcepcionales++;
+        } else {
+          resumenGeneral.jornadaCompleta++;
+          if (turno) turno.resumen.jornadaCompleta++;
+          if (seccion) seccion.resumen.jornadaCompleta++;
         }
       } else if (asistencia.horaEntrada) {
         const terminoMargen = finPermitidoTurno ? ahora > finPermitidoTurno : false;
@@ -927,9 +981,21 @@ export async function GET() {
         ),
     };
 
-    const ultimasAsistencias =
-      asistenciasRegistradas
-        .slice(0, 8);
+    const ultimasAsistencias = [...asistenciasRegistradas]
+      .sort((a, b) => {
+        const timeA = Math.max(
+          a.horaSalida ? new Date(a.horaSalida).getTime() : 0,
+          a.horaEntrada ? new Date(a.horaEntrada).getTime() : 0,
+          new Date(a.fecha).getTime()
+        );
+        const timeB = Math.max(
+          b.horaSalida ? new Date(b.horaSalida).getTime() : 0,
+          b.horaEntrada ? new Date(b.horaEntrada).getTime() : 0,
+          new Date(b.fecha).getTime()
+        );
+        return timeB - timeA;
+      })
+      .slice(0, 10);
 
     const ultimasAlertas =
       alertasHoy
@@ -1090,6 +1156,7 @@ export async function GET() {
     const asistenciasUltimos7Dias =
       await prisma.asistencia.findMany({
         where: {
+          ...(colegioId ? { colegioId } : {}),
           fecha: {
             gte: fechaInicioTendencia,
             lte: finDia,
@@ -1192,176 +1259,243 @@ export async function GET() {
         }
       );
 
-    return NextResponse.json({
-      fecha: hoy,
-      actualizadoEn: new Date(),
+      const sinIngresoOAusentes = Math.max(
+        resumenGeneral.total -
+          resumenGeneral.presentes -
+          resumenGeneral.pendientesInicio,
+        0
+      );
+      const sinTurnoOInactivos = Math.max(totalEstudiantes - resumenGeneral.total, 0);
 
-      totalEstudiantes,
+      return NextResponse.json(
+        {
+          fecha: hoy,
+          actualizadoEn: new Date(),
 
-      /*
-       * Compatibilidad con tarjetas antiguas y control de jornada escolar
-       */
-      presentes,
-      puntuales:
-        resumenGeneral.puntuales,
-      tardanzas:
-        resumenGeneral.tardanzas,
-      ausentes:
-        resumenGeneral
-          .ausentesConfirmados,
-      entradas:
-        resumenGeneral.entradas,
-      salidas:
-        resumenGeneral.salidas,
-      salidasRegistradas:
-        resumenGeneral.salidasRegistradas,
-      pendientesSalida:
-        resumenGeneral.pendientesSalida,
-      jornadaCompleta:
-        resumenGeneral.jornadaCompleta,
-      sinSalida:
-        resumenGeneral.sinSalida,
+          totalEstudiantes,
+          estudiantesSinActividad: sinTurnoOInactivos,
 
-      /*
-       * Estados reales del monitoreo.
-       */
-      pendientesInicio:
-        resumenGeneral
-          .pendientesInicio,
+          /*
+           * Compatibilidad con tarjetas antiguas y control de jornada escolar
+           */
+          presentes,
+          puntuales:
+            resumenGeneral.puntuales,
+          tardanzas:
+            resumenGeneral.tardanzas,
+          ausentes:
+            resumenGeneral
+              .ausentesConfirmados,
+          entradas:
+            resumenGeneral.entradas,
+          salidas:
+            resumenGeneral.salidas,
+          salidasRegistradas:
+            resumenGeneral.salidasRegistradas,
+          pendientesSalida:
+            resumenGeneral.pendientesSalida,
+          jornadaCompleta:
+            resumenGeneral.jornadaCompleta,
+          salidasExcepcionales:
+            resumenGeneral.salidasExcepcionales,
+          sinSalida:
+            resumenGeneral.sinSalida,
 
-      esperandoIngreso:
-        resumenGeneral
-          .esperandoIngreso,
+          /*
+           * Estados reales del monitoreo.
+           */
+          pendientesInicio:
+            resumenGeneral
+              .pendientesInicio,
 
-      ingresoPendiente:
-        resumenGeneral
-          .ingresoPendiente,
+          esperandoIngreso:
+            resumenGeneral
+              .esperandoIngreso,
 
-      tardanzaSinIngreso:
-        resumenGeneral
-          .tardanzaSinIngreso,
+          ingresoPendiente:
+            resumenGeneral
+              .ingresoPendiente,
 
-      ausentesConfirmados:
-        resumenGeneral
-          .ausentesConfirmados,
+          tardanzaSinIngreso:
+            resumenGeneral
+              .tardanzaSinIngreso,
 
-      sinIngreso:
-        resumenGeneral
-          .esperandoIngreso +
-        resumenGeneral
-          .ingresoPendiente +
-        resumenGeneral
-          .tardanzaSinIngreso,
+          ausentesConfirmados:
+            resumenGeneral
+              .ausentesConfirmados,
 
-      totalEsperadosHoy:
-        resumenGeneral.total,
+          sinIngreso:
+            resumenGeneral
+              .esperandoIngreso +
+            resumenGeneral
+              .ingresoPendiente +
+            resumenGeneral
+              .tardanzaSinIngreso,
 
-      alertas,
+          totalEsperadosHoy:
+            resumenGeneral.total,
 
-      resumenTurnos,
-      resumenGrados,
-      catalogoDinamico,
-      ultimasAsistencias,
-      ultimasAlertas,
+          alertas,
 
-      automatizaciones: {
-        activas:
-          configuracion
-            ?.automatizacionesActivas ||
-          false,
+          resumenTurnos,
+          resumenGrados,
+          catalogoDinamico,
+          ultimasAsistencias,
+          ultimasAlertas,
 
-        modoPrueba:
-          configuracion
-            ?.modoPruebaAlertas ??
-          true,
+          automatizaciones: {
+            activas:
+              configuracion
+                ?.automatizacionesActivas ||
+              false,
 
-        ultimaEjecucion:
-          configuracion
-            ?.ultimaEjecucionAutomatizaciones ||
-          null,
+            modoPrueba:
+              configuracion
+                ?.modoPruebaAlertas ??
+              true,
 
-        ultimoEstado:
-          configuracion
-            ?.ultimaEjecucionEstado ||
-          "",
-
-        frecuenciaMinutos:
-          configuracion
-            ?.frecuenciaRevisionMinutos ||
-          5,
-      },
-
-      diaNoLectivo:
-        eventosNoLectivosHoy.length > 0,
-
-      diaNoLectivoGeneral:
-        eventosNoLectivosHoy.some(
-          (evento) =>
-            evento.todosLosTurnos
-        ),
-
-      eventosNoLectivosHoy:
-        eventosNoLectivosHoy.map(
-          (evento) => ({
-            id: evento.id,
-            tipo: evento.tipo,
-            descripcion:
-              evento.descripcion,
-            fechaInicio:
-              evento.fechaInicio,
-            fechaFin:
-              evento.fechaFin,
-            todosLosTurnos:
-              evento.todosLosTurnos,
-            turnoId:
-              evento.turnoId,
-            turno:
-              evento.turno?.nombre ||
+            ultimaEjecucion:
+              configuracion
+                ?.ultimaEjecucionAutomatizaciones ||
               null,
-          })
-        ),
 
-      horaReporteDiario:
-        configuracion
-          ?.horaReporteDiario ||
-        "21:00",
+            ultimoEstado:
+              configuracion
+                ?.ultimaEjecucionEstado ||
+              "",
 
-      ultimoReporteTelegramAt:
-        configuracion
-          ?.ultimoReporteTelegramAt ||
-        null,
+            frecuenciaMinutos:
+              configuracion
+                ?.frecuenciaRevisionMinutos ||
+              5,
+          },
 
-      ultimoReporteTelegramEstado:
-        configuracion
-          ?.ultimoReporteTelegramEstado ||
-        "",
+          diaNoLectivo:
+            eventosNoLectivosHoy.length > 0,
 
-      riesgoAlto,
-      riesgoMedio,
-      riesgoBajo,
-      resumenIA,
-      topRiesgoIA,
-      tendenciaSemanal,
-      metricasJornada,
-      metricasEntrada,
-      metricasSalida,
-      graficoJornadaEstudiantes: [
-        { name: "En Colegio", value: resumenGeneral.pendientesSalida, color: "#10b981" },
-        { name: "Jornada Completa", value: resumenGeneral.jornadaCompleta, color: "#3b82f6" },
-        { name: "Sin Salida", value: resumenGeneral.sinSalida, color: "#f97316" },
-        { name: "Sin Ingreso", value: Math.max(totalEstudiantes - resumenGeneral.presentes, 0), color: "#64748b" },
-      ],
-      turnosJornadaGrafico: resumenTurnos.map((t) => ({
-        id: t.id,
-        nombre: t.nombre,
-        entradas: t.entradas,
-        salidas: t.salidas,
-        salidasRegistradas: t.salidasRegistradas,
-        pendientesSalida: t.pendientesSalida,
-        sinSalida: t.sinSalida,
-        jornadaCompleta: t.jornadaCompleta,
-      })),
-    });
+          diaNoLectivoGeneral:
+            eventosNoLectivosHoy.some(
+              (evento) =>
+                evento.todosLosTurnos
+            ),
+
+          eventosNoLectivosHoy:
+            eventosNoLectivosHoy.map(
+              (evento) => ({
+                id: evento.id,
+                tipo: evento.tipo,
+                descripcion:
+                  evento.descripcion,
+                fechaInicio:
+                  evento.fechaInicio,
+                fechaFin:
+                  evento.fechaFin,
+                todosLosTurnos:
+                  evento.todosLosTurnos,
+                turnoId:
+                  evento.turnoId,
+                turno:
+                  evento.turno?.nombre ||
+                  null,
+              })
+            ),
+
+          horaReporteDiario:
+            configuracion
+              ?.horaReporteDiario ||
+            "21:00",
+
+          ultimoReporteTelegramAt:
+            configuracion
+              ?.ultimoReporteTelegramAt ||
+            null,
+
+          ultimoReporteTelegramEstado:
+            configuracion
+              ?.ultimoReporteTelegramEstado ||
+            "",
+
+          riesgoAlto,
+          riesgoMedio,
+          riesgoBajo,
+          resumenIA,
+          topRiesgoIA,
+          tendenciaSemanal,
+          metricasJornada,
+          metricasEntrada,
+          metricasSalida,
+          salidasExcepcionalesHoy: salidasExcepcionalesHoy.length,
+          motivosSalidaExcepcional: {
+            PROBLEMA_SALUD: salidasExcepcionalesHoy.filter((s) => s.motivo === "PROBLEMA_SALUD").length,
+            ACCIDENTE_ESCOLAR: salidasExcepcionalesHoy.filter((s) => s.motivo === "ACCIDENTE_ESCOLAR").length,
+            CITA_MEDICA: salidasExcepcionalesHoy.filter((s) => s.motivo === "CITA_MEDICA").length,
+            EMERGENCIA_FAMILIAR: salidasExcepcionalesHoy.filter((s) => s.motivo === "EMERGENCIA_FAMILIAR").length,
+            RETIRO_AUTORIZADO: salidasExcepcionalesHoy.filter((s) => s.motivo === "RETIRO_AUTORIZADO").length,
+            OTRO: salidasExcepcionalesHoy.filter((s) => s.motivo === "OTRO").length,
+          },
+          graficoMotivosSalida: [
+            {
+              name: "Problema salud",
+              value: salidasExcepcionalesHoy.filter((s) => s.motivo === "PROBLEMA_SALUD").length,
+              color: "#f43f5e",
+            },
+            {
+              name: "Cita médica",
+              value: salidasExcepcionalesHoy.filter((s) => s.motivo === "CITA_MEDICA").length,
+              color: "#3b82f6",
+            },
+            {
+              name: "Accidente escolar",
+              value: salidasExcepcionalesHoy.filter((s) => s.motivo === "ACCIDENTE_ESCOLAR").length,
+              color: "#f97316",
+            },
+            {
+              name: "Emergencia familiar",
+              value: salidasExcepcionalesHoy.filter((s) => s.motivo === "EMERGENCIA_FAMILIAR").length,
+              color: "#eab308",
+            },
+            {
+              name: "Retiro autorizado",
+              value: salidasExcepcionalesHoy.filter((s) => s.motivo === "RETIRO_AUTORIZADO").length,
+              color: "#a855f7",
+            },
+            {
+              name: "Otro motivo",
+              value: salidasExcepcionalesHoy.filter((s) => s.motivo === "OTRO").length,
+              color: "#64748b",
+            },
+          ],
+          graficoJornadaEstudiantes: [
+            { name: "En Colegio", value: resumenGeneral.pendientesSalida, color: "#10b981" },
+            { name: "Jornada Completa", value: resumenGeneral.jornadaCompleta, color: "#3b82f6" },
+            { name: "Salida Excepcional", value: resumenGeneral.salidasExcepcionales, color: "#eab308" },
+            { name: "Sin Salida", value: resumenGeneral.sinSalida, color: "#f97316" },
+            { name: "Sin Ingreso / Ausentes", value: sinIngresoOAusentes, color: "#f43f5e" },
+            { name: "Turno por Iniciar", value: resumenGeneral.pendientesInicio, color: "#8b5cf6" },
+            ...(sinTurnoOInactivos > 0
+              ? [{ name: "Turno Inactivo / Sin Turno", value: sinTurnoOInactivos, color: "#64748b" }]
+              : []),
+          ],
+          turnosJornadaGrafico: resumenTurnos.map((t) => ({
+            id: t.id,
+            nombre: t.nombre,
+            entradas: t.entradas,
+            salidas: t.salidas,
+            salidasRegistradas: t.salidasRegistradas,
+            pendientesSalida: t.pendientesSalida,
+            sinSalida: t.sinSalida,
+            jornadaCompleta: t.jornadaCompleta,
+          })),
+        },
+        {
+          status: 200,
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            Pragma: "no-cache",
+            Expires: "0",
+          },
+        }
+      );
   } catch (error) {
     console.error(
       "Error obteniendo dashboard:",

@@ -91,12 +91,14 @@ export function obtenerVentanaTurno({
   horaEntrada,
   horaSalida,
   margenEntradaAnticipadaMinutos,
+  margenSalidaAnticipadaMinutos = 0,
   margenSalidaMinutos,
   ahora = new Date(),
 }: {
   horaEntrada: string;
   horaSalida: string;
   margenEntradaAnticipadaMinutos: number;
+  margenSalidaAnticipadaMinutos?: number;
   margenSalidaMinutos: number;
   ahora?: Date;
 }) {
@@ -130,6 +132,11 @@ export function obtenerVentanaTurno({
     inicioPermitido.getMinutes() - Math.max(margenEntradaAnticipadaMinutos, 0)
   );
 
+  const inicioSalidaPermitido = new Date(horaSalidaTurno.getTime());
+  inicioSalidaPermitido.setMinutes(
+    inicioSalidaPermitido.getMinutes() - Math.max(margenSalidaAnticipadaMinutos || 0, 0)
+  );
+
   const finPermitido = new Date(horaSalidaTurno.getTime());
   finPermitido.setMinutes(
     finPermitido.getMinutes() + Math.max(margenSalidaMinutos, 0)
@@ -141,6 +148,7 @@ export function obtenerVentanaTurno({
     inicioPermitido,
     horaEntradaTurno,
     horaSalidaTurno,
+    inicioSalidaPermitido,
     finPermitido,
   };
 }
@@ -173,40 +181,69 @@ export function calcularEstadoAsistencia(
 }
 
 /**
- * Calcula el estado de salida: "REGISTRADA" si está dentro del margen de salida,
- * "FUERA_HORARIO" si la marcación se realiza después de (horaSalidaTurno + margenSalidaMinutos),
- * y detecta si es anticipada (antes de la hora oficial de salida del turno).
+ * Calcula el estado de salida contemplando la ventana completa:
+ * - "PENDIENTE": Si la marcación se intenta antes de inicioVentanaSalida (salida bloqueada)
+ * - "SALIDA_ANTICIPADA": Si la marcación ocurre dentro del margen anticipado [horaSalidaTurno - margenSalidaAnticipada, horaSalidaTurno[
+ * - "SALIDA_NORMAL": Si la marcación ocurre entre horaSalidaTurno y (horaSalidaTurno + margenSalidaMinutos)
+ * - "FUERA_HORARIO": Si la marcación se realiza después de (horaSalidaTurno + margenSalidaMinutos)
+ * Detecta si la salida está bloqueada por ocurrir antes de inicioVentanaSalida.
  */
 export function calcularEstadoSalida({
   ahora = new Date(),
   horaSalidaTurno,
-  margenSalidaMinutos,
+  margenSalidaAnticipadaMinutos = 0,
+  margenSalidaMinutos = 0,
 }: {
   ahora?: Date;
   horaSalidaTurno: Date;
+  margenSalidaAnticipadaMinutos?: number;
   margenSalidaMinutos: number;
 }): {
-  estadoSalida: "REGISTRADA" | "FUERA_HORARIO";
+  estadoSalida: "PENDIENTE" | "SALIDA_ANTICIPADA" | "SALIDA_NORMAL" | "FUERA_HORARIO" | "REGISTRADA";
+  esBloqueadoAntesVentana: boolean;
   esAnticipada: boolean;
+  esNormal: boolean;
   esFueraHorario: boolean;
   dentroVentanaSalida: boolean;
+  inicioVentanaSalida: Date;
   horaSalidaTurno: Date;
   limiteSalida: Date;
 } {
-  const limiteSalida = new Date(horaSalidaTurno.getTime());
-  limiteSalida.setMinutes(
-    limiteSalida.getMinutes() + Math.max(margenSalidaMinutos, 0)
+  const inicioVentanaSalida = new Date(horaSalidaTurno.getTime());
+  inicioVentanaSalida.setMinutes(
+    inicioVentanaSalida.getMinutes() - Math.max(margenSalidaAnticipadaMinutos || 0, 0)
   );
 
-  const esAnticipada = ahora < horaSalidaTurno;
+  const limiteSalida = new Date(horaSalidaTurno.getTime());
+  limiteSalida.setMinutes(
+    limiteSalida.getMinutes() + Math.max(margenSalidaMinutos || 0, 0)
+  );
+
+  const esBloqueadoAntesVentana = ahora < inicioVentanaSalida;
+  const esAnticipada = !esBloqueadoAntesVentana && ahora < horaSalidaTurno;
+  const esNormal = ahora >= horaSalidaTurno && ahora <= limiteSalida;
   const esFueraHorario = ahora > limiteSalida;
-  const dentroVentanaSalida = !esAnticipada && !esFueraHorario;
+  const dentroVentanaSalida = !esBloqueadoAntesVentana && !esFueraHorario;
+
+  let estadoSalida: "PENDIENTE" | "SALIDA_ANTICIPADA" | "SALIDA_NORMAL" | "FUERA_HORARIO" = "PENDIENTE";
+  if (esBloqueadoAntesVentana) {
+    estadoSalida = "PENDIENTE";
+  } else if (esAnticipada) {
+    estadoSalida = "SALIDA_ANTICIPADA";
+  } else if (esNormal) {
+    estadoSalida = "SALIDA_NORMAL";
+  } else if (esFueraHorario) {
+    estadoSalida = "FUERA_HORARIO";
+  }
 
   return {
-    estadoSalida: esFueraHorario ? "FUERA_HORARIO" : "REGISTRADA",
+    estadoSalida,
+    esBloqueadoAntesVentana,
     esAnticipada,
+    esNormal,
     esFueraHorario,
     dentroVentanaSalida,
+    inicioVentanaSalida,
     horaSalidaTurno,
     limiteSalida,
   };

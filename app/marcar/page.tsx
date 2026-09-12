@@ -117,7 +117,7 @@ export default function MarcarPage() {
 
   // Control de terminal y seguridad criptográfica
   const [terminalAutorizado, setTerminalAutorizado] = useState<boolean | null>(null);
-  const [terminalIdInput, setTerminalIdInput] = useState("TRM-CASIA-01");
+  const [terminalIdInput, setTerminalIdInput] = useState("");
   const [terminalTokenInput, setTerminalTokenInput] = useState("");
   const [errorTerminal, setErrorTerminal] = useState("");
   const [validandoTerminal, setValidandoTerminal] = useState(false);
@@ -185,16 +185,8 @@ export default function MarcarPage() {
   // 1. Autorización de terminal y configuración inicial
   useEffect(() => {
     const logueado = localStorage.getItem("logueado");
-    let terminalIdLocal = localStorage.getItem("terminal_id");
-    let terminalTokenLocal = localStorage.getItem("terminal_token");
-
-    // Auto-vincular terminal oficial de portería registrada si aún no está configurada
-    if (!terminalIdLocal || !terminalTokenLocal) {
-      terminalIdLocal = "TRM-CASIA-01";
-      terminalTokenLocal = "sec_trm_santarita_2026_9f8d7c6b5a4e3f21";
-      localStorage.setItem("terminal_id", terminalIdLocal);
-      localStorage.setItem("terminal_token", terminalTokenLocal);
-    }
+    const terminalIdLocal = localStorage.getItem("terminal_id");
+    const terminalTokenLocal = localStorage.getItem("terminal_token");
 
     if (logueado === "true" || (terminalIdLocal && terminalTokenLocal)) {
       setTerminalAutorizado(true);
@@ -704,7 +696,7 @@ export default function MarcarPage() {
       const video = (document.querySelector("#lector-qr video") || document.querySelector("video")) as HTMLVideoElement | null;
       if (video && video.videoWidth > 0 && video.videoHeight > 0) {
         const canvas = document.createElement("canvas");
-        const ancho = Math.min(video.videoWidth, 720);
+        const ancho = Math.min(video.videoWidth, 640);
         const alto = Math.round((video.videoHeight * ancho) / video.videoWidth);
         canvas.width = ancho;
         canvas.height = alto;
@@ -713,7 +705,7 @@ export default function MarcarPage() {
           ctx.drawImage(video, 0, 0, ancho, alto);
 
           const blob = await new Promise<Blob | null>((resolve) => {
-            canvas.toBlob((b) => resolve(b), "image/jpeg", 0.82);
+            canvas.toBlob((b) => resolve(b), "image/jpeg", 0.75);
           });
 
           if (blob && blob.size > 0 && blob.type === "image/jpeg") {
@@ -736,60 +728,72 @@ export default function MarcarPage() {
     return null;
   }
 
-  // 8. Subida asíncrona de fotografía a Vercel Blob con timeout real de red (máx 3000ms)
-  async function subirFotoSegura(foto: Blob): Promise<string> {
-    const formData = new FormData();
-    formData.append(
-      "foto",
-      new File([foto], `terminal-${Date.now()}.jpg`, { type: "image/jpeg" })
-    );
+  // 8. Subida asíncrona de fotografía en segundo plano con reintentos automáticos (máximo 3)
+  async function subirFotoAsincrona(
+    foto: Blob,
+    asistenciaId: number,
+    tipo?: string
+  ): Promise<string> {
+    const terminalId = localStorage.getItem("terminal_id");
+    const terminalToken = localStorage.getItem("terminal_token");
+    const maxIntentos = 3;
 
-    const terminalId = localStorage.getItem("terminal_id") || "TRM-CASIA-01";
-    const terminalToken = localStorage.getItem("terminal_token") || "sec_trm_santarita_2026_9f8d7c6b5a4e3f21";
+    for (let intento = 1; intento <= maxIntentos; intento++) {
+      const formData = new FormData();
+      formData.append(
+        "foto",
+        new File([foto], `asistencia-${asistenciaId}-${Date.now()}.jpg`, { type: "image/jpeg" })
+      );
+      formData.append("asistenciaId", String(asistenciaId));
+      formData.append("tipo", tipo || "ENTRADA");
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-    try {
-      const respuesta = await fetch("/api/asistencias/foto", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          ...(terminalId && terminalToken
-            ? {
-                "x-terminal-id": terminalId,
-                "x-terminal-token": terminalToken,
-              }
-            : {}),
-        },
-        body: formData,
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
+      try {
+        const respuesta = await fetch("/api/asistencias/foto", {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            ...(terminalId && terminalToken
+              ? {
+                  "x-terminal-id": terminalId,
+                  "x-terminal-token": terminalToken,
+                }
+              : {}),
+          },
+          body: formData,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
 
-      const data = await respuesta.json().catch(() => null);
+        const data = await respuesta.json().catch(() => null);
 
-      if (!respuesta.ok || !data?.ok) {
-        console.error("[FOTO DEBUG] Error en endpoint /api/asistencias/foto:", data?.message || respuesta.statusText);
-        return "";
+        if (respuesta.ok && data?.ok) {
+          console.log(`[FOTO ASINCRONA] Foto completada con éxito en intento ${intento} para Asistencia #${asistenciaId}`);
+          return data.fotoUrl || "";
+        }
+
+        // Si ya alcanzó el límite o ya estaba completada
+        if (data?.limiteAlcanzado || data?.completada) {
+          console.log(`[FOTO ASINCRONA] Respuesta terminal del servidor:`, data?.message);
+          return data?.fotoUrl || "";
+        }
+
+        console.warn(`[FOTO ASINCRONA] Intento ${intento}/${maxIntentos} falló para Asistencia #${asistenciaId}:`, data?.message || respuesta.statusText);
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        console.warn(`[FOTO ASINCRONA] Error de red en intento ${intento}/${maxIntentos} para Asistencia #${asistenciaId}:`, error?.message || error);
       }
 
-      if (data.fotoUrl && typeof data.fotoUrl === "string" && data.fotoUrl.startsWith("http")) {
-        console.log("[FOTO DEBUG] Foto subida exitosamente a Vercel Blob:", data.fotoUrl);
-        return data.fotoUrl;
+      // Si aún quedan intentos, esperar con backoff breve antes de reintentar
+      if (intento < maxIntentos) {
+        await new Promise((res) => setTimeout(res, intento * 1000));
       }
-
-      console.error("[FOTO DEBUG] Respuesta exitosa pero sin URL pública válida:", data);
-      return "";
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (error?.name === "AbortError") {
-        console.warn("[FOTO DEBUG] Subida de foto cancelada por timeout de red (3000ms)");
-      } else {
-        console.warn("[FOTO DEBUG] Error en subida de foto a Vercel Blob:", error);
-      }
-      return "";
     }
+
+    console.error(`[FOTO ASINCRONA] Se agotaron los ${maxIntentos} intentos automáticos para Asistencia #${asistenciaId}. Estado: ERROR_FINAL.`);
+    return "";
   }
 
   // 9. FLUJO PROFESIONAL V2: Asistencia inmediata con captura no-bloqueante
@@ -831,8 +835,8 @@ export default function MarcarPage() {
       setMensaje("⚠️ Error procesando marcación");
       beep("error");
     } finally {
-      // Cooldown optimizado para agilidad de portería (1400 ms: rango 1200-1500ms)
-      await esperar(1400);
+      // Cooldown optimizado para máxima agilidad de portería (950 ms)
+      await esperar(950);
 
       // Regresar automáticamente a escaneo para el siguiente estudiante
       setResultado(null);
@@ -843,36 +847,19 @@ export default function MarcarPage() {
     }
   }
 
-  // 10. Función central de registro de asistencia: la foto nunca bloquea la asistencia
+  // 10. Función central de registro de asistencia prioritario (< 400ms)
   async function ejecutarRegistroAsistencia(
     datos: { dni?: string; codigo?: string; metodo: string },
     fotoBlob: Blob | null
   ) {
-    let fotoUrl: string | null = null;
-    let estadoEvidencia = "Evidencia no disponible";
-
-    // Intentar subida con tiempo real de red (máx 3000ms)
-    if (fotoBlob) {
-      const urlSubida = await subirFotoSegura(fotoBlob);
-      if (urlSubida && urlSubida.startsWith("http") && !urlSubida.includes("sistema-asistencia.local") && !urlSubida.includes("evidencia-pendiente")) {
-        fotoUrl = urlSubida;
-        estadoEvidencia = "Evidencia capturada";
-      } else {
-        fotoUrl = null;
-        estadoEvidencia = "Evidencia no disponible";
-      }
-    } else {
-      fotoUrl = null;
-      estadoEvidencia = "Evidencia no disponible";
-    }
-
-    const terminalId = localStorage.getItem("terminal_id") || "TRM-CASIA-01";
-    const terminalToken = localStorage.getItem("terminal_token") || "sec_trm_santarita_2026_9f8d7c6b5a4e3f21";
+    const terminalId = localStorage.getItem("terminal_id");
+    const terminalToken = localStorage.getItem("terminal_token");
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
 
     try {
+      // 1. Envío prioritario inmediato a la API de asistencias (sin esperar subida de foto)
       const res = await fetch("/api/asistencias", {
         method: "POST",
         headers: {
@@ -887,7 +874,7 @@ export default function MarcarPage() {
         credentials: "include",
         body: JSON.stringify({
           ...datos,
-          fotoUrl: fotoUrl || null,
+          fotoUrl: null, // Asistencia prioritaria inmediata
         }),
         signal: controller.signal,
       });
@@ -913,11 +900,11 @@ export default function MarcarPage() {
         throw new Error(msg);
       }
 
-      // Registro exitoso
+      // 2. Registro exitoso prioritario inmediato (< 400ms) para liberar al estudiante
       setResultado({
         ...data,
-        fotoUrl: fotoUrl || data.asistencia?.fotoUrl || null,
-        estadoEvidencia: fotoUrl ? "Evidencia capturada" : "Evidencia no disponible",
+        fotoUrl: data.asistencia?.fotoUrl || null,
+        estadoEvidencia: fotoBlob ? "Evidencia en captura" : "Evidencia no disponible",
       });
 
       setMensaje(
@@ -930,6 +917,11 @@ export default function MarcarPage() {
         setEstadoVisual("entrada");
       } else if (data.tipo === "SALIDA") {
         setEstadoVisual(data.esFueraHorario ? "aviso" : "salida");
+      }
+
+      // 3. Procesamiento de evidencia fotográfica en segundo plano (asíncrona y no-bloqueante)
+      if (fotoBlob && data.asistencia?.id) {
+        void subirFotoAsincrona(fotoBlob, data.asistencia.id, data.tipo);
       }
 
       if (data.estudiante) {
@@ -1056,11 +1048,11 @@ export default function MarcarPage() {
     setErrorTerminal("");
   }
 
-  async function vincularTerminal(e?: React.FormEvent, customId?: string, customToken?: string) {
+  async function vincularTerminal(e?: React.FormEvent) {
     if (e) e.preventDefault();
     setErrorTerminal("");
-    const tId = (customId || terminalIdInput).trim();
-    const tToken = (customToken || terminalTokenInput).trim();
+    const tId = terminalIdInput.trim();
+    const tToken = terminalTokenInput.trim();
 
     if (!tId || !tToken) {
       setErrorTerminal("Ingrese el ID de terminal y su Token Secreto.");
@@ -1175,21 +1167,6 @@ export default function MarcarPage() {
             >
               <span>🔑</span>
               <span>{validandoTerminal ? "Verificando..." : "ACTIVAR TERMINAL"}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                vincularTerminal(
-                  undefined,
-                  "TRM-CASIA-01",
-                  "sec_trm_santarita_2026_9f8d7c6b5a4e3f21"
-                )
-              }
-              className="w-full py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-xs font-bold text-blue-800 transition flex items-center justify-center gap-1.5"
-            >
-              <span>⚡</span>
-              <span>Cargar Terminal Oficial de Portería</span>
             </button>
 
             <div className="pt-2 border-t border-slate-200 text-center">

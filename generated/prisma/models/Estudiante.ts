@@ -312,6 +312,8 @@ export type EstudianteWhereInput = {
   riesgoIA?: Prisma.XOR<Prisma.RiesgoEstudianteIANullableScalarRelationFilter, Prisma.RiesgoEstudianteIAWhereInput> | null
   historialReportes?: Prisma.HistorialReporteAutomaticoListRelationFilter
   biometriaFacial?: Prisma.XOR<Prisma.BiometriaFacialNullableScalarRelationFilter, Prisma.BiometriaFacialWhereInput> | null
+  salidasExcepcionales?: Prisma.SalidaExcepcionalListRelationFilter
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaListRelationFilter
 }
 
 export type EstudianteOrderByWithRelationInput = {
@@ -338,6 +340,8 @@ export type EstudianteOrderByWithRelationInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAOrderByWithRelationInput
   historialReportes?: Prisma.HistorialReporteAutomaticoOrderByRelationAggregateInput
   biometriaFacial?: Prisma.BiometriaFacialOrderByWithRelationInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalOrderByRelationAggregateInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaOrderByRelationAggregateInput
 }
 
 export type EstudianteWhereUniqueInput = Prisma.AtLeast<{
@@ -367,6 +371,8 @@ export type EstudianteWhereUniqueInput = Prisma.AtLeast<{
   riesgoIA?: Prisma.XOR<Prisma.RiesgoEstudianteIANullableScalarRelationFilter, Prisma.RiesgoEstudianteIAWhereInput> | null
   historialReportes?: Prisma.HistorialReporteAutomaticoListRelationFilter
   biometriaFacial?: Prisma.XOR<Prisma.BiometriaFacialNullableScalarRelationFilter, Prisma.BiometriaFacialWhereInput> | null
+  salidasExcepcionales?: Prisma.SalidaExcepcionalListRelationFilter
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaListRelationFilter
 }, "id" | "codigo" | "dni">
 
 export type EstudianteOrderByWithAggregationInput = {
@@ -433,6 +439,8 @@ export type EstudianteCreateInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
   biometriaFacial?: Prisma.BiometriaFacialCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteUncheckedCreateInput = {
@@ -456,6 +464,8 @@ export type EstudianteUncheckedCreateInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
   biometriaFacial?: Prisma.BiometriaFacialUncheckedCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteUpdateInput = {
@@ -478,6 +488,8 @@ export type EstudianteUpdateInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
   biometriaFacial?: Prisma.BiometriaFacialUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateInput = {
@@ -501,6 +513,8 @@ export type EstudianteUncheckedUpdateInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
   biometriaFacial?: Prisma.BiometriaFacialUncheckedUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteCreateManyInput = {
@@ -849,6 +863,34 @@ export type EstudianteUncheckedUpdateManyWithoutCodigoFamiliarNestedInput = {
   deleteMany?: Prisma.EstudianteScalarWhereInput | Prisma.EstudianteScalarWhereInput[]
 }
 
+export type EstudianteCreateNestedOneWithoutSalidasExcepcionalesInput = {
+  create?: Prisma.XOR<Prisma.EstudianteCreateWithoutSalidasExcepcionalesInput, Prisma.EstudianteUncheckedCreateWithoutSalidasExcepcionalesInput>
+  connectOrCreate?: Prisma.EstudianteCreateOrConnectWithoutSalidasExcepcionalesInput
+  connect?: Prisma.EstudianteWhereUniqueInput
+}
+
+export type EstudianteUpdateOneRequiredWithoutSalidasExcepcionalesNestedInput = {
+  create?: Prisma.XOR<Prisma.EstudianteCreateWithoutSalidasExcepcionalesInput, Prisma.EstudianteUncheckedCreateWithoutSalidasExcepcionalesInput>
+  connectOrCreate?: Prisma.EstudianteCreateOrConnectWithoutSalidasExcepcionalesInput
+  upsert?: Prisma.EstudianteUpsertWithoutSalidasExcepcionalesInput
+  connect?: Prisma.EstudianteWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.EstudianteUpdateToOneWithWhereWithoutSalidasExcepcionalesInput, Prisma.EstudianteUpdateWithoutSalidasExcepcionalesInput>, Prisma.EstudianteUncheckedUpdateWithoutSalidasExcepcionalesInput>
+}
+
+export type EstudianteCreateNestedOneWithoutEvidenciasFotograficasInput = {
+  create?: Prisma.XOR<Prisma.EstudianteCreateWithoutEvidenciasFotograficasInput, Prisma.EstudianteUncheckedCreateWithoutEvidenciasFotograficasInput>
+  connectOrCreate?: Prisma.EstudianteCreateOrConnectWithoutEvidenciasFotograficasInput
+  connect?: Prisma.EstudianteWhereUniqueInput
+}
+
+export type EstudianteUpdateOneRequiredWithoutEvidenciasFotograficasNestedInput = {
+  create?: Prisma.XOR<Prisma.EstudianteCreateWithoutEvidenciasFotograficasInput, Prisma.EstudianteUncheckedCreateWithoutEvidenciasFotograficasInput>
+  connectOrCreate?: Prisma.EstudianteCreateOrConnectWithoutEvidenciasFotograficasInput
+  upsert?: Prisma.EstudianteUpsertWithoutEvidenciasFotograficasInput
+  connect?: Prisma.EstudianteWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.EstudianteUpdateToOneWithWhereWithoutEvidenciasFotograficasInput, Prisma.EstudianteUpdateWithoutEvidenciasFotograficasInput>, Prisma.EstudianteUncheckedUpdateWithoutEvidenciasFotograficasInput>
+}
+
 export type EstudianteCreateWithoutColegioInput = {
   codigo: string
   dni: string
@@ -868,6 +910,8 @@ export type EstudianteCreateWithoutColegioInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
   biometriaFacial?: Prisma.BiometriaFacialCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteUncheckedCreateWithoutColegioInput = {
@@ -890,6 +934,8 @@ export type EstudianteUncheckedCreateWithoutColegioInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
   biometriaFacial?: Prisma.BiometriaFacialUncheckedCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteCreateOrConnectWithoutColegioInput = {
@@ -958,6 +1004,8 @@ export type EstudianteCreateWithoutTurnoInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
   biometriaFacial?: Prisma.BiometriaFacialCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteUncheckedCreateWithoutTurnoInput = {
@@ -980,6 +1028,8 @@ export type EstudianteUncheckedCreateWithoutTurnoInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
   biometriaFacial?: Prisma.BiometriaFacialUncheckedCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteCreateOrConnectWithoutTurnoInput = {
@@ -1027,6 +1077,8 @@ export type EstudianteCreateWithoutAsistenciasInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
   biometriaFacial?: Prisma.BiometriaFacialCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteUncheckedCreateWithoutAsistenciasInput = {
@@ -1049,6 +1101,8 @@ export type EstudianteUncheckedCreateWithoutAsistenciasInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
   biometriaFacial?: Prisma.BiometriaFacialUncheckedCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteCreateOrConnectWithoutAsistenciasInput = {
@@ -1086,6 +1140,8 @@ export type EstudianteUpdateWithoutAsistenciasInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
   biometriaFacial?: Prisma.BiometriaFacialUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateWithoutAsistenciasInput = {
@@ -1108,6 +1164,8 @@ export type EstudianteUncheckedUpdateWithoutAsistenciasInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
   biometriaFacial?: Prisma.BiometriaFacialUncheckedUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteCreateWithoutAlertasAsistenciaInput = {
@@ -1129,6 +1187,8 @@ export type EstudianteCreateWithoutAlertasAsistenciaInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
   biometriaFacial?: Prisma.BiometriaFacialCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteUncheckedCreateWithoutAlertasAsistenciaInput = {
@@ -1151,6 +1211,8 @@ export type EstudianteUncheckedCreateWithoutAlertasAsistenciaInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
   biometriaFacial?: Prisma.BiometriaFacialUncheckedCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteCreateOrConnectWithoutAlertasAsistenciaInput = {
@@ -1188,6 +1250,8 @@ export type EstudianteUpdateWithoutAlertasAsistenciaInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
   biometriaFacial?: Prisma.BiometriaFacialUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateWithoutAlertasAsistenciaInput = {
@@ -1210,6 +1274,8 @@ export type EstudianteUncheckedUpdateWithoutAlertasAsistenciaInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
   biometriaFacial?: Prisma.BiometriaFacialUncheckedUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteCreateWithoutRiesgoIAInput = {
@@ -1231,6 +1297,8 @@ export type EstudianteCreateWithoutRiesgoIAInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
   biometriaFacial?: Prisma.BiometriaFacialCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteUncheckedCreateWithoutRiesgoIAInput = {
@@ -1253,6 +1321,8 @@ export type EstudianteUncheckedCreateWithoutRiesgoIAInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
   biometriaFacial?: Prisma.BiometriaFacialUncheckedCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteCreateOrConnectWithoutRiesgoIAInput = {
@@ -1290,6 +1360,8 @@ export type EstudianteUpdateWithoutRiesgoIAInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
   biometriaFacial?: Prisma.BiometriaFacialUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateWithoutRiesgoIAInput = {
@@ -1312,6 +1384,8 @@ export type EstudianteUncheckedUpdateWithoutRiesgoIAInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
   biometriaFacial?: Prisma.BiometriaFacialUncheckedUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteCreateWithoutHistorialReportesInput = {
@@ -1333,6 +1407,8 @@ export type EstudianteCreateWithoutHistorialReportesInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
   riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
   biometriaFacial?: Prisma.BiometriaFacialCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteUncheckedCreateWithoutHistorialReportesInput = {
@@ -1355,6 +1431,8 @@ export type EstudianteUncheckedCreateWithoutHistorialReportesInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
   biometriaFacial?: Prisma.BiometriaFacialUncheckedCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteCreateOrConnectWithoutHistorialReportesInput = {
@@ -1392,6 +1470,8 @@ export type EstudianteUpdateWithoutHistorialReportesInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
   biometriaFacial?: Prisma.BiometriaFacialUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateWithoutHistorialReportesInput = {
@@ -1414,6 +1494,8 @@ export type EstudianteUncheckedUpdateWithoutHistorialReportesInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
   biometriaFacial?: Prisma.BiometriaFacialUncheckedUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteCreateWithoutBiometriaFacialInput = {
@@ -1435,6 +1517,8 @@ export type EstudianteCreateWithoutBiometriaFacialInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
   riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteUncheckedCreateWithoutBiometriaFacialInput = {
@@ -1457,6 +1541,8 @@ export type EstudianteUncheckedCreateWithoutBiometriaFacialInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteCreateOrConnectWithoutBiometriaFacialInput = {
@@ -1494,6 +1580,8 @@ export type EstudianteUpdateWithoutBiometriaFacialInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateWithoutBiometriaFacialInput = {
@@ -1516,6 +1604,8 @@ export type EstudianteUncheckedUpdateWithoutBiometriaFacialInput = {
   alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteCreateWithoutCodigoFamiliarInput = {
@@ -1537,6 +1627,8 @@ export type EstudianteCreateWithoutCodigoFamiliarInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
   biometriaFacial?: Prisma.BiometriaFacialCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteUncheckedCreateWithoutCodigoFamiliarInput = {
@@ -1559,6 +1651,8 @@ export type EstudianteUncheckedCreateWithoutCodigoFamiliarInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
   biometriaFacial?: Prisma.BiometriaFacialUncheckedCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedCreateNestedManyWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedCreateNestedManyWithoutEstudianteInput
 }
 
 export type EstudianteCreateOrConnectWithoutCodigoFamiliarInput = {
@@ -1585,6 +1679,226 @@ export type EstudianteUpdateWithWhereUniqueWithoutCodigoFamiliarInput = {
 export type EstudianteUpdateManyWithWhereWithoutCodigoFamiliarInput = {
   where: Prisma.EstudianteScalarWhereInput
   data: Prisma.XOR<Prisma.EstudianteUpdateManyMutationInput, Prisma.EstudianteUncheckedUpdateManyWithoutCodigoFamiliarInput>
+}
+
+export type EstudianteCreateWithoutSalidasExcepcionalesInput = {
+  codigo: string
+  dni: string
+  nombres: string
+  apellidos: string
+  grado: string
+  seccion: string
+  nombreTutor?: string
+  whatsapp?: string
+  telegramChatId?: string
+  estado?: boolean
+  createdAt?: Date | string
+  colegio?: Prisma.ColegioCreateNestedOneWithoutEstudiantesInput
+  turno?: Prisma.TurnoCreateNestedOneWithoutEstudiantesInput
+  codigoFamiliar?: Prisma.CodigoFamiliarCreateNestedOneWithoutEstudiantesInput
+  asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
+  alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
+  riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialCreateNestedOneWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaCreateNestedManyWithoutEstudianteInput
+}
+
+export type EstudianteUncheckedCreateWithoutSalidasExcepcionalesInput = {
+  id?: number
+  colegioId?: string
+  codigo: string
+  dni: string
+  nombres: string
+  apellidos: string
+  grado: string
+  seccion: string
+  nombreTutor?: string
+  whatsapp?: string
+  telegramChatId?: string
+  estado?: boolean
+  createdAt?: Date | string
+  turnoId?: number | null
+  codigoFamiliarId?: number | null
+  asistencias?: Prisma.AsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedCreateNestedOneWithoutEstudianteInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedCreateNestedManyWithoutEstudianteInput
+}
+
+export type EstudianteCreateOrConnectWithoutSalidasExcepcionalesInput = {
+  where: Prisma.EstudianteWhereUniqueInput
+  create: Prisma.XOR<Prisma.EstudianteCreateWithoutSalidasExcepcionalesInput, Prisma.EstudianteUncheckedCreateWithoutSalidasExcepcionalesInput>
+}
+
+export type EstudianteUpsertWithoutSalidasExcepcionalesInput = {
+  update: Prisma.XOR<Prisma.EstudianteUpdateWithoutSalidasExcepcionalesInput, Prisma.EstudianteUncheckedUpdateWithoutSalidasExcepcionalesInput>
+  create: Prisma.XOR<Prisma.EstudianteCreateWithoutSalidasExcepcionalesInput, Prisma.EstudianteUncheckedCreateWithoutSalidasExcepcionalesInput>
+  where?: Prisma.EstudianteWhereInput
+}
+
+export type EstudianteUpdateToOneWithWhereWithoutSalidasExcepcionalesInput = {
+  where?: Prisma.EstudianteWhereInput
+  data: Prisma.XOR<Prisma.EstudianteUpdateWithoutSalidasExcepcionalesInput, Prisma.EstudianteUncheckedUpdateWithoutSalidasExcepcionalesInput>
+}
+
+export type EstudianteUpdateWithoutSalidasExcepcionalesInput = {
+  codigo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.StringFieldUpdateOperationsInput | string
+  nombres?: Prisma.StringFieldUpdateOperationsInput | string
+  apellidos?: Prisma.StringFieldUpdateOperationsInput | string
+  grado?: Prisma.StringFieldUpdateOperationsInput | string
+  seccion?: Prisma.StringFieldUpdateOperationsInput | string
+  nombreTutor?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsapp?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  colegio?: Prisma.ColegioUpdateOneRequiredWithoutEstudiantesNestedInput
+  turno?: Prisma.TurnoUpdateOneWithoutEstudiantesNestedInput
+  codigoFamiliar?: Prisma.CodigoFamiliarUpdateOneWithoutEstudiantesNestedInput
+  asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
+  alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUpdateOneWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUpdateManyWithoutEstudianteNestedInput
+}
+
+export type EstudianteUncheckedUpdateWithoutSalidasExcepcionalesInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
+  codigo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.StringFieldUpdateOperationsInput | string
+  nombres?: Prisma.StringFieldUpdateOperationsInput | string
+  apellidos?: Prisma.StringFieldUpdateOperationsInput | string
+  grado?: Prisma.StringFieldUpdateOperationsInput | string
+  seccion?: Prisma.StringFieldUpdateOperationsInput | string
+  nombreTutor?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsapp?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  turnoId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  codigoFamiliarId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  asistencias?: Prisma.AsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedUpdateOneWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedUpdateManyWithoutEstudianteNestedInput
+}
+
+export type EstudianteCreateWithoutEvidenciasFotograficasInput = {
+  codigo: string
+  dni: string
+  nombres: string
+  apellidos: string
+  grado: string
+  seccion: string
+  nombreTutor?: string
+  whatsapp?: string
+  telegramChatId?: string
+  estado?: boolean
+  createdAt?: Date | string
+  colegio?: Prisma.ColegioCreateNestedOneWithoutEstudiantesInput
+  turno?: Prisma.TurnoCreateNestedOneWithoutEstudiantesInput
+  codigoFamiliar?: Prisma.CodigoFamiliarCreateNestedOneWithoutEstudiantesInput
+  asistencias?: Prisma.AsistenciaCreateNestedManyWithoutEstudianteInput
+  alertasAsistencia?: Prisma.AlertaAsistenciaCreateNestedManyWithoutEstudianteInput
+  riesgoIA?: Prisma.RiesgoEstudianteIACreateNestedOneWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoCreateNestedManyWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalCreateNestedManyWithoutEstudianteInput
+}
+
+export type EstudianteUncheckedCreateWithoutEvidenciasFotograficasInput = {
+  id?: number
+  colegioId?: string
+  codigo: string
+  dni: string
+  nombres: string
+  apellidos: string
+  grado: string
+  seccion: string
+  nombreTutor?: string
+  whatsapp?: string
+  telegramChatId?: string
+  estado?: boolean
+  createdAt?: Date | string
+  turnoId?: number | null
+  codigoFamiliarId?: number | null
+  asistencias?: Prisma.AsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedCreateNestedManyWithoutEstudianteInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedCreateNestedOneWithoutEstudianteInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedCreateNestedManyWithoutEstudianteInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedCreateNestedOneWithoutEstudianteInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedCreateNestedManyWithoutEstudianteInput
+}
+
+export type EstudianteCreateOrConnectWithoutEvidenciasFotograficasInput = {
+  where: Prisma.EstudianteWhereUniqueInput
+  create: Prisma.XOR<Prisma.EstudianteCreateWithoutEvidenciasFotograficasInput, Prisma.EstudianteUncheckedCreateWithoutEvidenciasFotograficasInput>
+}
+
+export type EstudianteUpsertWithoutEvidenciasFotograficasInput = {
+  update: Prisma.XOR<Prisma.EstudianteUpdateWithoutEvidenciasFotograficasInput, Prisma.EstudianteUncheckedUpdateWithoutEvidenciasFotograficasInput>
+  create: Prisma.XOR<Prisma.EstudianteCreateWithoutEvidenciasFotograficasInput, Prisma.EstudianteUncheckedCreateWithoutEvidenciasFotograficasInput>
+  where?: Prisma.EstudianteWhereInput
+}
+
+export type EstudianteUpdateToOneWithWhereWithoutEvidenciasFotograficasInput = {
+  where?: Prisma.EstudianteWhereInput
+  data: Prisma.XOR<Prisma.EstudianteUpdateWithoutEvidenciasFotograficasInput, Prisma.EstudianteUncheckedUpdateWithoutEvidenciasFotograficasInput>
+}
+
+export type EstudianteUpdateWithoutEvidenciasFotograficasInput = {
+  codigo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.StringFieldUpdateOperationsInput | string
+  nombres?: Prisma.StringFieldUpdateOperationsInput | string
+  apellidos?: Prisma.StringFieldUpdateOperationsInput | string
+  grado?: Prisma.StringFieldUpdateOperationsInput | string
+  seccion?: Prisma.StringFieldUpdateOperationsInput | string
+  nombreTutor?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsapp?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  colegio?: Prisma.ColegioUpdateOneRequiredWithoutEstudiantesNestedInput
+  turno?: Prisma.TurnoUpdateOneWithoutEstudiantesNestedInput
+  codigoFamiliar?: Prisma.CodigoFamiliarUpdateOneWithoutEstudiantesNestedInput
+  asistencias?: Prisma.AsistenciaUpdateManyWithoutEstudianteNestedInput
+  alertasAsistencia?: Prisma.AlertaAsistenciaUpdateManyWithoutEstudianteNestedInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUpdateManyWithoutEstudianteNestedInput
+}
+
+export type EstudianteUncheckedUpdateWithoutEvidenciasFotograficasInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.StringFieldUpdateOperationsInput | string
+  codigo?: Prisma.StringFieldUpdateOperationsInput | string
+  dni?: Prisma.StringFieldUpdateOperationsInput | string
+  nombres?: Prisma.StringFieldUpdateOperationsInput | string
+  apellidos?: Prisma.StringFieldUpdateOperationsInput | string
+  grado?: Prisma.StringFieldUpdateOperationsInput | string
+  seccion?: Prisma.StringFieldUpdateOperationsInput | string
+  nombreTutor?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsapp?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramChatId?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  turnoId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  codigoFamiliarId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  asistencias?: Prisma.AsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
+  alertasAsistencia?: Prisma.AlertaAsistenciaUncheckedUpdateManyWithoutEstudianteNestedInput
+  riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
+  historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
+  biometriaFacial?: Prisma.BiometriaFacialUncheckedUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteCreateManyColegioInput = {
@@ -1623,6 +1937,8 @@ export type EstudianteUpdateWithoutColegioInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
   biometriaFacial?: Prisma.BiometriaFacialUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateWithoutColegioInput = {
@@ -1645,6 +1961,8 @@ export type EstudianteUncheckedUpdateWithoutColegioInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
   biometriaFacial?: Prisma.BiometriaFacialUncheckedUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateManyWithoutColegioInput = {
@@ -1700,6 +2018,8 @@ export type EstudianteUpdateWithoutTurnoInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
   biometriaFacial?: Prisma.BiometriaFacialUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateWithoutTurnoInput = {
@@ -1722,6 +2042,8 @@ export type EstudianteUncheckedUpdateWithoutTurnoInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
   biometriaFacial?: Prisma.BiometriaFacialUncheckedUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateManyWithoutTurnoInput = {
@@ -1777,6 +2099,8 @@ export type EstudianteUpdateWithoutCodigoFamiliarInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUpdateManyWithoutEstudianteNestedInput
   biometriaFacial?: Prisma.BiometriaFacialUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateWithoutCodigoFamiliarInput = {
@@ -1799,6 +2123,8 @@ export type EstudianteUncheckedUpdateWithoutCodigoFamiliarInput = {
   riesgoIA?: Prisma.RiesgoEstudianteIAUncheckedUpdateOneWithoutEstudianteNestedInput
   historialReportes?: Prisma.HistorialReporteAutomaticoUncheckedUpdateManyWithoutEstudianteNestedInput
   biometriaFacial?: Prisma.BiometriaFacialUncheckedUpdateOneWithoutEstudianteNestedInput
+  salidasExcepcionales?: Prisma.SalidaExcepcionalUncheckedUpdateManyWithoutEstudianteNestedInput
+  evidenciasFotograficas?: Prisma.EvidenciaFotograficaUncheckedUpdateManyWithoutEstudianteNestedInput
 }
 
 export type EstudianteUncheckedUpdateManyWithoutCodigoFamiliarInput = {
@@ -1827,12 +2153,16 @@ export type EstudianteCountOutputType = {
   asistencias: number
   alertasAsistencia: number
   historialReportes: number
+  salidasExcepcionales: number
+  evidenciasFotograficas: number
 }
 
 export type EstudianteCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   asistencias?: boolean | EstudianteCountOutputTypeCountAsistenciasArgs
   alertasAsistencia?: boolean | EstudianteCountOutputTypeCountAlertasAsistenciaArgs
   historialReportes?: boolean | EstudianteCountOutputTypeCountHistorialReportesArgs
+  salidasExcepcionales?: boolean | EstudianteCountOutputTypeCountSalidasExcepcionalesArgs
+  evidenciasFotograficas?: boolean | EstudianteCountOutputTypeCountEvidenciasFotograficasArgs
 }
 
 /**
@@ -1866,6 +2196,20 @@ export type EstudianteCountOutputTypeCountHistorialReportesArgs<ExtArgs extends 
   where?: Prisma.HistorialReporteAutomaticoWhereInput
 }
 
+/**
+ * EstudianteCountOutputType without action
+ */
+export type EstudianteCountOutputTypeCountSalidasExcepcionalesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.SalidaExcepcionalWhereInput
+}
+
+/**
+ * EstudianteCountOutputType without action
+ */
+export type EstudianteCountOutputTypeCountEvidenciasFotograficasArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.EvidenciaFotograficaWhereInput
+}
+
 
 export type EstudianteSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1891,6 +2235,8 @@ export type EstudianteSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   riesgoIA?: boolean | Prisma.Estudiante$riesgoIAArgs<ExtArgs>
   historialReportes?: boolean | Prisma.Estudiante$historialReportesArgs<ExtArgs>
   biometriaFacial?: boolean | Prisma.Estudiante$biometriaFacialArgs<ExtArgs>
+  salidasExcepcionales?: boolean | Prisma.Estudiante$salidasExcepcionalesArgs<ExtArgs>
+  evidenciasFotograficas?: boolean | Prisma.Estudiante$evidenciasFotograficasArgs<ExtArgs>
   _count?: boolean | Prisma.EstudianteCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["estudiante"]>
 
@@ -1964,6 +2310,8 @@ export type EstudianteInclude<ExtArgs extends runtime.Types.Extensions.InternalA
   riesgoIA?: boolean | Prisma.Estudiante$riesgoIAArgs<ExtArgs>
   historialReportes?: boolean | Prisma.Estudiante$historialReportesArgs<ExtArgs>
   biometriaFacial?: boolean | Prisma.Estudiante$biometriaFacialArgs<ExtArgs>
+  salidasExcepcionales?: boolean | Prisma.Estudiante$salidasExcepcionalesArgs<ExtArgs>
+  evidenciasFotograficas?: boolean | Prisma.Estudiante$evidenciasFotograficasArgs<ExtArgs>
   _count?: boolean | Prisma.EstudianteCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type EstudianteIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1988,6 +2336,8 @@ export type $EstudiantePayload<ExtArgs extends runtime.Types.Extensions.Internal
     riesgoIA: Prisma.$RiesgoEstudianteIAPayload<ExtArgs> | null
     historialReportes: Prisma.$HistorialReporteAutomaticoPayload<ExtArgs>[]
     biometriaFacial: Prisma.$BiometriaFacialPayload<ExtArgs> | null
+    salidasExcepcionales: Prisma.$SalidaExcepcionalPayload<ExtArgs>[]
+    evidenciasFotograficas: Prisma.$EvidenciaFotograficaPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -2407,6 +2757,8 @@ export interface Prisma__EstudianteClient<T, Null = never, ExtArgs extends runti
   riesgoIA<T extends Prisma.Estudiante$riesgoIAArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Estudiante$riesgoIAArgs<ExtArgs>>): Prisma.Prisma__RiesgoEstudianteIAClient<runtime.Types.Result.GetResult<Prisma.$RiesgoEstudianteIAPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   historialReportes<T extends Prisma.Estudiante$historialReportesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Estudiante$historialReportesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$HistorialReporteAutomaticoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   biometriaFacial<T extends Prisma.Estudiante$biometriaFacialArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Estudiante$biometriaFacialArgs<ExtArgs>>): Prisma.Prisma__BiometriaFacialClient<runtime.Types.Result.GetResult<Prisma.$BiometriaFacialPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  salidasExcepcionales<T extends Prisma.Estudiante$salidasExcepcionalesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Estudiante$salidasExcepcionalesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SalidaExcepcionalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  evidenciasFotograficas<T extends Prisma.Estudiante$evidenciasFotograficasArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Estudiante$evidenciasFotograficasArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EvidenciaFotograficaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2997,6 +3349,54 @@ export type Estudiante$biometriaFacialArgs<ExtArgs extends runtime.Types.Extensi
    */
   include?: Prisma.BiometriaFacialInclude<ExtArgs> | null
   where?: Prisma.BiometriaFacialWhereInput
+}
+
+/**
+ * Estudiante.salidasExcepcionales
+ */
+export type Estudiante$salidasExcepcionalesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SalidaExcepcional
+   */
+  select?: Prisma.SalidaExcepcionalSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SalidaExcepcional
+   */
+  omit?: Prisma.SalidaExcepcionalOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SalidaExcepcionalInclude<ExtArgs> | null
+  where?: Prisma.SalidaExcepcionalWhereInput
+  orderBy?: Prisma.SalidaExcepcionalOrderByWithRelationInput | Prisma.SalidaExcepcionalOrderByWithRelationInput[]
+  cursor?: Prisma.SalidaExcepcionalWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.SalidaExcepcionalScalarFieldEnum | Prisma.SalidaExcepcionalScalarFieldEnum[]
+}
+
+/**
+ * Estudiante.evidenciasFotograficas
+ */
+export type Estudiante$evidenciasFotograficasArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the EvidenciaFotografica
+   */
+  select?: Prisma.EvidenciaFotograficaSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the EvidenciaFotografica
+   */
+  omit?: Prisma.EvidenciaFotograficaOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.EvidenciaFotograficaInclude<ExtArgs> | null
+  where?: Prisma.EvidenciaFotograficaWhereInput
+  orderBy?: Prisma.EvidenciaFotograficaOrderByWithRelationInput | Prisma.EvidenciaFotograficaOrderByWithRelationInput[]
+  cursor?: Prisma.EvidenciaFotograficaWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.EvidenciaFotograficaScalarFieldEnum | Prisma.EvidenciaFotograficaScalarFieldEnum[]
 }
 
 /**

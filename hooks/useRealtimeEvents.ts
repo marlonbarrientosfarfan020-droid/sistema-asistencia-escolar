@@ -8,6 +8,7 @@ export interface OpcionesRealtimeEvents {
   habilitado?: boolean;
   onAsistencia?: (datos: any) => void;
   onSalida?: (datos: any) => void;
+  onSalidaExcepcional?: (datos: any) => void;
   onSuperMotor?: (datos: any) => void;
   onModulo?: (datos: any) => void;
   onAlerta?: (datos: any) => void;
@@ -22,6 +23,7 @@ export function useRealtimeEvents(opciones: OpcionesRealtimeEvents = {}) {
     habilitado = true,
     onAsistencia,
     onSalida,
+    onSalidaExcepcional,
     onSuperMotor,
     onModulo,
     onAlerta,
@@ -87,6 +89,9 @@ export function useRealtimeEvents(opciones: OpcionesRealtimeEvents = {}) {
             callbacksRef.current.onAsistencia?.(datos);
           } else if (tipo === "ASISTENCIA_SALIDA") {
             callbacksRef.current.onSalida?.(datos);
+          } else if (tipo === "SALIDA_EXCEPCIONAL_REGISTRADA") {
+            callbacksRef.current.onSalidaExcepcional?.(datos);
+            callbacksRef.current.onSalida?.(datos);
           } else if (tipo === "SUPERMOTOR_CAMBIO_ESTADO") {
             callbacksRef.current.onSuperMotor?.(datos);
           } else if (tipo === "MODULO_ACTIVADO" || tipo === "MODULO_DESACTIVADO") {
@@ -112,6 +117,7 @@ export function useRealtimeEvents(opciones: OpcionesRealtimeEvents = {}) {
       es.addEventListener("CONECTADO", (e) => handleCustomEvent("CONECTADO", e));
       es.addEventListener("ASISTENCIA_REGISTRADA", (e) => handleCustomEvent("ASISTENCIA_REGISTRADA", e));
       es.addEventListener("ASISTENCIA_SALIDA", (e) => handleCustomEvent("ASISTENCIA_SALIDA", e));
+      es.addEventListener("SALIDA_EXCEPCIONAL_REGISTRADA", (e) => handleCustomEvent("SALIDA_EXCEPCIONAL_REGISTRADA", e));
       es.addEventListener("SUPERMOTOR_CAMBIO_ESTADO", (e) => handleCustomEvent("SUPERMOTOR_CAMBIO_ESTADO", e));
       es.addEventListener("MODULO_ACTIVADO", (e) => handleCustomEvent("MODULO_ACTIVADO", e));
       es.addEventListener("MODULO_DESACTIVADO", (e) => handleCustomEvent("MODULO_DESACTIVADO", e));
