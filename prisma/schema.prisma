@@ -354,16 +354,21 @@ model RostroFacial {
 }
 
 model CodigoFamiliar {
-  id               Int          @id @default(autoincrement())
-  colegioId        String       @default("SANTA_RITA_001")
-  codigo           String
-  tutorTitular     String       @default("")
-  telefonoContacto String       @default("")
-  correoContacto   String       @default("")
-  estado           Boolean      @default(true)
-  ultimoIngresoAt  DateTime?
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  id                  Int          @id @default(autoincrement())
+  colegioId           String       @default("SANTA_RITA_001")
+  codigo              String
+  tutorTitular        String       @default("")
+  telefonoContacto    String       @default("")
+  correoContacto      String       @default("")
+  passwordHash        String?
+  dniTutor            String?
+  intentosFallidos    Int          @default(0)
+  bloqueadoHasta      DateTime?
+  hermanosConfirmados Boolean      @default(false)
+  estado              Boolean      @default(true)
+  ultimoIngresoAt     DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 
   colegio     Colegio      @relation(fields: [colegioId], references: [codigo], onDelete: Cascade)
   estudiantes Estudiante[]

@@ -13,64 +13,55 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/realtime/events
- * Endpoint Server-Sent Events (SSE) para comunicación en tiempo real.
+ * Endpoint Server-Sent Events (SSE) para comunicaci�n en tiempo real.
  * Compatible con Next.js App Router y Vercel Serverless.
  */
 export async function GET(request: Request) {
-  // 1. Validar autenticación: Personal/Admin O Portal de Familias
+  // 1. Validar autenticaci�n: Personal/Admin O Portal de Familias
   const sesionPersonal = await obtenerSesion(request);
   let sesionPadre = null;
 
   if (!sesionPersonal) {
-    sesionPadre = await obtenerSesionPadre();
+    sesionPadre = await obtenerSesionPadre(request);
   }
 
   if (!sesionPersonal && !sesionPadre) {
     return NextResponse.json(
       {
         ok: false,
-        message: "No autorizado. Debe iniciar sesión para conectarse al canal de eventos en tiempo real.",
+        message: "No autorizado. Debe iniciar sesi�n para conectarse al canal de eventos en tiempo real.",
       },
       { status: 401 }
     );
   }
 
-  // Obtener IDs de estudiantes si es sesión familiar para filtrado de seguridad
+  // Obtener IDs de estudiantes autorizados para filtrado estricto de privacidad familiar
   let estudiantesIdsFamilia: number[] = [];
   if (sesionPadre) {
-    try {
-      const estudiantes = await prisma.estudiante.findMany({
-        where: { codigoFamiliarId: sesionPadre.codigoFamiliarId },
-        select: { id: true },
-      });
-      estudiantesIdsFamilia = estudiantes.map((e) => e.id);
-    } catch (error) {
-      console.error("[SSE] Error consultando estudiantes de la familia:", error);
+    // REGLA DE SEGURIDAD ESTRICTA: Usar los IDs autorizados en la sesi�n criptogr�fica
+    if (sesionPadre.estudiantesPermitidosIds && sesionPadre.estudiantesPermitidosIds.length > 0) {
+      estudiantesIdsFamilia = sesionPadre.estudiantesPermitidosIds.map(Number);
+    } else if (sesionPadre.estudianteAutorizadoId) {
+      estudiantesIdsFamilia = [Number(sesionPadre.estudianteAutorizadoId)];
     }
   }
 
-  const colegioId = sesionPersonal?.colegioId || COLEGIO_DEFAULT_ID;
+  const colegioId = sesionPersonal?.colegioId || sesionPadre?.colegioId || COLEGIO_DEFAULT_ID;
   const esPersonal = Boolean(sesionPersonal);
   const esSuperAdmin = sesionPersonal?.rol === "SUPER_ADMIN";
   const nombreIdentidad = esPersonal
     ? sesionPersonal?.usuario
     : sesionPadre?.tutorTitular;
 
-  console.log(
-    `[SSE] Nueva conexión establecida: ${nombreIdentidad} (${
-      esPersonal ? sesionPersonal?.rol : "PADRE_FAMILIA"
-    }) - Colegio: ${colegioId}`
-  );
-
   const encoder = new TextEncoder();
 
   // 2. Crear ReadableStream para SSE
   const stream = new ReadableStream({
     start(controller) {
-      // Enviar evento de confirmación de conexión
+      // Enviar evento de confirmaci�n de conexi�n
       const payloadConexion = {
         ok: true,
-        mensaje: "Conectado al SuperMotor Escolar en tiempo real",
+        mensaje: "Conectado al canal escolar en tiempo real",
         colegioId,
         rol: esPersonal ? sesionPersonal?.rol : "FAMILIA",
         usuario: nombreIdentidad,
@@ -86,35 +77,33 @@ export async function GET(request: Request) {
       // Listener para despachar eventos del bus
       const listener = (evento: EventoEscolar) => {
         try {
-          // Seguridad FASE 8.4: Filtrado estricto por colegio
+          // Seguridad: Filtrado estricto por colegio
           const colegioEvento = !evento.colegioId || evento.colegioId === "default" ? COLEGIO_DEFAULT_ID : evento.colegioId;
           if (!esSuperAdmin && colegioEvento !== colegioId) {
-            return; // Descartar evento de otra institución
+            return; // Descartar evento de otra instituci�n
           }
 
-          // Si es familiar, solo recibir eventos de asistencia de sus hijas
+          // Si es sesi�n familiar, aplicar FILTRADO PRIVADO CERO EXPOSICI�N
           if (sesionPadre) {
             if (
               evento.tipo === "ASISTENCIA_REGISTRADA" ||
               evento.tipo === "ASISTENCIA_SALIDA" ||
               evento.tipo === "SALIDA_EXCEPCIONAL_REGISTRADA"
             ) {
-              const estudianteId = evento.datos?.estudianteId;
+              const estudianteId = Number(evento.datos?.estudianteId || (evento.datos as any)?.estudiante?.id);
               if (
                 !estudianteId ||
-                !estudiantesIdsFamilia.includes(Number(estudianteId))
+                !estudiantesIdsFamilia.includes(estudianteId)
               ) {
-                return; // No es su hija, ignorar por privacidad
+                return; // Estudiante ajeno: BLOQUEADO. No emitir nada por privacidad.
               }
-            } else if (
-              evento.tipo !== "SUPERMOTOR_CAMBIO_ESTADO" &&
-              evento.tipo !== "ALERTA_GENERADA"
-            ) {
-              return; // Omitir eventos internos administrativos para padres
+            } else {
+              // Omitir cualquier evento administrativo o del sistema para familias
+              return;
             }
           }
 
-          // Enviar formato SSE estándar
+          // Enviar formato SSE est�ndar
           const mensajeSse = `event: ${evento.tipo}\ndata: ${JSON.stringify(
             evento.datos || evento
           )}\n\n`;
@@ -128,7 +117,7 @@ export async function GET(request: Request) {
       // Suscribirse a todos los eventos del bus
       const unsubscribe = subscribeEvent(listener);
 
-      // Heartbeat cada 15 segundos para mantener viva la conexión en Vercel/proxies
+      // Heartbeat cada 15 segundos para mantener viva la conexi�n en Vercel/proxies
       const pingInterval = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(`: ping\n\n`));
@@ -137,7 +126,7 @@ export async function GET(request: Request) {
         }
       }, 15000);
 
-      // Manejar desconexión limpia del cliente
+      // Manejar desconexi�n limpia del cliente
       request.signal.addEventListener("abort", () => {
         clearInterval(pingInterval);
         unsubscribe();
@@ -146,7 +135,6 @@ export async function GET(request: Request) {
         } catch {
           // Ya cerrado
         }
-        console.log(`[SSE] Conexión cerrada limpiamente para: ${nombreIdentidad}`);
       });
     },
   });
@@ -156,7 +144,7 @@ export async function GET(request: Request) {
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform, must-revalidate",
       Connection: "keep-alive",
-      "X-Accel-Buffering": "no", // Desactivar buffer en Nginx / proxies
+      "X-Accel-Buffering": "no",
     },
   });
 }

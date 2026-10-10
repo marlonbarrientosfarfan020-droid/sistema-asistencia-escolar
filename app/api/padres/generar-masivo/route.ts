@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { exigirAdminODirectivo } from "@/lib/auth";
@@ -15,10 +15,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json().catch(() => ({}));
-    const agruparPorTutor = body.agruparPorTutor !== false;
-
-    // Buscar estudiantes activos sin código familiar
+    // Buscar estudiantes activos sin c�digo familiar
     const estudiantesSinCodigo = await prisma.estudiante.findMany({
       where: {
         estado: true,
@@ -41,61 +38,23 @@ export async function POST(request: Request) {
     if (estudiantesSinCodigo.length === 0) {
       return NextResponse.json({
         ok: true,
-        message: "No hay estudiantes pendientes de asignación de código familiar",
+        message: "No hay estudiantes pendientes de asignaci�n de c�digo familiar",
         familiasCreadas: 0,
         alumnasVinculadas: 0,
       });
     }
 
-    // Agrupar estudiantes
-    // Clave de agrupación: si agruparPorTutor es true, buscar si coinciden en tutor normalizado o whatsapp
-    const grupos: Array<{
-      tutor: string;
-      telefono: string;
-      estudianteIds: number[];
-    }> = [];
+    // REGLA INSTITUCIONAL DE SEGURIDAD Y PRIVACIDAD ESTRICTA:
+    // NUNCA agrupar autom�ticamente a estudiantes por tel�fono gen�rico o nombres compartidos.
+    // Cada estudiante recibe su propio c�digo familiar �nico e individual.
+    // La vinculaci�n de hermanas debe ser confirmada expl�citamente por el personal del colegio.
+    const grupos = estudiantesSinCodigo.map((est) => ({
+      tutor: est.nombreTutor || `Familia de ${est.nombres} ${est.apellidos}`,
+      telefono: est.whatsapp || "",
+      estudianteIds: [est.id],
+    }));
 
-    if (agruparPorTutor) {
-      const mapaGrupos = new Map<string, { tutor: string; telefono: string; estudianteIds: number[] }>();
-
-      for (const est of estudiantesSinCodigo) {
-        const tutorNorm = (est.nombreTutor || "").trim().toLowerCase();
-        const whatsappNorm = (est.whatsapp || "").replace(/\D/g, "");
-
-        // Clave primaria: whatsapp si tiene al menos 8 digitos, o tutor si tiene al menos 5 letras
-        let clave = "";
-        if (whatsappNorm.length >= 8) {
-          clave = `W:${whatsappNorm}`;
-        } else if (tutorNorm.length >= 5) {
-          clave = `T:${tutorNorm}`;
-        } else {
-          clave = `E:${est.id}`; // Grupo individual
-        }
-
-        if (mapaGrupos.has(clave)) {
-          mapaGrupos.get(clave)!.estudianteIds.push(est.id);
-        } else {
-          mapaGrupos.set(clave, {
-            tutor: est.nombreTutor || `Familia de ${est.nombres} ${est.apellidos}`,
-            telefono: est.whatsapp || "",
-            estudianteIds: [est.id],
-          });
-        }
-      }
-
-      grupos.push(...mapaGrupos.values());
-    } else {
-      // Uno por estudiante
-      for (const est of estudiantesSinCodigo) {
-        grupos.push({
-          tutor: est.nombreTutor || `Familia de ${est.nombres} ${est.apellidos}`,
-          telefono: est.whatsapp || "",
-          estudianteIds: [est.id],
-        });
-      }
-    }
-
-    // Obtener códigos existentes para evitar colisiones
+    // Obtener c�digos existentes para evitar colisiones
     const codigosExistentes = new Set(
       (await prisma.codigoFamiliar.findMany({ select: { codigo: true } })).map((c) => c.codigo)
     );
@@ -103,7 +62,7 @@ export async function POST(request: Request) {
     let familiasCreadasCount = 0;
     let alumnasVinculadasCount = 0;
 
-    // Procesar en lotes dentro de una transacción
+    // Procesar en lotes dentro de una transacci�n
     await prisma.$transaction(async (tx) => {
       for (const grupo of grupos) {
         let nuevoCodigo = "";
@@ -144,19 +103,19 @@ export async function POST(request: Request) {
       rol: acceso.sesion.rol,
       accion: "GENERACION_MASIVA_CODIGOS_FAMILIARES",
       modulo: "PADRES",
-      detalle: `Generación masiva completada: ${familiasCreadasCount} familias creadas y ${alumnasVinculadasCount} alumnas vinculadas`,
+      detalle: `Generaci�n masiva individualizada completada: ${familiasCreadasCount} c�digos creados para ${alumnasVinculadasCount} alumnas`,
     });
 
     return NextResponse.json({
       ok: true,
-      message: `Generación masiva completada: ${familiasCreadasCount} familias creadas y ${alumnasVinculadasCount} alumnas vinculadas`,
+      message: `Generaci�n masiva individualizada completada: ${familiasCreadasCount} familias creadas y ${alumnasVinculadasCount} alumnas vinculadas`,
       familiasCreadas: familiasCreadasCount,
       alumnasVinculadas: alumnasVinculadasCount,
     });
   } catch (error) {
-    console.error("Error en generación masiva de códigos familiares:", error);
+    console.error("Error en generaci�n masiva de c�digos familiares:", error);
     return NextResponse.json(
-      { ok: false, message: "Error interno al ejecutar la generación masiva" },
+      { ok: false, message: "Error interno al ejecutar la generaci�n masiva" },
       { status: 500 }
     );
   }

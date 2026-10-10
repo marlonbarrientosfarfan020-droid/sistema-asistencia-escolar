@@ -3,11 +3,16 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export const COOKIE_PADRE_NAME = "sesion_padre_santa_rita";
+export const VERSION_SESION_ACTUAL = 2; // Invalida cualquier sesi�n previa a la correcci�n
 
 export type SesionPadre = {
   codigoFamiliarId: number;
   codigoFamiliar: string;
   tutorTitular: string;
+  estudianteAutorizadoId: number;
+  estudiantesPermitidosIds: number[];
+  colegioId: string;
+  versionSesion: number;
 };
 
 function obtenerClaveSecreta() {
@@ -15,7 +20,7 @@ function obtenerClaveSecreta() {
 
   if (!secreto || secreto.length < 32) {
     throw new Error(
-      "AUTH_SECRET no está configurado o tiene menos de 32 caracteres"
+      "AUTH_SECRET no est� configurado o tiene menos de 32 caracteres"
     );
   }
 
@@ -27,6 +32,10 @@ export async function crearTokenSesionPadre(sesion: SesionPadre): Promise<string
     codigoFamiliarId: sesion.codigoFamiliarId,
     codigoFamiliar: sesion.codigoFamiliar,
     tutorTitular: sesion.tutorTitular,
+    estudianteAutorizadoId: sesion.estudianteAutorizadoId,
+    estudiantesPermitidosIds: sesion.estudiantesPermitidosIds,
+    colegioId: sesion.colegioId,
+    versionSesion: sesion.versionSesion || VERSION_SESION_ACTUAL,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -35,7 +44,10 @@ export async function crearTokenSesionPadre(sesion: SesionPadre): Promise<string
 }
 
 export async function guardarSesionPadre(sesion: SesionPadre): Promise<void> {
-  const token = await crearTokenSesionPadre(sesion);
+  const token = await crearTokenSesionPadre({
+    ...sesion,
+    versionSesion: VERSION_SESION_ACTUAL,
+  });
   const cookieStore = await cookies();
 
   cookieStore.set(COOKIE_PADRE_NAME, token, {
@@ -43,7 +55,7 @@ export async function guardarSesionPadre(sesion: SesionPadre): Promise<void> {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 7 días
+    maxAge: 60 * 60 * 24 * 7, // 7 d�as
   });
 }
 
@@ -70,7 +82,7 @@ export async function obtenerSesionPadre(request?: Request): Promise<SesionPadre
         const cookieStore = await cookies();
         token = cookieStore.get(COOKIE_PADRE_NAME)?.value;
       } catch {
-        // En entornos fuera del contexto de petición nativo de Next.js
+        // En entornos fuera del contexto de petici�n nativo de Next.js
       }
     }
 
@@ -78,9 +90,22 @@ export async function obtenerSesionPadre(request?: Request): Promise<SesionPadre
 
     const { payload } = await jwtVerify(token, obtenerClaveSecreta());
 
+    // REGLA DE SEGURIDAD ESTRICTA: Invalidar cualquier sesi�n anterior que no tenga versionSesion === 2
+    // o que carezca de estudianteAutorizadoId v�lido
+    const versionSesion = Number(payload.versionSesion || 0);
+    const estudianteAutorizadoId = Number(payload.estudianteAutorizadoId || 0);
+
+    if (versionSesion < VERSION_SESION_ACTUAL || !estudianteAutorizadoId) {
+      return null; // Sesi�n previa revocada por seguridad
+    }
+
     const codigoFamiliarId = Number(payload.codigoFamiliarId);
     const codigoFamiliar = String(payload.codigoFamiliar || "");
     const tutorTitular = String(payload.tutorTitular || "");
+    const estudiantesPermitidosIds = Array.isArray(payload.estudiantesPermitidosIds)
+      ? payload.estudiantesPermitidosIds.map(Number)
+      : [estudianteAutorizadoId];
+    const colegioId = String(payload.colegioId || "SANTA_RITA_001");
 
     if (!codigoFamiliarId || !codigoFamiliar) return null;
 
@@ -88,6 +113,10 @@ export async function obtenerSesionPadre(request?: Request): Promise<SesionPadre
       codigoFamiliarId,
       codigoFamiliar,
       tutorTitular,
+      estudianteAutorizadoId,
+      estudiantesPermitidosIds,
+      colegioId,
+      versionSesion,
     };
   } catch {
     return null;
@@ -112,7 +141,10 @@ export async function exigirSesionPadre(request?: Request) {
     return {
       autorizado: false as const,
       respuesta: NextResponse.json(
-        { ok: false, message: "Sesión de padre de familia expirada o no válida" },
+        {
+          ok: false,
+          message: "Sesi�n familiar expirada, desactualizada o revocada por seguridad. Inicie sesi�n nuevamente.",
+        },
         { status: 401 }
       ),
     };

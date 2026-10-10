@@ -105,9 +105,17 @@ export default function PortalPadresDashboardPage() {
     cargarDatos(id);
   }
 
-  // FASE 6.5: Conectar eventos en tiempo real para el portal de familias
+  // FASE 6.5: Conectar eventos en tiempo real para el portal de familias (Aislamiento Estricto)
   const handleAsistenciaEnVivo = useCallback(
     (evento: any) => {
+      const idEvento = Number(evento.estudianteId || evento.datos?.estudianteId || evento.estudiante?.id);
+
+      // REGLA DE SEGURIDAD ESTRICTA: Descartar si el evento no pertenece a sus hijas autorizadas
+      const perteneceAFamilia = datos?.estudiantes?.some((h) => h.id === idEvento);
+      if (!perteneceAFamilia) {
+        return; // Alumna ajena bloqueada inmediatamente
+      }
+
       const nombreEstudiante = `${evento.estudiante?.nombres || ""} ${evento.estudiante?.apellidos || ""}`.trim();
       const estadoStr = evento.estado === "TARDE" ? "TARDANZA" : "PUNTUAL";
       const esEntrada = evento.tipo === "ENTRADA" || !evento.tipo;
@@ -119,21 +127,29 @@ export default function PortalPadresDashboardPage() {
         fecha: evento.fecha || new Date().toLocaleDateString("es-PE"),
         estado: estadoStr,
         fotoUrl: evento.fotoUrl,
-        mensaje: esEntrada ? "🟢 Ingresó al colegio" : "👋 Salió del colegio",
+        mensaje: esEntrada ? "?? Ingres� al colegio" : "?? Sali� del colegio",
       });
 
-      // Actualizar datos de fondo para sincronizar gráficos y tabla
-      if (estudianteIdSeleccionada && Number(evento.estudianteId) === estudianteIdSeleccionada) {
+      // Actualizar datos de fondo para sincronizar gr�ficos y tabla
+      if (estudianteIdSeleccionada && idEvento === estudianteIdSeleccionada) {
         cargarDatos(estudianteIdSeleccionada);
-      } else {
-        cargarDatos();
+      } else if (idEvento) {
+        cargarDatos(idEvento);
       }
     },
-    [estudianteIdSeleccionada, cargarDatos]
+    [estudianteIdSeleccionada, datos?.estudiantes, cargarDatos]
   );
 
   const handleSalidaExcepcionalEnVivo = useCallback(
     (evento: any) => {
+      const idEvento = Number(evento.estudianteId || evento.datos?.estudianteId || evento.estudiante?.id);
+
+      // REGLA DE SEGURIDAD ESTRICTA: Descartar si el evento no pertenece a sus hijas autorizadas
+      const perteneceAFamilia = datos?.estudiantes?.some((h) => h.id === idEvento);
+      if (!perteneceAFamilia) {
+        return; // Alumna ajena bloqueada inmediatamente
+      }
+
       const nombreEstudiante =
         typeof evento.estudiante === "string"
           ? evento.estudiante
@@ -150,20 +166,20 @@ export default function PortalPadresDashboardPage() {
         fecha: evento.fecha || new Date().toLocaleDateString("es-PE"),
         estado: "SALIDA EXCEPCIONAL",
         fotoUrl: evento.fotoUrl,
-        mensaje: "⚠️ Salida Excepcional Autorizada",
+        mensaje: "?? Salida Excepcional Autorizada",
         motivo: evento.motivo,
         motivoEtiqueta: evento.motivoEtiqueta || evento.motivo,
         observacion: evento.observacion,
         usuarioRegistro: evento.usuarioRegistro,
       });
 
-      if (estudianteIdSeleccionada && Number(evento.estudianteId) === estudianteIdSeleccionada) {
+      if (estudianteIdSeleccionada && idEvento === estudianteIdSeleccionada) {
         cargarDatos(estudianteIdSeleccionada);
-      } else {
-        cargarDatos();
+      } else if (idEvento) {
+        cargarDatos(idEvento);
       }
     },
-    [estudianteIdSeleccionada, cargarDatos]
+    [estudianteIdSeleccionada, datos?.estudiantes, cargarDatos]
   );
 
   const { conectado: sseConectado } = useRealtimeEvents({

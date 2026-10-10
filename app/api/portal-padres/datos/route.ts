@@ -2,10 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { exigirSesionPadre } from "@/lib/auth-padres";
 import {
-  verificarModuloActivo,
-  registrarAuditoriaBloqueo,
-} from "@/lib/supermotor-guard";
-import {
   fechaPeru,
   ahoraPeru,
   crearFechaHoraPeru,
@@ -20,102 +16,147 @@ export async function GET(request: Request) {
     return acceso.respuesta;
   }
 
-  // FASE 4.4: Validar portalActivo en SuperMotor
-  const validacionPortal = await verificarModuloActivo("portal");
-  if (!validacionPortal.autorizado) {
-    await registrarAuditoriaBloqueo({
-      modulo: "PORTAL",
-      motivo: validacionPortal.motivo || "MODULO_DESACTIVADO",
-      usuario: `Padre ID ${acceso.sesion.codigoFamiliarId}`,
-    });
-
-    return NextResponse.json(
-      {
-        ok: false,
-        estado: "bloqueado",
-        message: "Portal temporalmente suspendido por administración.",
-        mensaje: "Portal temporalmente suspendido por administración.",
-      },
-      { status: 403 }
-    );
-  }
-
-  const { codigoFamiliarId } = acceso.sesion;
+  const { sesion } = acceso;
 
   try {
-    const { searchParams } = new URL(request.url);
-    const estudianteIdParam = searchParams.get("estudianteId");
+    // 1. Verificar si el portal de consultas web est� habilitado en configuraci�n global (Mantenimiento manual)
+    const config = await prisma.configuracion.findFirst({
+      select: {
+        nombreColegio: true,
+        logoUrl: true,
+        telefono: true,
+        correo: true,
+        canalPortalWebActivo: true,
+      },
+    });
 
-    // 1. Obtener familia y configuración
-    const [familia, config] = await Promise.all([
-      prisma.codigoFamiliar.findUnique({
-        where: { id: codigoFamiliarId },
-        include: {
-          estudiantes: {
-            where: { estado: true },
-            include: {
-              turno: {
-                select: {
-                  id: true,
-                  nombre: true,
-                  horaEntrada: true,
-                  horaSalida: true,
-                  estado: true,
-                  minutosAlertaInicial: true,
-                  margenAlertaMinutos: true,
-                },
-              },
-            },
-            orderBy: [{ grado: "asc" }, { seccion: "asc" }, { apellidos: "asc" }],
-          },
-        },
-      }),
-      prisma.configuracion.findFirst({
-        select: {
-          nombreColegio: true,
-          logoUrl: true,
-          telefono: true,
-          correo: true,
-          canalPortalWebActivo: true,
-        },
-      }),
-    ]);
-
-    if (!familia) {
+    if (config && config.canalPortalWebActivo === false) {
       return NextResponse.json(
-        { ok: false, message: "Código familiar no encontrado en el sistema" },
-        { status: 404 }
-      );
-    }
-
-    if (!familia.estado) {
-      return NextResponse.json(
-        { ok: false, message: "El acceso para este código familiar está suspendido" },
+        {
+          ok: false,
+          estado: "bloqueado",
+          message: "El portal web de consultas para familias se encuentra temporalmente en mantenimiento por direcci�n escolar.",
+          mensaje: "El portal web de consultas para familias se encuentra temporalmente en mantenimiento por direcci�n escolar.",
+        },
         { status: 403 }
       );
     }
 
-    if (familia.estudiantes.length === 0) {
+    // 2. Extraer par�metros y validar autorizaci�n contra la sesi�n
+    const estudianteAutorizadoId = Number(sesion.estudianteAutorizadoId || 0);
+    const estudiantesPermitidosIds = Array.isArray(sesion.estudiantesPermitidosIds)
+      ? sesion.estudiantesPermitidosIds.map(Number)
+      : estudianteAutorizadoId ? [estudianteAutorizadoId] : [];
+
+    if (!estudianteAutorizadoId || estudiantesPermitidosIds.length === 0) {
       return NextResponse.json(
-        { ok: false, message: "No hay estudiantes vinculadas a este código familiar" },
-        { status: 404 }
+        {
+          ok: false,
+          message: "Sesi�n familiar incompleta o desactualizada. Por favor inicie sesi�n nuevamente.",
+        },
+        { status: 401 }
       );
     }
 
-    const colegioId = (familia as any).colegioId || "SANTA_RITA_001";
+    const { searchParams } = new URL(request.url);
+    const estudianteIdParam = searchParams.get("estudianteId");
+    const estudianteIdSolicitado = estudianteIdParam ? Number(estudianteIdParam) : estudianteAutorizadoId;
 
-    // 2. Determinar estudiante activa
-    let estudianteActiva = familia.estudiantes[0];
-    if (estudianteIdParam) {
-      const encontrada = familia.estudiantes.find(
-        (e) => e.id === Number(estudianteIdParam)
+    if (!estudiantesPermitidosIds.includes(estudianteIdSolicitado)) {
+      console.warn(
+        `[PORTAL SEGURIDAD] Intento de acceso no autorizado bloqueado: Familia ${sesion.codigoFamiliar} intent� consultar estudianteId=${estudianteIdSolicitado}`
       );
-      if (encontrada) {
-        estudianteActiva = encontrada;
-      }
+      return NextResponse.json(
+        {
+          ok: false,
+          message: "Acceso no autorizado: la estudiante solicitada no pertenece a su grupo familiar autorizado.",
+        },
+        { status: 403 }
+      );
     }
 
-    // 3. Obtener asistencias de la estudiante activa (últimos 60 registros) con aislamiento multi colegio
+    // 3. VALIDACI�N EN POSTGRESQL EN CADA SOLICITUD:
+    // Comprobar que la estudiante exista, est� activa y mantenga relaci�n vigente con la familia en PostgreSQL
+    const colegioId = sesion.colegioId || "SANTA_RITA_001";
+
+    const [estudianteActiva, hermanosConfirmados, familiaInfo] = await Promise.all([
+      prisma.estudiante.findFirst({
+        where: {
+          id: estudianteIdSolicitado,
+          colegioId,
+          codigoFamiliarId: sesion.codigoFamiliarId,
+          estado: true,
+        },
+        include: {
+          turno: {
+            select: {
+              id: true,
+              nombre: true,
+              horaEntrada: true,
+              horaSalida: true,
+              estado: true,
+              minutosAlertaInicial: true,
+              margenAlertaMinutos: true,
+            },
+          },
+        },
+      }),
+      prisma.estudiante.findMany({
+        where: {
+          id: { in: estudiantesPermitidosIds },
+          colegioId,
+          codigoFamiliarId: sesion.codigoFamiliarId,
+          estado: true,
+        },
+        select: {
+          id: true,
+          codigo: true,
+          dni: true,
+          nombres: true,
+          apellidos: true,
+          grado: true,
+          seccion: true,
+          turno: {
+            select: {
+              id: true,
+              nombre: true,
+              horaEntrada: true,
+              horaSalida: true,
+            },
+          },
+        },
+        orderBy: [{ grado: "asc" }, { seccion: "asc" }, { apellidos: "asc" }],
+      }),
+      prisma.codigoFamiliar.findUnique({
+        where: { id: sesion.codigoFamiliarId },
+        select: {
+          id: true,
+          codigo: true,
+          tutorTitular: true,
+          telefonoContacto: true,
+          ultimoIngresoAt: true,
+          estado: true,
+        },
+      }),
+    ]);
+
+    // Si la familia fue suspendida en PostgreSQL
+    if (!familiaInfo || !familiaInfo.estado) {
+      return NextResponse.json(
+        { ok: false, message: "El acceso familiar ha sido suspendido por direcci�n escolar." },
+        { status: 403 }
+      );
+    }
+
+    // Si la estudiante fue desvinculada o retirada en PostgreSQL
+    if (!estudianteActiva) {
+      return NextResponse.json(
+        { ok: false, message: "La estudiante autorizada no fue encontrada o su asignaci�n familiar fue revocada." },
+        { status: 403 }
+      );
+    }
+
+    // 4. Obtener asistencias EXCLUSIVAS de la estudiante activa (�ltimos 60 registros)
     const asistencias = await prisma.asistencia.findMany({
       where: {
         estudianteId: estudianteActiva.id,
@@ -149,7 +190,7 @@ export async function GET(request: Request) {
       },
     });
 
-    // 4. Evaluar si la jornada de hoy amerita ausencia virtual confirmada
+    // 5. EVALUAR AUSENCIA VIRTUAL DE HOY (DISPONIBLE 24/7)
     const hoyStr = fechaPeru();
     const ahora = ahoraPeru();
     const fechaHoyBD = new Date(`${hoyStr}T00:00:00.000Z`);
@@ -169,7 +210,6 @@ export async function GET(request: Request) {
 
     const esDiaNoLectivo = Boolean(eventoNoLectivo);
 
-    // Comprobar si ya existe marcación registrada hoy
     const tieneAsistenciaHoy = asistencias.some((a) => {
       if (a.fechaDia === hoyStr) return true;
       return fechaPeru(new Date(a.fecha)) === hoyStr;
@@ -184,18 +224,13 @@ export async function GET(request: Request) {
       horaSalidaSuperada = ahora >= horaSalidaTurno;
     }
 
-    // Condiciones estrictas de Ausencia Virtual Confirmada:
-    // 1. No tiene marcación de ingreso hoy
-    // 2. Pertenece a un turno activo
-    // 3. No es día no lectivo / feriado
-    // 4. La hora actual ya superó la hora de salida de su turno
     const esAusenciaVirtualHoy =
       !tieneAsistenciaHoy &&
       esTurnoActivo &&
       !esDiaNoLectivo &&
       horaSalidaSuperada;
 
-    // 5. Calcular métricas de la estudiante (faltas = históricas + ausencia virtual de hoy)
+    // 6. M�tricas de puntualidad
     const faltasHistoricas = asistencias.filter(
       (a) => a.estado === "AUSENTE" || a.estado === "FALTA"
     ).length;
@@ -225,7 +260,15 @@ export async function GET(request: Request) {
       distribucionDona.push({ name: "Faltas / Ausencias", valor: faltas, color: "#EF4444" });
     }
 
-    // Proyección virtual de la ausencia en la lista de asistencias (sin tocar BD)
+    // 7. OFUSCACI�N SEGURA DE FOTOGRAF�AS: En lugar de exponer URLs p�blicas de Blob,
+    // devolver la ruta proxy segura que exige sesi�n y relaci�n activa en PostgreSQL
+    const asistenciasSeguras = asistencias.map((a) => ({
+      ...a,
+      fotoEntrada: a.fotoEntrada ? `/api/portal-padres/foto?asistenciaId=${a.id}&tipo=ENTRADA` : null,
+      fotoSalida: a.fotoSalida ? `/api/portal-padres/foto?asistenciaId=${a.id}&tipo=SALIDA` : null,
+      fotoUrl: a.fotoUrl || a.fotoEntrada ? `/api/portal-padres/foto?asistenciaId=${a.id}&tipo=ENTRADA` : null,
+    }));
+
     const listaAsistencias = esAusenciaVirtualHoy
       ? [
           {
@@ -242,18 +285,17 @@ export async function GET(request: Request) {
             fotoSalida: null,
             fotoUrl: null,
           },
-          ...asistencias,
+          ...asistenciasSeguras,
         ]
-      : asistencias;
+      : asistenciasSeguras;
 
-    // Agrupación de asistencias por mes para gráfica de barras
+    // Gr�fico mensual
     const mapaMeses = new Map<string, { mes: string; puntuales: number; tardanzas: number }>();
     const nombresMeses = [
       "Ene", "Feb", "Mar", "Abr", "May", "Jun",
       "Jul", "Ago", "Set", "Oct", "Nov", "Dic"
     ];
 
-    // Orden cronológico ascendente para el gráfico
     const asistenciasAsc = [...asistencias].reverse();
     for (const a of asistenciasAsc) {
       const d = new Date(a.fecha);
@@ -274,22 +316,13 @@ export async function GET(request: Request) {
     return NextResponse.json({
       ok: true,
       familia: {
-        id: familia.id,
-        codigo: familia.codigo,
-        tutorTitular: familia.tutorTitular,
-        telefonoContacto: familia.telefonoContacto,
-        ultimoIngresoAt: familia.ultimoIngresoAt,
+        id: familiaInfo.id,
+        codigo: familiaInfo.codigo,
+        tutorTitular: familiaInfo.tutorTitular || sesion.tutorTitular,
+        telefonoContacto: familiaInfo.telefonoContacto || "",
+        ultimoIngresoAt: familiaInfo.ultimoIngresoAt || null,
       },
-      estudiantes: familia.estudiantes.map((e) => ({
-        id: e.id,
-        codigo: e.codigo,
-        dni: e.dni,
-        nombres: e.nombres,
-        apellidos: e.apellidos,
-        grado: e.grado,
-        seccion: e.seccion,
-        turno: e.turno,
-      })),
+      estudiantes: hermanosConfirmados,
       estudianteActiva: {
         id: estudianteActiva.id,
         codigo: estudianteActiva.codigo,
@@ -323,7 +356,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Error obteniendo datos del portal de padres:", error);
     return NextResponse.json(
-      { ok: false, message: "Error interno al obtener datos de asistencia" },
+      { ok: false, message: "Error interno al obtener datos de asistencia familiar" },
       { status: 500 }
     );
   }
