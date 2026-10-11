@@ -1,7 +1,9 @@
 import 'dotenv/config';
 import { prisma } from '../lib/prisma';
+import { validarEntornoSeguro } from '../lib/db-guard';
 
 async function preMigracion() {
+  validarEntornoSeguro("pre-migracion-fase8");
   console.log('[PRE-MIGRACION] Creando tabla Colegio y sembrando registro base...');
 
   await prisma.$executeRawUnsafe(`

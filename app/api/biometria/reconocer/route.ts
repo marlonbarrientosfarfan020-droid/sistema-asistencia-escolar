@@ -84,10 +84,12 @@ export async function POST(
     const arrayBuffer =
       await foto.arrayBuffer();
 
+    const colegioSesion = acceso.sesion.colegioId || "SANTA_RITA_001";
     const coincidenciaAWS =
       await reconocerRostroAWS({
         imagen:
           new Uint8Array(arrayBuffer),
+        colegioId: colegioSesion,
       });
 
     if (!coincidenciaAWS) {
@@ -197,6 +199,17 @@ export async function POST(
 
     const estudiante =
       biometria.estudiante;
+
+    if (estudiante.colegioId && acceso.sesion.colegioId && estudiante.colegioId !== acceso.sesion.colegioId && acceso.sesion.rol !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        {
+          ok: false,
+          reconocido: false,
+          message: "El estudiante reconocido pertenece a otra institución educativa.",
+        },
+        { status: 403 }
+      );
+    }
 
     if (!estudiante.estado) {
       return NextResponse.json(

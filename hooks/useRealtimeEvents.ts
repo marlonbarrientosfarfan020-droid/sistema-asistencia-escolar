@@ -41,12 +41,78 @@ export function useRealtimeEvents(opciones: OpcionesRealtimeEvents = {}) {
   // Referencias para evitar recrear listeners por cada render
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconexionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const syncIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const intentosRef = useRef(0);
   const callbacksRef = useRef(opciones);
+  const seenEventKeysRef = useRef<Set<string>>(new Set());
+  const ultimoAsistenciaIdRef = useRef<number>(0);
+  const ultimoSyncTimestampRef = useRef<string>("");
 
   useEffect(() => {
     callbacksRef.current = opciones;
   }, [opciones]);
+
+  // Sincronización incremental de respaldo contra PostgreSQL (Resiliente a Vercel Serverless)
+  const sincronizarDelta = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    try {
+      const params = new URLSearchParams({
+        ultimoId: String(ultimoAsistenciaIdRef.current),
+        limite: "50",
+      });
+      if (ultimoSyncTimestampRef.current) {
+        params.set("desde", ultimoSyncTimestampRef.current);
+      }
+
+      const res = await fetch(`/api/realtime/sync?${params.toString()}`, {
+        credentials: "include",
+      });
+      if (!res.ok) return;
+      const data = await res.json().catch(() => null);
+      if (!data?.ok || !Array.isArray(data.asistencias)) return;
+
+      if (data.servidorTimestamp) {
+        ultimoSyncTimestampRef.current = data.servidorTimestamp;
+      }
+      if (typeof data.ultimoId === "number" && data.ultimoId > ultimoAsistenciaIdRef.current) {
+        ultimoAsistenciaIdRef.current = data.ultimoId;
+      }
+
+      for (const a of data.asistencias) {
+        const horaStr = a.horaSalida || a.horaEntrada || a.updatedAt || new Date().toISOString();
+        const hora = new Date(horaStr).toLocaleTimeString("es-PE", { hour12: false });
+
+        // Procesar evento de SALIDA si existe horaSalida
+        if (a.horaSalida) {
+          const keySalida = `SALIDA_${a.id}`;
+          if (!seenEventKeysRef.current.has(keySalida)) {
+            seenEventKeysRef.current.add(keySalida);
+            setUltimoEvento({ tipo: "ASISTENCIA_SALIDA", datos: a, hora });
+            setContadorEventos((prev) => prev + 1);
+
+            callbacksRef.current.onSalida?.(a);
+            callbacksRef.current.onEvent?.("ASISTENCIA_SALIDA", a);
+          }
+        }
+
+        // Procesar evento de ENTRADA si existe horaEntrada (y no fue únicamente una salida)
+        if (a.horaEntrada) {
+          const keyEntrada = `ENTRADA_${a.id}`;
+          if (!seenEventKeysRef.current.has(keyEntrada)) {
+            seenEventKeysRef.current.add(keyEntrada);
+            if (!a.horaSalida) {
+              setUltimoEvento({ tipo: "ASISTENCIA_REGISTRADA", datos: a, hora });
+              setContadorEventos((prev) => prev + 1);
+            }
+            callbacksRef.current.onAsistencia?.(a);
+            callbacksRef.current.onEvent?.("ASISTENCIA_REGISTRADA", a);
+          }
+        }
+      }
+    } catch (err) {
+      // Error silencioso en sincronización periódica
+    }
+  }, []);
 
   const conectar = useCallback(() => {
     if (!habilitado || typeof window === "undefined") return;
@@ -74,10 +140,30 @@ export function useRealtimeEvents(opciones: OpcionesRealtimeEvents = {}) {
         intentosRef.current = 0; // Reiniciar contador de intentos exitosos
       };
 
-      // Handler genérico de eventos
+      // Handler genérico de eventos con prevención de duplicados
       const handleCustomEvent = (tipo: string, event: MessageEvent) => {
         try {
           const datos = JSON.parse(event.data);
+
+          // Clave de unicidad para deduplicar eventos entre SSE y Polling incremental
+          const marcaId = datos?.asistenciaId || datos?.id || (datos as any)?.asistencia?.id;
+          if (marcaId && Number(marcaId) > ultimoAsistenciaIdRef.current) {
+            ultimoAsistenciaIdRef.current = Number(marcaId);
+          }
+
+          const uniqueKey = tipo === "ASISTENCIA_SALIDA" && marcaId
+            ? `SALIDA_${marcaId}`
+            : tipo === "ASISTENCIA_REGISTRADA" && marcaId
+            ? `ENTRADA_${marcaId}`
+            : tipo === "SALIDA_EXCEPCIONAL_REGISTRADA"
+            ? `SALIDA_EXC_${datos.salidaExcepcionalId || marcaId || Date.now()}`
+            : `${tipo}_${datos?.timestamp || Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+          if (seenEventKeysRef.current.has(uniqueKey)) {
+            return; // Descartar evento duplicado
+          }
+          seenEventKeysRef.current.add(uniqueKey);
+
           const hora = new Date().toLocaleTimeString("es-PE", { hour12: false });
           setUltimoEvento({ tipo, datos, hora });
           setContadorEventos((prev) => prev + 1);
@@ -163,9 +249,18 @@ export function useRealtimeEvents(opciones: OpcionesRealtimeEvents = {}) {
 
     conectar();
 
+    // Sincronización de respaldo incremental cada 6 segundos para garantizar entrega serverless
+    void sincronizarDelta();
+    syncIntervalRef.current = setInterval(() => {
+      void sincronizarDelta();
+    }, 6000);
+
     return () => {
       if (reconexionTimeoutRef.current) {
         clearTimeout(reconexionTimeoutRef.current);
+      }
+      if (syncIntervalRef.current) {
+        clearInterval(syncIntervalRef.current);
       }
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
@@ -174,7 +269,7 @@ export function useRealtimeEvents(opciones: OpcionesRealtimeEvents = {}) {
       setEstadoConexion("desconectado");
       setConectado(false);
     };
-  }, [habilitado, conectar]);
+  }, [habilitado, conectar, sincronizarDelta]);
 
   return {
     conectado,

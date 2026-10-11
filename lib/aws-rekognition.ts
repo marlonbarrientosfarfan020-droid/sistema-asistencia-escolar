@@ -15,6 +15,19 @@ export const COLLECTION_ID =
     .AWS_REKOGNITION_COLLECTION_ID ||
   "santa-rita-estudiantes";
 
+/**
+ * Resuelve la colección biométrica por colegio manteniendo 100% de compatibilidad
+ * con la colección predeterminada en producción (santa-rita-estudiantes).
+ */
+export function resolverColeccionColegio(colegioId?: string): string {
+  const defaultCol = process.env.AWS_REKOGNITION_COLLECTION_ID || "santa-rita-estudiantes";
+  if (!colegioId || colegioId === "SANTA_RITA_001" || colegioId === "default") {
+    return defaultCol;
+  }
+  const cleanId = colegioId.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+  return `colegio-${cleanId}-estudiantes`;
+}
+
 function obtenerCredenciales() {
   const accessKeyId =
     process.env.AWS_ACCESS_KEY_ID;
@@ -58,19 +71,20 @@ export async function probarConexionAWS() {
   return respuesta.CollectionIds || [];
 }
 
-export async function asegurarColeccionFacial() {
+export async function asegurarColeccionFacial(colegioId?: string) {
+  const targetCollection = resolverColeccionColegio(colegioId);
   try {
     await rekognition.send(
       new DescribeCollectionCommand({
         CollectionId:
-          COLLECTION_ID,
+          targetCollection,
       })
     );
 
     return {
       creada: false,
       collectionId:
-        COLLECTION_ID,
+        targetCollection,
     };
   } catch (error: unknown) {
     const nombreError =
@@ -89,7 +103,7 @@ export async function asegurarColeccionFacial() {
   await rekognition.send(
     new CreateCollectionCommand({
       CollectionId:
-        COLLECTION_ID,
+        targetCollection,
     })
   );
 
@@ -103,12 +117,14 @@ export async function asegurarColeccionFacial() {
 export async function registrarRostroAWS({
   estudianteId,
   imagen,
+  colegioId,
 }: {
   estudianteId: number;
   imagen: Uint8Array;
+  colegioId?: string;
 }) {
-  await asegurarColeccionFacial();
-
+  const targetCollection = resolverColeccionColegio(colegioId);
+  await asegurarColeccionFacial(colegioId);
   const externalImageId =
     `estudiante_${estudianteId}`;
 
@@ -116,7 +132,7 @@ export async function registrarRostroAWS({
     await rekognition.send(
       new IndexFacesCommand({
         CollectionId:
-          COLLECTION_ID,
+          targetCollection,
 
         Image: {
           Bytes: imagen,
@@ -171,11 +187,13 @@ export async function registrarRostroAWS({
 }
 export async function reconocerRostroAWS({
   imagen,
+  colegioId,
 }: {
   imagen: Uint8Array;
+  colegioId?: string;
 }) {
-  await asegurarColeccionFacial();
-
+  const targetCollection = resolverColeccionColegio(colegioId);
+  await asegurarColeccionFacial(colegioId);
   const similitudMinimaTexto =
     process.env.AWS_REKOGNITION_MIN_SIMILARITY ||
     "97";
@@ -186,7 +204,7 @@ export async function reconocerRostroAWS({
   const resultado =
     await rekognition.send(
       new SearchFacesByImageCommand({
-        CollectionId: COLLECTION_ID,
+        CollectionId: targetCollection,
 
         Image: {
           Bytes: imagen,

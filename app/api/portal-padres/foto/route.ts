@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { exigirSesionPadre } from "@/lib/auth-padres";
+import { obtenerSesionPadre } from "@/lib/auth-padres";
+import { obtenerSesion } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,12 +12,15 @@ export const dynamic = "force-dynamic";
  * Valida la identidad y relaci�n familiar en PostgreSQL antes de servir la imagen.
  */
 export async function GET(request: Request) {
-  const acceso = await exigirSesionPadre(request);
-  if (!acceso.autorizado) {
-    return acceso.respuesta;
-  }
+  const sesionPersonal = await obtenerSesion(request);
+  const sesionPadre = sesionPersonal ? null : await obtenerSesionPadre(request);
 
-  const { sesion } = acceso;
+  if (!sesionPersonal && !sesionPadre) {
+    return NextResponse.json(
+      { ok: false, message: "No autorizado. Debe iniciar sesión para visualizar la evidencia." },
+      { status: 401 }
+    );
+  }
 
   try {
     const { searchParams } = new URL(request.url);
@@ -40,7 +44,17 @@ export async function GET(request: Request) {
         fotoEntrada: true,
         fotoSalida: true,
         fotoUrl: true,
+        fotoProtegida: true,
+        fotoEntradaProtegida: true,
+        fotoSalidaProtegida: true,
         colegioId: true,
+        evidenciasFotograficas: {
+          select: {
+            tipo: true,
+            esActiva: true,
+            esProtegida: true,
+          },
+        },
       },
     });
 
@@ -51,41 +65,74 @@ export async function GET(request: Request) {
       );
     }
 
-    // 2. VALIDACI�N ESTRICTA EN POSTGRESQL: La asistencia debe pertenecer al estudiante autorizado
-    const estudianteAutorizado = sesion.estudianteAutorizadoId;
-    const permitidos = sesion.estudiantesPermitidosIds || [estudianteAutorizado];
+        // 2. VALIDACIÓN ESTRICTA EN POSTGRESQL
+    if (sesionPersonal) {
+      // Personal / Admin: debe pertenecer a la misma institución o ser SUPER_ADMIN
+      const colegioPersonal = sesionPersonal.colegioId || "SANTA_RITA_001";
+      if (sesionPersonal.rol !== "SUPER_ADMIN" && asistencia.colegioId !== colegioPersonal) {
+        return NextResponse.json(
+          { ok: false, message: "Acceso denegado: la asistencia no pertenece a su institución educativa." },
+          { status: 403 }
+        );
+      }
+    } else if (sesionPadre) {
+      // Familia: debe pertenecer a los estudiantes autorizados y con relación vigente
+      const estudianteAutorizado = sesionPadre.estudianteAutorizadoId;
+      const permitidos = sesionPadre.estudiantesPermitidosIds || [estudianteAutorizado];
 
-    if (!permitidos.includes(asistencia.estudianteId)) {
-      console.warn(
-        `[FOTO SEGURIDAD] Intento de acceso no autorizado a foto de asistencia #${asistenciaId} (estudianteId=${asistencia.estudianteId}) por familia ${sesion.codigoFamiliar}`
-      );
+      if (!permitidos.includes(asistencia.estudianteId)) {
+        console.warn(
+          `[FOTO SEGURIDAD] Intento de acceso no autorizado a foto de asistencia #${asistenciaId} por familia ${sesionPadre.codigoFamiliar}`
+        );
+        return NextResponse.json(
+          {
+            ok: false,
+            message: "Acceso denegado: no tiene autorización para visualizar la fotografía de esta asistencia.",
+          },
+          { status: 403 }
+        );
+      }
+
+      // Comprobar que la relación familiar siga vigente en PostgreSQL
+      const relacionVigente = await prisma.estudiante.findFirst({
+        where: {
+          id: asistencia.estudianteId,
+          codigoFamiliarId: sesionPadre.codigoFamiliarId,
+          estado: true,
+        },
+        select: { id: true },
+      });
+
+      if (!relacionVigente) {
+        return NextResponse.json(
+          { ok: false, message: "La autorización familiar para este estudiante ha sido revocada." },
+          { status: 403 }
+        );
+      }
+    }
+
+    // 4. Verificar política de rotación y conservación institucional
+    const evTipo = (asistencia as any).evidenciasFotograficas?.find((e: any) => e.tipo === tipo);
+    const esProtegida = Boolean(
+      asistencia.fotoProtegida ||
+      (tipo === "SALIDA" ? asistencia.fotoSalidaProtegida : asistencia.fotoEntradaProtegida) ||
+      evTipo?.esProtegida
+    );
+    const esActiva = evTipo ? evTipo.esActiva : true;
+
+    if (!esActiva && !esProtegida) {
       return NextResponse.json(
         {
           ok: false,
-          message: "Acceso denegado: no tiene autorizaci�n para visualizar la fotograf�a de esta asistencia.",
+          conservada: false,
+          estado: "NO_CONSERVADA",
+          message: "Fotografía no conservada según la política de rotación y almacenamiento institucional.",
         },
-        { status: 403 }
+        { status: 410 }
       );
     }
 
-    // 3. Comprobar que la relaci�n familiar siga vigente en PostgreSQL (revocaci�n en tiempo real)
-    const relacionVigente = await prisma.estudiante.findFirst({
-      where: {
-        id: asistencia.estudianteId,
-        codigoFamiliarId: sesion.codigoFamiliarId,
-        estado: true,
-      },
-      select: { id: true },
-    });
-
-    if (!relacionVigente) {
-      return NextResponse.json(
-        { ok: false, message: "La autorizaci�n familiar para este estudiante ha sido revocada." },
-        { status: 403 }
-      );
-    }
-
-    // 4. Obtener la URL de la imagen
+    // Obtener la URL de la imagen
     const urlFoto =
       tipo === "SALIDA"
         ? asistencia.fotoSalida

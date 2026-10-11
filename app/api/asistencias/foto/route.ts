@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { exigirAdminOPersonal } from "@/lib/auth";
 import { verificarModuloActivo } from "@/lib/supermotor-guard";
 import { emitEvent } from "@/lib/events/eventBus";
+import { procesarRotacionEvidencia } from "@/services/fotos/rotacionFotosService";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
   const tipoParam = formData.get("tipo")?.toString()?.toUpperCase() === "SALIDA" ? "SALIDA" : "ENTRADA";
   const asistenciaId = asistenciaIdRaw ? Number(asistenciaIdRaw) : null;
 
-  // Si no se proveyó asistenciaId, retornar error o fallback controlado
+  // Si no se proveyó asistenciaId: asistenciaExistente.id, retornar error o fallback controlado
   let asistenciaExistente: any = null;
   let evidenciaExistente: any = null;
   let proximoIntento = 1;
@@ -88,7 +89,7 @@ export async function POST(request: Request) {
     evidenciaExistente = await prisma.evidenciaFotografica.findUnique({
       where: {
         asistenciaId_tipo: {
-          asistenciaId,
+          asistenciaId: asistenciaExistente.id,
           tipo: tipoParam,
         },
       },
@@ -253,6 +254,24 @@ export async function POST(request: Request) {
         });
       } catch (errAsist) {
         console.error("[FOTO API] Error actualizando foto en Asistencia:", errAsist);
+      }
+    }
+
+    // FOTOGRAFÍAS ROTATIVAS: Actualizar puntero activo y gestionar política de almacenamiento
+    if (asistenciaExistente && blob.url) {
+      try {
+        await procesarRotacionEvidencia({
+          colegioId: asistenciaExistente.colegioId,
+          estudianteId: asistenciaExistente.estudianteId,
+          turnoId: asistenciaExistente.turnoId,
+          asistenciaId: asistenciaExistente.id,
+          fechaDia: asistenciaExistente.fechaDia,
+          tipo: tipoParam,
+          url: blob.url,
+          evidenciaId,
+        });
+      } catch (errRotacion) {
+        console.error("[FOTO API] Error en política de rotación de fotografías:", errRotacion);
       }
     }
 

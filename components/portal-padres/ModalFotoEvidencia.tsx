@@ -16,6 +16,10 @@ export interface AsistenciaEvidencia {
   fotoEntrada: string | null;
   fotoSalida: string | null;
   fotoUrl: string | null;
+  fotoEntradaEstado?: string | null;
+  fotoSalidaEstado?: string | null;
+  fotoEntradaTexto?: string | null;
+  fotoSalidaTexto?: string | null;
   salidaExcepcional?: {
     motivo: string;
     motivoDetalle?: string | null;
@@ -74,6 +78,8 @@ export function ModalFotoEvidencia({
     ? (asistencia.fotoEntrada || asistencia.fotoUrl)
     : (asistencia.fotoSalida || asistencia.fotoUrl);
 
+  const estadoFotoActual = tabFoto === "ENTRADA" ? asistencia.fotoEntradaEstado : asistencia.fotoSalidaEstado;
+  const esNoConservada = estadoFotoActual === "NO_CONSERVADA";
   const esValida = esUrlEvidenciaValida(rawFoto);
   const urlFoto = esValida ? String(rawFoto).trim() : null;
 
@@ -177,6 +183,14 @@ export function ModalFotoEvidencia({
                 <p className="font-bold text-base text-amber-200">⚠ No se pudo cargar la imagen desde almacenamiento.</p>
                 <p className="text-xs text-slate-400 mt-2 max-w-xs mx-auto">
                   El archivo no se encuentra disponible temporalmente o la red no responde.
+                </p>
+              </div>
+            ) : esNoConservada ? (
+              <div className="text-center p-8 text-amber-300">
+                <span className="text-4xl block mb-2">📁</span>
+                <p className="font-bold text-base text-amber-200">Fotografía no conservada</p>
+                <p className="text-xs text-slate-300 mt-2 max-w-xs mx-auto">
+                  Siguiendo la política de rotación y privacidad institucional, se preserva la fotografía activa de la jornada actual. El registro oficial de asistencia permanece íntegro y verificado.
                 </p>
               </div>
             ) : (

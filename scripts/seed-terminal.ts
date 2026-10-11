@@ -1,8 +1,10 @@
 import "dotenv/config";
 import { prisma } from "../lib/prisma";
 import { hashTerminalToken } from "../lib/terminal-auth";
+import { validarEntornoSeguro } from "../lib/db-guard";
 
 async function main() {
+  validarEntornoSeguro("seed-terminal");
   console.log("=== REGISTRANDO TERMINAL PORTERÍA OFICIAL V1.0 ===");
 
   const terminalId = "TRM-CASIA-01";

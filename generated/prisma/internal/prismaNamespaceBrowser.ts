@@ -70,7 +70,10 @@ export const ModelName = {
   SystemHealthLog: 'SystemHealthLog',
   Terminal: 'Terminal',
   SalidaExcepcional: 'SalidaExcepcional',
-  EvidenciaFotografica: 'EvidenciaFotografica'
+  EvidenciaFotografica: 'EvidenciaFotografica',
+  FotoActivaEstudiante: 'FotoActivaEstudiante',
+  ColaLimpiezaBlob: 'ColaLimpiezaBlob',
+  RegistroIdempotencia: 'RegistroIdempotencia'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -158,6 +161,9 @@ export const AsistenciaScalarFieldEnum = {
   estadoSalida: 'estadoSalida',
   fotoEntrada: 'fotoEntrada',
   fotoSalida: 'fotoSalida',
+  fotoProtegida: 'fotoProtegida',
+  fotoEntradaProtegida: 'fotoEntradaProtegida',
+  fotoSalidaProtegida: 'fotoSalidaProtegida',
   fotoUrl: 'fotoUrl',
   estudianteId: 'estudianteId',
   turnoId: 'turnoId'
@@ -447,11 +453,67 @@ export const EvidenciaFotograficaScalarFieldEnum = {
   errorDetalle: 'errorDetalle',
   tamanoBytes: 'tamanoBytes',
   mimeType: 'mimeType',
+  esActiva: 'esActiva',
+  esProtegida: 'esProtegida',
+  rotadaAt: 'rotadaAt',
+  eliminadaBlobAt: 'eliminadaBlobAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type EvidenciaFotograficaScalarFieldEnum = (typeof EvidenciaFotograficaScalarFieldEnum)[keyof typeof EvidenciaFotograficaScalarFieldEnum]
+
+
+export const FotoActivaEstudianteScalarFieldEnum = {
+  id: 'id',
+  colegioId: 'colegioId',
+  estudianteId: 'estudianteId',
+  turnoId: 'turnoId',
+  asistenciaId: 'asistenciaId',
+  fechaDia: 'fechaDia',
+  tipo: 'tipo',
+  evidenciaId: 'evidenciaId',
+  url: 'url',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FotoActivaEstudianteScalarFieldEnum = (typeof FotoActivaEstudianteScalarFieldEnum)[keyof typeof FotoActivaEstudianteScalarFieldEnum]
+
+
+export const ColaLimpiezaBlobScalarFieldEnum = {
+  id: 'id',
+  colegioId: 'colegioId',
+  evidenciaId: 'evidenciaId',
+  url: 'url',
+  tipo: 'tipo',
+  estudianteId: 'estudianteId',
+  asistenciaId: 'asistenciaId',
+  motivo: 'motivo',
+  estado: 'estado',
+  intentos: 'intentos',
+  ultimoError: 'ultimoError',
+  ejecutadoAt: 'ejecutadoAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ColaLimpiezaBlobScalarFieldEnum = (typeof ColaLimpiezaBlobScalarFieldEnum)[keyof typeof ColaLimpiezaBlobScalarFieldEnum]
+
+
+export const RegistroIdempotenciaScalarFieldEnum = {
+  id: 'id',
+  clave: 'clave',
+  tipoOperacion: 'tipoOperacion',
+  estudianteId: 'estudianteId',
+  colegioId: 'colegioId',
+  statusCode: 'statusCode',
+  respuesta: 'respuesta',
+  createdAt: 'createdAt',
+  expiraAt: 'expiraAt'
+} as const
+
+export type RegistroIdempotenciaScalarFieldEnum = (typeof RegistroIdempotenciaScalarFieldEnum)[keyof typeof RegistroIdempotenciaScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -460,6 +522,13 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -476,4 +545,13 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 

@@ -11,6 +11,7 @@ import {
   registrarAuditoriaBloqueo,
 } from "@/lib/supermotor-guard";
 import { evaluarJornadaActual } from "@/services/jornada/motorJornada";
+import { ejecutarCierreJornadasVencidas } from "@/services/jornada/cierreJornadaService";
 import { registrarEventoSalud } from "@/lib/health";
 
 export const runtime = "nodejs";
@@ -251,6 +252,8 @@ export async function GET(request: Request) {
     const colegioId = searchParams.get("colegioId") || "SANTA_RITA_001";
 
     // FASE 7.7 & FASE 8.7: Evaluar jornada escolar periódicamente por colegio
+    // Cierre y barrido de jornadas escolares vencidas (Idempotente)
+    const cierreJornadas = await ejecutarCierreJornadasVencidas({ colegioId });
     const evaluacionJornada = await evaluarJornadaActual({ colegioId });
 
     // FASE 5.1 & FASE 8.3: Consultar SuperMotor del colegio antes de ejecutar cualquier automatización
@@ -353,6 +356,7 @@ export async function GET(request: Request) {
     const procesosOmitidos: string[] = [];
 
     const resultados: Record<string, unknown> = {
+      cierreJornadas,
       fecha: fechaPeru(),
       hora: horaActual,
       diaSemana: diaSemanaActual,

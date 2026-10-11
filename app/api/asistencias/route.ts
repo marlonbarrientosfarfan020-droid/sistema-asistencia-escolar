@@ -30,6 +30,91 @@ import { emitEvent } from "@/lib/events/eventBus";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Almacén híbrido (L1 Memoria + L2 PostgreSQL) para Idempotencia Persistente entre instancias Vercel Serverless
+interface EntradaIdempotencia {
+  status: number;
+  body: any;
+  expiraAt: number;
+}
+const cacheIdempotenciaGlobal = new Map<string, EntradaIdempotencia>();
+
+async function obtenerDeCacheIdempotencia(key: string | null): Promise<EntradaIdempotencia | null> {
+  if (!key) return null;
+
+  // 1. Chequeo ultra-rápido L1 en memoria de la instancia
+  const item = cacheIdempotenciaGlobal.get(key);
+  if (item && Date.now() <= item.expiraAt) {
+    return item;
+  }
+
+  // 2. Chequeo persistente L2 en PostgreSQL (compartido entre todas las instancias de Vercel)
+  try {
+    const registro = await prisma.registroIdempotencia.findUnique({
+      where: { clave: key },
+    });
+    if (registro && new Date(registro.expiraAt).getTime() > Date.now()) {
+      const entrada: EntradaIdempotencia = {
+        status: registro.statusCode,
+        body: registro.respuesta,
+        expiraAt: new Date(registro.expiraAt).getTime(),
+      };
+      cacheIdempotenciaGlobal.set(key, entrada);
+      return entrada;
+    }
+  } catch (errDb) {
+    console.warn("[IDEMPOTENCIA DB] Error no crítico consultando RegistroIdempotencia:", errDb);
+  }
+
+  return null;
+}
+
+async function guardarEnCacheIdempotencia(
+  key: string | null,
+  status: number,
+  body: any,
+  estudianteId?: number | null,
+  colegioId: string = "SANTA_RITA_001"
+): Promise<void> {
+  if (!key) return;
+  const expiraAtDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
+
+  // L1: Guardar en memoria local
+  if (cacheIdempotenciaGlobal.size > 10000) {
+    const ahora = Date.now();
+    for (const [k, v] of cacheIdempotenciaGlobal.entries()) {
+      if (v.expiraAt < ahora) cacheIdempotenciaGlobal.delete(k);
+    }
+  }
+  cacheIdempotenciaGlobal.set(key, {
+    status,
+    body,
+    expiraAt: expiraAtDate.getTime(),
+  });
+
+  // L2: Persistir en PostgreSQL de forma síncrona/await para sincronización inmediata entre todas las instancias Vercel Serverless
+  try {
+    await prisma.registroIdempotencia.upsert({
+      where: { clave: key },
+      update: {
+        statusCode: status,
+        respuesta: body,
+        expiraAt: expiraAtDate,
+      },
+      create: {
+        clave: key,
+        tipoOperacion: "ASISTENCIA",
+        estudianteId: estudianteId || null,
+        colegioId,
+        statusCode: status,
+        respuesta: body,
+        expiraAt: expiraAtDate,
+      },
+    });
+  } catch (errDb) {
+    console.warn("[IDEMPOTENCIA DB] Error no crítico persistiendo RegistroIdempotencia:", errDb);
+  }
+}
+
 export async function GET(request: Request) {
   const acceso = await exigirAdminDemoOPersonal(request);
 
@@ -227,6 +312,25 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
+    const idempotencyKey =
+      (typeof body.idempotencyKey === "string" && body.idempotencyKey.trim()) ||
+      request.headers.get("x-idempotency-key") ||
+      null;
+    const clientTimestamp =
+      typeof body.clientTimestamp === "number" ? body.clientTimestamp : null;
+    const intencionOperativa: "AUTO" | "ENTRADA" | "SALIDA" =
+      body.intencionOperativa === "ENTRADA" || body.intencionOperativa === "SALIDA"
+        ? body.intencionOperativa
+        : "AUTO";
+
+    if (idempotencyKey) {
+      const respCache = await obtenerDeCacheIdempotencia(idempotencyKey);
+      if (respCache) {
+        console.log(`[ASISTENCIA IDEMPOTENCIA] Retornando respuesta en caché para clave: ${idempotencyKey}`);
+        return NextResponse.json(respCache.body, { status: respCache.status });
+      }
+    }
+
     const dni =
       typeof body.dni === "string"
         ? body.dni.trim()
@@ -403,7 +507,6 @@ export async function POST(request: Request) {
     }
 
     const ahora = new Date();
-    const fechaDia = fechaPeru(ahora);
     const horaActual12 = formatoHora12(ahora);
 
     const ventanaTurno =
@@ -415,6 +518,11 @@ export async function POST(request: Request) {
         margenSalidaMinutos: estudiante.turno.margenSalidaMinutos,
         ahora,
       });
+
+    // En turnos nocturnos que cruzan la medianoche, fechaBase atribuye correctamente
+    // la jornada al día de inicio escolar, garantizando que la salida post-medianoche
+    // cierre el mismo registro de entrada de anoche sin crear duplicados ni desfasar la fecha.
+    const fechaDia = ventanaTurno.fechaBase;
 
     // 1. Búsqueda por clave de unicidad (estudianteId + fechaDia + turnoId)
     let asistencia =
@@ -498,50 +606,51 @@ export async function POST(request: Request) {
 
       console.log("[ASISTENCIA API] Creando entrada para estudiante:", estudiante.id, "Turno:", estudiante.turno.nombre, "Estado:", estadoAsistencia);
 
+      let nuevaAsistencia;
       try {
-        asistencia =
-          await prisma.asistencia.create({
-            data: {
-              colegioId: estudiante.colegioId || colegioId,
-              estudianteId: estudiante.id,
-              fecha: ahora,
-              fechaDia,
-              turnoId: estudiante.turno.id,
-              horaEntrada: ahora,
-              metodo,
-              estado: estadoAsistencia,
-              estadoJornada: "ABIERTA",
-              estadoSalida: "PENDIENTE",
-              fotoUrl: fotoUrlFinal,
-              fotoEntrada: fotoUrlFinal,
-            },
-          });
-
-      // FASE 4.2.1: Registrar estado inicial en EvidenciaFotografica (PENDIENTE / COMPLETADA)
-      try {
-        await prisma.evidenciaFotografica.upsert({
-          where: {
-            asistenciaId_tipo: {
-              asistenciaId: asistencia.id,
-              tipo: "ENTRADA",
-            },
-          },
-          update: {},
-          create: {
-            asistenciaId: asistencia.id,
-            estudianteId: estudiante.id,
+        nuevaAsistencia = await prisma.asistencia.create({
+          data: {
             colegioId: estudiante.colegioId || colegioId,
-            tipo: "ENTRADA",
-            estado: fotoUrlFinal ? "COMPLETADA" : "PENDIENTE",
-            url: fotoUrlFinal || null,
-            intentos: fotoUrlFinal ? 1 : 0,
+            estudianteId: estudiante.id,
+            fecha: ahora,
+            fechaDia,
+            turnoId: estudiante.turno.id,
+            horaEntrada: ahora,
+            metodo,
+            estado: estadoAsistencia,
+            estadoJornada: "ABIERTA",
+            estadoSalida: "PENDIENTE",
+            fotoUrl: fotoUrlFinal,
+            fotoEntrada: fotoUrlFinal,
           },
         });
-      } catch (errEv) {
-        console.warn("[ASISTENCIA API] Error no crítico creando EvidenciaFotografica (ENTRADA):", errEv);
-      }
+
+        try {
+          await prisma.evidenciaFotografica.upsert({
+            where: {
+              asistenciaId_tipo: {
+                asistenciaId: nuevaAsistencia.id,
+                tipo: "ENTRADA",
+              },
+            },
+            update: {
+              url: fotoUrlFinal || undefined,
+              estado: fotoUrlFinal ? "COMPLETADA" : undefined,
+            },
+            create: {
+              asistenciaId: nuevaAsistencia.id,
+              estudianteId: estudiante.id,
+              colegioId: estudiante.colegioId || colegioId,
+              tipo: "ENTRADA",
+              estado: fotoUrlFinal ? "COMPLETADA" : "PENDIENTE",
+              url: fotoUrlFinal || null,
+              intentos: fotoUrlFinal ? 1 : 0,
+            },
+          });
+        } catch (errEv) {
+          console.warn("[ASISTENCIA API] Error no crítico creando EvidenciaFotografica (ENTRADA):", errEv);
+        }
       } catch (errDb: any) {
-        // Manejo de condición de carrera con restricción única P2002
         if (errDb instanceof Prisma.PrismaClientKnownRequestError && errDb.code === "P2002") {
           console.warn("[ASISTENCIA API] Detección de marcación concurrente P2002 para estudiante:", estudiante.id);
           const yaExiste = await prisma.asistencia.findFirst({
@@ -570,9 +679,8 @@ export async function POST(request: Request) {
         throw errDb;
       }
 
-      console.log("[ASISTENCIA API] Registro de entrada exitoso id:", asistencia.id);
+      console.log("[ASISTENCIA API] Registro de entrada exitoso id:", nuevaAsistencia.id);
 
-      // Notificaciones externas en segundo plano (NO bloqueantes)
       if (configuracionCanales?.canalWhatsAppActivo && estudiante.whatsapp) {
         enviarWhatsApp({
           telefono: estudiante.whatsapp,
@@ -603,7 +711,195 @@ export async function POST(request: Request) {
         });
       }
 
-      // FASE 6.7 & FASE 8.4: Emitir evento en tiempo real ASISTENCIA_REGISTRADA por colegio
+      emitEvent("ASISTENCIA_REGISTRADA", {
+        colegioId: estudiante.colegioId || colegioId,
+        asistenciaId: nuevaAsistencia.id,
+        estudianteId: estudiante.id,
+        estudiante: {
+          id: estudiante.id,
+          codigo: estudiante.codigo,
+          dni: estudiante.dni,
+          nombres: estudiante.nombres,
+          apellidos: estudiante.apellidos,
+          grado: estudiante.grado,
+          seccion: estudiante.seccion,
+          tutor: estudiante.nombreTutor,
+          turno: estudiante.turno?.nombre,
+        },
+        hora: horaActual12,
+        hora24: horaPeru(ahora),
+        fecha: fechaDia,
+        metodo,
+        estado: estadoAsistencia,
+        tipo: "ENTRADA",
+        fotoUrl: fotoUrlFinal ? `/api/portal-padres/foto?asistenciaId=${nuevaAsistencia.id}&tipo=ENTRADA` : null,
+      }, estudiante.colegioId || colegioId);
+
+      const respEntradaExitosa = {
+        ok: true,
+        tipo: "ENTRADA",
+        estado: estadoAsistencia,
+        estadoJornada: "ABIERTA",
+        estadoSalida: "PENDIENTE",
+        estudiante,
+        asistencia: nuevaAsistencia,
+        message: "Entrada registrada correctamente",
+      };
+      await guardarEnCacheIdempotencia(idempotencyKey, 200, respEntradaExitosa, estudiante.id, estudiante.colegioId || colegioId);
+      return NextResponse.json(respEntradaExitosa);
+    }
+
+    /*
+     * CASO C: REGISTRO DE ENTRADA SOBRE INASISTENCIA PREVIA (FALTA por cron/sistema con horaEntrada nula)
+     */
+    if (asistencia.horaEntrada === null) {
+      if (ahora < ventanaTurno.inicioPermitido) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              `Todavía no está habilitado el ingreso para el turno ${estudiante.turno.nombre}. ` +
+              `Puede marcar desde las ${formatoHora12(ventanaTurno.inicioPermitido)}. ` +
+              `Hora actual: ${horaActual12}.`,
+            fueraDeHorario: true,
+            tipoRestriccion: "ENTRADA_ANTICIPADA",
+            turno: {
+              nombre: estudiante.turno.nombre,
+              horaEntrada: estudiante.turno.horaEntrada,
+              horaSalida: estudiante.turno.horaSalida,
+            },
+          },
+          { status: 409 }
+        );
+      }
+
+      if (ahora > ventanaTurno.horaSalidaTurno) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              `El horario de entrada del turno ${estudiante.turno.nombre} ya terminó. ` +
+              `La entrada se permite hasta las ${formatoHora12(ventanaTurno.horaSalidaTurno)}. ` +
+              `Hora actual: ${horaActual12}.`,
+            fueraDeHorario: true,
+            tipoRestriccion: "ENTRADA_FINALIZADA",
+            turno: {
+              nombre: estudiante.turno.nombre,
+              horaEntrada: estudiante.turno.horaEntrada,
+              horaSalida: estudiante.turno.horaSalida,
+            },
+          },
+          { status: 409 }
+        );
+      }
+
+      const estadoAsistencia = calcularEstadoAsistencia(
+        ahora,
+        ventanaTurno.horaEntradaTurno,
+        estudiante.turno.margenAlertaMinutos
+      );
+
+      console.log("[ASISTENCIA API] Regularizando inasistencia previa para estudiante:", estudiante.id, "Turno:", estudiante.turno.nombre, "Estado:", estadoAsistencia);
+
+      const resultadoUpdateFalta = await prisma.asistencia.updateMany({
+        where: {
+          id: asistencia.id,
+          horaEntrada: null, // Guardia atómica de concurrencia
+        },
+        data: {
+          horaEntrada: ahora,
+          estado: estadoAsistencia,
+          estadoJornada: "ABIERTA",
+          estadoSalida: "PENDIENTE",
+          metodo,
+          fotoUrl: fotoUrlFinal,
+          fotoEntrada: fotoUrlFinal,
+        },
+      });
+
+      if (resultadoUpdateFalta.count === 0) {
+        const yaExiste = await prisma.asistencia.findUnique({
+          where: { id: asistencia.id },
+        });
+        const horaReg = formatoHora12(yaExiste?.horaEntrada || yaExiste?.fecha || ahora);
+        return NextResponse.json(
+          {
+            ok: true,
+            yaRegistrado: true,
+            tipo: "ENTRADA",
+            estado: yaExiste?.estado || estadoAsistencia,
+            estadoJornada: yaExiste?.estadoJornada || "ABIERTA",
+            estadoSalida: yaExiste?.estadoSalida || "PENDIENTE",
+            estudiante,
+            asistencia: yaExiste,
+            message: `El estudiante ${estudiante.nombres} ${estudiante.apellidos} ya registró asistencia hoy a las ${horaReg}`,
+          },
+          { status: 409 }
+        );
+      }
+
+      const asistenciaActualizada = await prisma.asistencia.findUnique({
+        where: { id: asistencia.id },
+      });
+
+      try {
+        await prisma.evidenciaFotografica.upsert({
+          where: {
+            asistenciaId_tipo: {
+              asistenciaId: asistencia.id,
+              tipo: "ENTRADA",
+            },
+          },
+          update: {
+            url: fotoUrlFinal || undefined,
+            estado: fotoUrlFinal ? "COMPLETADA" : undefined,
+          },
+          create: {
+            asistenciaId: asistencia.id,
+            estudianteId: estudiante.id,
+            colegioId: estudiante.colegioId || colegioId,
+            tipo: "ENTRADA",
+            estado: fotoUrlFinal ? "COMPLETADA" : "PENDIENTE",
+            url: fotoUrlFinal || null,
+            intentos: fotoUrlFinal ? 1 : 0,
+          },
+        });
+      } catch (errEv) {
+        console.warn("[ASISTENCIA API] Error no crítico creando EvidenciaFotografica (ENTRADA):", errEv);
+      }
+
+      console.log("[ASISTENCIA API] Inasistencia regularizada con éxito id:", asistencia.id);
+
+      if (configuracionCanales?.canalWhatsAppActivo && estudiante.whatsapp) {
+        enviarWhatsApp({
+          telefono: estudiante.whatsapp,
+          tutor: estudiante.nombreTutor,
+          estudiante: `${estudiante.nombres} ${estudiante.apellidos}`,
+          tipo: "ENTRADA",
+          hora: horaActual12,
+          grado: estudiante.grado,
+          seccion: estudiante.seccion,
+          turno: `${estudiante.turno.nombre} (${estudiante.turno.horaEntrada} - ${estudiante.turno.horaSalida})`,
+          estado: estadoAsistencia,
+          metodo,
+        }).catch((error) => {
+          console.error("Error no crítico enviando WhatsApp:", error);
+        });
+      }
+
+      if (configuracionCanales?.canalTelegramActivo && estudiante.telegramChatId) {
+        notificarTelegram({
+          chatId: estudiante.telegramChatId,
+          estudiante,
+          tipo: "ENTRADA",
+          hora: horaActual12,
+          metodo,
+          estado: estadoAsistencia,
+        }).catch((error) => {
+          console.error("Error no crítico enviando Telegram:", error);
+        });
+      }
+
       emitEvent("ASISTENCIA_REGISTRADA", {
         colegioId: estudiante.colegioId || colegioId,
         asistenciaId: asistencia.id,
@@ -625,25 +921,69 @@ export async function POST(request: Request) {
         metodo,
         estado: estadoAsistencia,
         tipo: "ENTRADA",
-        fotoUrl: fotoUrlFinal,
+        fotoUrl: fotoUrlFinal ? `/api/portal-padres/foto?asistenciaId=${asistencia.id}&tipo=ENTRADA` : null,
       }, estudiante.colegioId || colegioId);
 
-      return NextResponse.json({
+      const respCasoCExitosa = {
         ok: true,
         tipo: "ENTRADA",
         estado: estadoAsistencia,
         estadoJornada: "ABIERTA",
         estadoSalida: "PENDIENTE",
         estudiante,
-        asistencia,
-        message: "Entrada registrada correctamente",
-      });
+        asistencia: asistenciaActualizada,
+        message: "Entrada registrada correctamente (Actualizada inasistencia previa)",
+      };
+      await guardarEnCacheIdempotencia(idempotencyKey, 200, respCasoCExitosa, estudiante.id, estudiante.colegioId || colegioId);
+      return NextResponse.json(respCasoCExitosa);
     }
 
     /*
      * CASO B: EL ESTUDIANTE YA TIENE REGISTRADA ENTRADA (JORNADA ABIERTA)
      */
     if (!asistencia.horaSalida) {
+      // GUARDIA 1: Si la intención declarada de la marcación era estrictamente ENTRADA
+      if (intencionOperativa === "ENTRADA") {
+        const horaReg = formatoHora12(asistencia.horaEntrada || asistencia.fecha);
+        const respYaEntro = {
+          ok: true,
+          yaRegistrado: true,
+          tipo: "ENTRADA",
+          estado: asistencia.estado,
+          estadoJornada: "ABIERTA",
+          estadoSalida: "PENDIENTE",
+          estudiante,
+          asistencia,
+          message: `El estudiante ${estudiante.nombres} ${estudiante.apellidos} ya registró su entrada hoy a las ${horaReg}.`,
+        };
+        await guardarEnCacheIdempotencia(idempotencyKey, 409, respYaEntro, estudiante.id, estudiante.colegioId || colegioId);
+        return NextResponse.json(respYaEntro, { status: 409 });
+      }
+
+      // GUARDIA 2: Si es un reintento HTTP rezagado (> 3 minutos desde que el cliente escaneó)
+      // Un escaneo matutino de entrada que llega con retraso NO debe convertirse accidentalmente en salida
+      if (clientTimestamp && ahora.getTime() - Number(clientTimestamp) > 3 * 60 * 1000) {
+        console.warn(
+          `[IDEMPOTENCIA API] Reintento HTTP rezagado detectado para estudiante ${estudiante.id}. ` +
+          `Desfase: ${ahora.getTime() - Number(clientTimestamp)}ms. Bloqueando conversión accidental a salida.`
+        );
+        const horaReg = formatoHora12(asistencia.horaEntrada || asistencia.fecha);
+        const respRezagado = {
+          ok: true,
+          yaRegistrado: true,
+          reintentoRezagado: true,
+          tipo: "ENTRADA",
+          estado: asistencia.estado,
+          estadoJornada: "ABIERTA",
+          estadoSalida: "PENDIENTE",
+          estudiante,
+          asistencia,
+          message: `Marcación previa reconocida (reintento HTTP rezagado). Entrada registrada a las ${horaReg}.`,
+        };
+        await guardarEnCacheIdempotencia(idempotencyKey, 409, respRezagado, estudiante.id, estudiante.colegioId || colegioId);
+        return NextResponse.json(respRezagado, { status: 409 });
+      }
+
       // 1. Protección contra doble-escaneo accidental (menos de 3 minutos de haber entrado)
       const tiempoDesdeEntradaMs = asistencia.horaEntrada
         ? ahora.getTime() - new Date(asistencia.horaEntrada).getTime()
@@ -840,10 +1180,10 @@ export async function POST(request: Request) {
         metodo,
         estadoSalida,
         tipo: "SALIDA",
-        fotoUrl: fotoUrlFinal,
+        fotoUrl: fotoUrlFinal ? `/api/portal-padres/foto?asistenciaId=${asistencia.id}&tipo=SALIDA` : null,
       }, estudiante.colegioId || colegioId);
 
-      return NextResponse.json({
+      const respSalidaExitosa = {
         ok: true,
         tipo: "SALIDA",
         estado: asistencia.estado,
@@ -853,7 +1193,9 @@ export async function POST(request: Request) {
         estudiante,
         asistencia: asistenciaCerrada,
         message: mensajeSalida,
-      });
+      };
+      await guardarEnCacheIdempotencia(idempotencyKey, 200, respSalidaExitosa, estudiante.id, estudiante.colegioId || colegioId);
+      return NextResponse.json(respSalidaExitosa);
     }
 
     /*

@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { registrarAuditoria } from "@/lib/auditoria";
@@ -118,6 +119,22 @@ export async function PUT(
     }
     if (body.estado !== undefined) {
       dataActualizar.estado = Boolean(body.estado);
+    }
+    if (body.password || body.contrasena) {
+      const pass = String(body.password || body.contrasena).trim();
+      if (pass.length >= 4) {
+        dataActualizar.passwordHash = await bcrypt.hash(pass, 10);
+      }
+    }
+    if (body.dniTutor !== undefined) {
+      dataActualizar.dniTutor = texto(body.dniTutor);
+    }
+    if (body.hermanosConfirmados !== undefined) {
+      dataActualizar.hermanosConfirmados = Boolean(body.hermanosConfirmados);
+    }
+    if (body.desbloquear) {
+      dataActualizar.intentosFallidos = 0;
+      dataActualizar.bloqueadoHasta = null;
     }
 
     const familiaActualizada = await prisma.codigoFamiliar.update({

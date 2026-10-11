@@ -345,10 +345,19 @@ export async function POST(request: Request) {
           horaSalida: ahora,
           estadoJornada: "CERRADA",
           estadoSalida: "SALIDA_EXCEPCIONAL",
+          fotoProtegida: true,
+          fotoEntradaProtegida: true,
+          fotoSalidaProtegida: true,
         },
       });
 
       // B. Crear registro en modelo formal SalidaExcepcional
+      // Proteger evidencias fotográficas asociadas al incidente/retiro excepcional
+      await tx.evidenciaFotografica.updateMany({
+        where: { asistenciaId: asistencia.id },
+        data: { esProtegida: true },
+      });
+
       const salidaExcepcional = await tx.salidaExcepcional.create({
         data: {
           colegioId,
@@ -421,7 +430,7 @@ export async function POST(request: Request) {
         motivo,
         motivoDetalle: resultado.salidaExcepcional.motivoDetalle || null,
         observacion,
-        fotoUrl: asistencia.fotoEntrada || null,
+        fotoUrl: asistencia.fotoEntrada ? `/api/portal-padres/foto?asistenciaId=${asistencia.id}&tipo=ENTRADA` : null,
       },
       colegioId
     );

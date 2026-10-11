@@ -403,7 +403,10 @@ export const ModelName = {
   SystemHealthLog: 'SystemHealthLog',
   Terminal: 'Terminal',
   SalidaExcepcional: 'SalidaExcepcional',
-  EvidenciaFotografica: 'EvidenciaFotografica'
+  EvidenciaFotografica: 'EvidenciaFotografica',
+  FotoActivaEstudiante: 'FotoActivaEstudiante',
+  ColaLimpiezaBlob: 'ColaLimpiezaBlob',
+  RegistroIdempotencia: 'RegistroIdempotencia'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -419,7 +422,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "colegio" | "estudiante" | "turno" | "asistencia" | "usuario" | "configuracion" | "auditoria" | "alertaAsistencia" | "analisisIA" | "riesgoEstudianteIA" | "calendarioEscolar" | "historialReporteAutomatico" | "biometriaFacial" | "rostroFacial" | "codigoFamiliar" | "sistemaControl" | "systemHealthLog" | "terminal" | "salidaExcepcional" | "evidenciaFotografica"
+    modelProps: "colegio" | "estudiante" | "turno" | "asistencia" | "usuario" | "configuracion" | "auditoria" | "alertaAsistencia" | "analisisIA" | "riesgoEstudianteIA" | "calendarioEscolar" | "historialReporteAutomatico" | "biometriaFacial" | "rostroFacial" | "codigoFamiliar" | "sistemaControl" | "systemHealthLog" | "terminal" | "salidaExcepcional" | "evidenciaFotografica" | "fotoActivaEstudiante" | "colaLimpiezaBlob" | "registroIdempotencia"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1903,6 +1906,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    FotoActivaEstudiante: {
+      payload: Prisma.$FotoActivaEstudiantePayload<ExtArgs>
+      fields: Prisma.FotoActivaEstudianteFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FotoActivaEstudianteFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FotoActivaEstudiantePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FotoActivaEstudianteFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FotoActivaEstudiantePayload>
+        }
+        findFirst: {
+          args: Prisma.FotoActivaEstudianteFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FotoActivaEstudiantePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FotoActivaEstudianteFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FotoActivaEstudiantePayload>
+        }
+        findMany: {
+          args: Prisma.FotoActivaEstudianteFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FotoActivaEstudiantePayload>[]
+        }
+        create: {
+          args: Prisma.FotoActivaEstudianteCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FotoActivaEstudiantePayload>
+        }
+        createMany: {
+          args: Prisma.FotoActivaEstudianteCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FotoActivaEstudianteCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FotoActivaEstudiantePayload>[]
+        }
+        delete: {
+          args: Prisma.FotoActivaEstudianteDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FotoActivaEstudiantePayload>
+        }
+        update: {
+          args: Prisma.FotoActivaEstudianteUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FotoActivaEstudiantePayload>
+        }
+        deleteMany: {
+          args: Prisma.FotoActivaEstudianteDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FotoActivaEstudianteUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FotoActivaEstudianteUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FotoActivaEstudiantePayload>[]
+        }
+        upsert: {
+          args: Prisma.FotoActivaEstudianteUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FotoActivaEstudiantePayload>
+        }
+        aggregate: {
+          args: Prisma.FotoActivaEstudianteAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFotoActivaEstudiante>
+        }
+        groupBy: {
+          args: Prisma.FotoActivaEstudianteGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FotoActivaEstudianteGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FotoActivaEstudianteCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FotoActivaEstudianteCountAggregateOutputType> | number
+        }
+      }
+    }
+    ColaLimpiezaBlob: {
+      payload: Prisma.$ColaLimpiezaBlobPayload<ExtArgs>
+      fields: Prisma.ColaLimpiezaBlobFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ColaLimpiezaBlobFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColaLimpiezaBlobPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ColaLimpiezaBlobFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColaLimpiezaBlobPayload>
+        }
+        findFirst: {
+          args: Prisma.ColaLimpiezaBlobFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColaLimpiezaBlobPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ColaLimpiezaBlobFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColaLimpiezaBlobPayload>
+        }
+        findMany: {
+          args: Prisma.ColaLimpiezaBlobFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColaLimpiezaBlobPayload>[]
+        }
+        create: {
+          args: Prisma.ColaLimpiezaBlobCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColaLimpiezaBlobPayload>
+        }
+        createMany: {
+          args: Prisma.ColaLimpiezaBlobCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ColaLimpiezaBlobCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColaLimpiezaBlobPayload>[]
+        }
+        delete: {
+          args: Prisma.ColaLimpiezaBlobDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColaLimpiezaBlobPayload>
+        }
+        update: {
+          args: Prisma.ColaLimpiezaBlobUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColaLimpiezaBlobPayload>
+        }
+        deleteMany: {
+          args: Prisma.ColaLimpiezaBlobDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ColaLimpiezaBlobUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ColaLimpiezaBlobUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColaLimpiezaBlobPayload>[]
+        }
+        upsert: {
+          args: Prisma.ColaLimpiezaBlobUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ColaLimpiezaBlobPayload>
+        }
+        aggregate: {
+          args: Prisma.ColaLimpiezaBlobAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateColaLimpiezaBlob>
+        }
+        groupBy: {
+          args: Prisma.ColaLimpiezaBlobGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ColaLimpiezaBlobGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ColaLimpiezaBlobCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ColaLimpiezaBlobCountAggregateOutputType> | number
+        }
+      }
+    }
+    RegistroIdempotencia: {
+      payload: Prisma.$RegistroIdempotenciaPayload<ExtArgs>
+      fields: Prisma.RegistroIdempotenciaFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RegistroIdempotenciaFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RegistroIdempotenciaPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RegistroIdempotenciaFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RegistroIdempotenciaPayload>
+        }
+        findFirst: {
+          args: Prisma.RegistroIdempotenciaFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RegistroIdempotenciaPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RegistroIdempotenciaFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RegistroIdempotenciaPayload>
+        }
+        findMany: {
+          args: Prisma.RegistroIdempotenciaFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RegistroIdempotenciaPayload>[]
+        }
+        create: {
+          args: Prisma.RegistroIdempotenciaCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RegistroIdempotenciaPayload>
+        }
+        createMany: {
+          args: Prisma.RegistroIdempotenciaCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RegistroIdempotenciaCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RegistroIdempotenciaPayload>[]
+        }
+        delete: {
+          args: Prisma.RegistroIdempotenciaDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RegistroIdempotenciaPayload>
+        }
+        update: {
+          args: Prisma.RegistroIdempotenciaUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RegistroIdempotenciaPayload>
+        }
+        deleteMany: {
+          args: Prisma.RegistroIdempotenciaDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RegistroIdempotenciaUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RegistroIdempotenciaUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RegistroIdempotenciaPayload>[]
+        }
+        upsert: {
+          args: Prisma.RegistroIdempotenciaUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RegistroIdempotenciaPayload>
+        }
+        aggregate: {
+          args: Prisma.RegistroIdempotenciaAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRegistroIdempotencia>
+        }
+        groupBy: {
+          args: Prisma.RegistroIdempotenciaGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RegistroIdempotenciaGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RegistroIdempotenciaCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RegistroIdempotenciaCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2011,6 +2236,9 @@ export const AsistenciaScalarFieldEnum = {
   estadoSalida: 'estadoSalida',
   fotoEntrada: 'fotoEntrada',
   fotoSalida: 'fotoSalida',
+  fotoProtegida: 'fotoProtegida',
+  fotoEntradaProtegida: 'fotoEntradaProtegida',
+  fotoSalidaProtegida: 'fotoSalidaProtegida',
   fotoUrl: 'fotoUrl',
   estudianteId: 'estudianteId',
   turnoId: 'turnoId'
@@ -2300,11 +2528,67 @@ export const EvidenciaFotograficaScalarFieldEnum = {
   errorDetalle: 'errorDetalle',
   tamanoBytes: 'tamanoBytes',
   mimeType: 'mimeType',
+  esActiva: 'esActiva',
+  esProtegida: 'esProtegida',
+  rotadaAt: 'rotadaAt',
+  eliminadaBlobAt: 'eliminadaBlobAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type EvidenciaFotograficaScalarFieldEnum = (typeof EvidenciaFotograficaScalarFieldEnum)[keyof typeof EvidenciaFotograficaScalarFieldEnum]
+
+
+export const FotoActivaEstudianteScalarFieldEnum = {
+  id: 'id',
+  colegioId: 'colegioId',
+  estudianteId: 'estudianteId',
+  turnoId: 'turnoId',
+  asistenciaId: 'asistenciaId',
+  fechaDia: 'fechaDia',
+  tipo: 'tipo',
+  evidenciaId: 'evidenciaId',
+  url: 'url',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FotoActivaEstudianteScalarFieldEnum = (typeof FotoActivaEstudianteScalarFieldEnum)[keyof typeof FotoActivaEstudianteScalarFieldEnum]
+
+
+export const ColaLimpiezaBlobScalarFieldEnum = {
+  id: 'id',
+  colegioId: 'colegioId',
+  evidenciaId: 'evidenciaId',
+  url: 'url',
+  tipo: 'tipo',
+  estudianteId: 'estudianteId',
+  asistenciaId: 'asistenciaId',
+  motivo: 'motivo',
+  estado: 'estado',
+  intentos: 'intentos',
+  ultimoError: 'ultimoError',
+  ejecutadoAt: 'ejecutadoAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ColaLimpiezaBlobScalarFieldEnum = (typeof ColaLimpiezaBlobScalarFieldEnum)[keyof typeof ColaLimpiezaBlobScalarFieldEnum]
+
+
+export const RegistroIdempotenciaScalarFieldEnum = {
+  id: 'id',
+  clave: 'clave',
+  tipoOperacion: 'tipoOperacion',
+  estudianteId: 'estudianteId',
+  colegioId: 'colegioId',
+  statusCode: 'statusCode',
+  respuesta: 'respuesta',
+  createdAt: 'createdAt',
+  expiraAt: 'expiraAt'
+} as const
+
+export type RegistroIdempotenciaScalarFieldEnum = (typeof RegistroIdempotenciaScalarFieldEnum)[keyof typeof RegistroIdempotenciaScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2313,6 +2597,13 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -2329,6 +2620,15 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
 
 
@@ -2425,6 +2725,20 @@ export type EnumEstadoEvidenciaFieldRefInput<$PrismaModel> = FieldRefInputType<$
  * Reference to a field of type 'EstadoEvidencia[]'
  */
 export type ListEnumEstadoEvidenciaFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EstadoEvidencia[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 /**
@@ -2557,6 +2871,9 @@ export type GlobalOmitConfig = {
   terminal?: Prisma.TerminalOmit
   salidaExcepcional?: Prisma.SalidaExcepcionalOmit
   evidenciaFotografica?: Prisma.EvidenciaFotograficaOmit
+  fotoActivaEstudiante?: Prisma.FotoActivaEstudianteOmit
+  colaLimpiezaBlob?: Prisma.ColaLimpiezaBlobOmit
+  registroIdempotencia?: Prisma.RegistroIdempotenciaOmit
 }
 
 /* Types for Logging */

@@ -35,6 +35,8 @@ model Colegio {
   terminales        Terminal[]
   salidasExcepcionales SalidaExcepcional[]
   evidenciasFotograficas EvidenciaFotografica[]
+  fotosActivas           FotoActivaEstudiante[]
+  colasLimpiezaBlob      ColaLimpiezaBlob[]
 
   @@index([codigo])
   @@index([estado])
@@ -70,6 +72,7 @@ model Estudiante {
   biometriaFacial   BiometriaFacial?
   salidasExcepcionales SalidaExcepcional[]
   evidenciasFotograficas EvidenciaFotografica[]
+  fotosActivas           FotoActivaEstudiante[]
 
   @@index([colegioId])
   @@index([turnoId])
@@ -97,6 +100,7 @@ model Turno {
   estudiantes       Estudiante[]
   calendarioEscolar CalendarioEscolar[]
   asistencias       Asistencia[]
+  fotosActivas      FotoActivaEstudiante[]
 
   @@unique([colegioId, nombre])
   @@index([colegioId])
@@ -115,6 +119,9 @@ model Asistencia {
   estadoSalida  String?
   fotoEntrada   String?
   fotoSalida    String?
+  fotoProtegida Boolean   @default(false)
+  fotoEntradaProtegida Boolean @default(false)
+  fotoSalidaProtegida Boolean  @default(false)
   fotoUrl       String?
 
   colegio Colegio @relation(fields: [colegioId], references: [codigo], onDelete: Cascade)
@@ -127,6 +134,7 @@ model Asistencia {
 
   salidaExcepcional SalidaExcepcional?
   evidenciasFotograficas EvidenciaFotografica[]
+  fotosActivas           FotoActivaEstudiante[]
 
   @@unique([estudianteId, fechaDia, turnoId])
   @@index([colegioId])
@@ -497,6 +505,10 @@ model EvidenciaFotografica {
   errorDetalle  String?
   tamanoBytes   Int?
   mimeType      String?
+  esActiva      Boolean         @default(true)
+  esProtegida   Boolean         @default(false)
+  rotadaAt      DateTime?
+  eliminadaBlobAt DateTime?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
@@ -509,4 +521,69 @@ model EvidenciaFotografica {
   @@index([asistenciaId])
   @@index([estudianteId])
   @@index([createdAt])
+  @@index([estudianteId, esActiva])
+  @@index([esProtegida])
+}
+
+model FotoActivaEstudiante {
+  id           Int           @id @default(autoincrement())
+  colegioId    String        @default("SANTA_RITA_001")
+  estudianteId Int
+  turnoId      Int?
+  asistenciaId Int
+  fechaDia     String
+  tipo         TipoEvidencia @default(ENTRADA)
+  evidenciaId  Int?
+  url          String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  colegio    Colegio    @relation(fields: [colegioId], references: [codigo], onDelete: Cascade)
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  turno      Turno?     @relation(fields: [turnoId], references: [id], onDelete: SetNull)
+  asistencia Asistencia @relation(fields: [asistenciaId], references: [id], onDelete: Cascade)
+
+  @@unique([estudianteId, turnoId, tipo])
+  @@index([colegioId])
+  @@index([asistenciaId])
+  @@index([fechaDia])
+}
+
+model ColaLimpiezaBlob {
+  id           Int           @id @default(autoincrement())
+  colegioId    String        @default("SANTA_RITA_001")
+  evidenciaId  Int?
+  url          String
+  tipo         TipoEvidencia @default(ENTRADA)
+  estudianteId Int?
+  asistenciaId Int?
+  motivo       String        // "ROTACION_HABITUAL" | "LIMPIEZA_PROGRAMADA" | "ERROR_SUBIDA"
+  estado       String        @default("CONSERVADO_POLITICA") // "CONSERVADO_POLITICA" | "PENDIENTE" | "ELIMINADO" | "ERROR"
+  intentos     Int           @default(0)
+  ultimoError  String?
+  ejecutadoAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  colegio Colegio @relation(fields: [colegioId], references: [codigo], onDelete: Cascade)
+
+  @@index([estado])
+  @@index([colegioId])
+  @@index([createdAt])
+}
+
+model RegistroIdempotencia {
+  id            Int      @id @default(autoincrement())
+  clave         String   @unique
+  tipoOperacion String   @default("ASISTENCIA")
+  estudianteId  Int?
+  colegioId     String   @default("SANTA_RITA_001")
+  statusCode    Int
+  respuesta     Json
+  createdAt     DateTime @default(now())
+  expiraAt      DateTime
+
+  @@index([clave])
+  @@index([expiraAt])
+  @@index([estudianteId, createdAt])
 }

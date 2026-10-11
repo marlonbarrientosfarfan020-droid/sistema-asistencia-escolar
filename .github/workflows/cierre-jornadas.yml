@@ -1,0 +1,49 @@
+name: Cierre Automático de Jornadas Escolares
+
+on:
+  schedule:
+    # 14:15 Hora Perú (19:15 UTC) - Cierre de Turno Mañana (lunes a viernes)
+    - cron: '15 19 * * 1-5'
+    # 19:45 Hora Perú (00:45 UTC siguiente) - Cierre de Turno Tarde (lunes a viernes)
+    - cron: '45 0 * * 2-6'
+    # 03:15 Hora Perú (08:15 UTC) - Cierre de Turno Noche (lunes a sábado)
+    - cron: '15 8 * * 2-6'
+  workflow_dispatch:
+
+jobs:
+  ejecutar-cierre:
+    name: Barrido y Cierre Idempotente de Turnos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invocar Endpoint Institucional de Cierre de Jornadas
+        run: |
+          APP_URL="${{ secrets.APP_PRODUCTION_URL }}"
+          if [ -z "$APP_URL" ]; then
+            echo "ERROR: Debe configurar el secreto APP_PRODUCTION_URL en GitHub Secrets"
+            exit 1
+          fi
+
+          CRON_SECRET="${{ secrets.CRON_SECRET }}"
+          if [ -z "$CRON_SECRET" ]; then
+            echo "ERROR: Debe configurar el secreto CRON_SECRET en GitHub Secrets"
+            exit 1
+          fi
+
+          echo "Invocando cierre automático en $APP_URL/api/cron/cierre-jornada..."
+          RESPUESTA=$(curl -s -w "\n%{http_code}" -X POST "$APP_URL/api/cron/cierre-jornada" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json")
+
+          HTTP_CODE=$(echo "$RESPUESTA" | tail -n1)
+          BODY=$(echo "$RESPUESTA" | sed '$d')
+
+          echo "Código HTTP de respuesta: $HTTP_CODE"
+          echo "Detalle de respuesta:"
+          echo "$BODY"
+
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "El cierre falló con código HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+          echo "Cierre de jornada ejecutado exitosamente."

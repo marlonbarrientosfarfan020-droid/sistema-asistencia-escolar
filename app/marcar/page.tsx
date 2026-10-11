@@ -776,7 +776,12 @@ export default function MarcarPage() {
         fps: realFps > 0 ? realFps : 20,
         camaraLabel: camLabel,
         tipoCamara: tipoCam,
-        estado: "?ptimo HD",
+        estado:
+          realWidth >= 1920 && realHeight >= 1080
+            ? "Full HD (1080p)"
+            : realWidth >= 1280 && realHeight >= 720
+            ? "HD Estándar (720p)"
+            : `Nativa SD (${realWidth}x${realHeight})`,
         focusMode: focusModeDetectado,
         zoomSoportado: soportaZ,
         zoomActual,
@@ -1068,13 +1073,29 @@ export default function MarcarPage() {
     }
   }
 
-  // 10. Funci?n central de registro de asistencia prioritario (< 400ms)
+  // 10. Función central de registro de asistencia prioritario (< 400ms)
   async function ejecutarRegistroAsistencia(
-    datos: { dni?: string; codigo?: string; metodo: string },
+    datos: {
+      dni?: string;
+      codigo?: string;
+      metodo: string;
+      idempotencyKey?: string;
+      clientTimestamp?: number;
+      intencionOperativa?: "AUTO" | "ENTRADA" | "SALIDA";
+    },
     fotoBlob: Blob | null
   ) {
     const terminalId = localStorage.getItem("terminal_id");
     const terminalToken = localStorage.getItem("terminal_token");
+
+    // Clave única por operación de marcación para garantizar idempotencia estricta
+    const idempotencyKey =
+      datos.idempotencyKey ||
+      (typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `idemp_${Date.now()}_${Math.random().toString(36).substring(7)}`);
+    const clientTimestamp = datos.clientTimestamp || Date.now();
+    const intencionOperativa = datos.intencionOperativa || "AUTO";
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6000);
@@ -1084,6 +1105,7 @@ export default function MarcarPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-idempotency-key": idempotencyKey,
           ...(terminalId && terminalToken
             ? {
                 "x-terminal-id": terminalId,
@@ -1094,6 +1116,9 @@ export default function MarcarPage() {
         credentials: "include",
         body: JSON.stringify({
           ...datos,
+          idempotencyKey,
+          clientTimestamp,
+          intencionOperativa,
           fotoUrl: null,
         }),
         signal: controller.signal,

@@ -117,3 +117,18 @@ export type SalidaExcepcional = Prisma.SalidaExcepcionalModel
  * 
  */
 export type EvidenciaFotografica = Prisma.EvidenciaFotograficaModel
+/**
+ * Model FotoActivaEstudiante
+ * 
+ */
+export type FotoActivaEstudiante = Prisma.FotoActivaEstudianteModel
+/**
+ * Model ColaLimpiezaBlob
+ * 
+ */
+export type ColaLimpiezaBlob = Prisma.ColaLimpiezaBlobModel
+/**
+ * Model RegistroIdempotencia
+ * 
+ */
+export type RegistroIdempotencia = Prisma.RegistroIdempotenciaModel

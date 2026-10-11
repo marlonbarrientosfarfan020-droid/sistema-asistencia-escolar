@@ -179,6 +179,16 @@ export async function GET(request: Request) {
         fotoEntrada: true,
         fotoSalida: true,
         fotoUrl: true,
+        fotoProtegida: true,
+        fotoEntradaProtegida: true,
+        fotoSalidaProtegida: true,
+        evidenciasFotograficas: {
+          select: {
+            tipo: true,
+            esActiva: true,
+            esProtegida: true,
+          },
+        },
         salidaExcepcional: {
           select: {
             motivo: true,
@@ -262,12 +272,35 @@ export async function GET(request: Request) {
 
     // 7. OFUSCACI�N SEGURA DE FOTOGRAF�AS: En lugar de exponer URLs p�blicas de Blob,
     // devolver la ruta proxy segura que exige sesi�n y relaci�n activa en PostgreSQL
-    const asistenciasSeguras = asistencias.map((a) => ({
-      ...a,
-      fotoEntrada: a.fotoEntrada ? `/api/portal-padres/foto?asistenciaId=${a.id}&tipo=ENTRADA` : null,
-      fotoSalida: a.fotoSalida ? `/api/portal-padres/foto?asistenciaId=${a.id}&tipo=SALIDA` : null,
-      fotoUrl: a.fotoUrl || a.fotoEntrada ? `/api/portal-padres/foto?asistenciaId=${a.id}&tipo=ENTRADA` : null,
-    }));
+    const asistenciasSeguras = asistencias.map((a: any) => {
+      const evEntrada = a.evidenciasFotograficas?.find((e: any) => e.tipo === "ENTRADA");
+      const evSalida = a.evidenciasFotograficas?.find((e: any) => e.tipo === "SALIDA");
+
+      const entradaConservada = Boolean(
+        a.fotoProtegida ||
+        a.fotoEntradaProtegida ||
+        evEntrada?.esProtegida ||
+        (evEntrada ? evEntrada.esActiva : Boolean(a.fotoEntrada))
+      );
+
+      const salidaConservada = Boolean(
+        a.fotoProtegida ||
+        a.fotoSalidaProtegida ||
+        evSalida?.esProtegida ||
+        (evSalida ? evSalida.esActiva : Boolean(a.fotoSalida))
+      );
+
+      return {
+        ...a,
+        fotoEntrada: entradaConservada && a.fotoEntrada ? `/api/portal-padres/foto?asistenciaId=${a.id}&tipo=ENTRADA` : null,
+        fotoSalida: salidaConservada && a.fotoSalida ? `/api/portal-padres/foto?asistenciaId=${a.id}&tipo=SALIDA` : null,
+        fotoUrl: entradaConservada && (a.fotoUrl || a.fotoEntrada) ? `/api/portal-padres/foto?asistenciaId=${a.id}&tipo=ENTRADA` : null,
+        fotoEntradaEstado: a.fotoEntrada ? (entradaConservada ? "CONSERVADA" : "NO_CONSERVADA") : "SIN_FOTO",
+        fotoSalidaEstado: a.fotoSalida ? (salidaConservada ? "CONSERVADA" : "NO_CONSERVADA") : "SIN_FOTO",
+        fotoEntradaTexto: a.fotoEntrada && !entradaConservada ? "Fotografía no conservada" : null,
+        fotoSalidaTexto: a.fotoSalida && !salidaConservada ? "Fotografía no conservada" : null,
+      };
+    });
 
     const listaAsistencias = esAusenciaVirtualHoy
       ? [
