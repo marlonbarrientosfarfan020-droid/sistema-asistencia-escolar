@@ -13,6 +13,7 @@ type LoginResponse = {
     id: number;
     nombre: string;
     rol: string;
+    modulos?: string[];
   };
 };
 
@@ -68,12 +69,14 @@ export default function LoginPage() {
             );
 
             localStorage.setItem("rol", rol);
+            const userMods = data.usuario.modulos || [];
+            localStorage.setItem("modulos", JSON.stringify(userMods));
 
-            router.replace(
-              rol === "PERSONAL"
-                ? "/marcar"
-                : "/dashboard"
-            );
+            const destinoComp = (userMods.includes("dashboard") || rol === "ADMIN") 
+              ? "/dashboard" 
+              : (userMods.includes("marcar") ? "/marcar" : "/dashboard");
+
+            router.replace(destinoComp);
 
             return;
           }
@@ -87,6 +90,7 @@ export default function LoginPage() {
       localStorage.removeItem("logueado");
       localStorage.removeItem("usuario");
       localStorage.removeItem("rol");
+      localStorage.removeItem("modulos");
       if (activo) {
         setComprobandoSesion(false);
       }
@@ -192,8 +196,12 @@ localStorage.setItem(
 );
 
 localStorage.setItem("rol", rol);
+const mods = data.usuario.modulos || sesion.usuario?.modulos || [];
+localStorage.setItem("modulos", JSON.stringify(mods));
 
-const destino = rol === "PERSONAL" ? "/marcar" : "/dashboard";
+const destino = (mods.includes("dashboard") || rol === "ADMIN")
+  ? "/dashboard"
+  : (mods.includes("marcar") ? "/marcar" : (mods.length > 0 ? `/dashboard/${mods[0]}` : "/dashboard"));
 const tipo =
   rol === "PERSONAL"
     ? "PERSONAL DE CONTROL"

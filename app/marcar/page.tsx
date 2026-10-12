@@ -20,6 +20,32 @@ import {
   FaEyeSlash,
   FaCrop,
 } from "react-icons/fa";
+import {
+  LuScan,
+  LuScanFace,
+  LuCamera,
+  LuCameraOff,
+  LuSettings,
+  LuActivity,
+  LuLock,
+  LuMaximize2,
+  LuMinimize2,
+  LuRefreshCw,
+  LuFocus,
+  LuPlay,
+  LuPause,
+  LuZap,
+  LuCreditCard,
+  LuClock,
+  LuTriangleAlert,
+  LuCircleCheck,
+  LuShieldCheck,
+  LuSlidersHorizontal,
+  LuSparkles,
+  LuLaptop,
+  LuTablet,
+} from "react-icons/lu";
+
 import { useConfiguracionColegio } from "@/hooks/useConfiguracionColegio";
 import {
   obtenerConfiguracionTerminal,
@@ -30,6 +56,28 @@ import {
   TipoDispositivoTerminal,
   CamaraDispositivo,
 } from "@/types/terminal";
+
+
+export const CAMARAS_VIRTUALES_BLACKLIST = [
+  "obs",
+  "virtual",
+  "eshare",
+  "droidcam",
+  "iriun",
+  "manycam",
+  "vysor",
+  "splitcam",
+  "camo",
+  "snap camera",
+  "ndi",
+  "epoccam",
+];
+
+export function esCamaraVirtual(label: string): boolean {
+  if (!label) return false;
+  const l = label.toLowerCase();
+  return CAMARAS_VIRTUALES_BLACKLIST.some((palabra) => l.includes(palabra));
+}
 
 type EstadoVisual =
   | "normal"
@@ -111,7 +159,7 @@ export default function MarcarPage() {
   const router = useRouter();
   const { configuracion } = useConfiguracionColegio();
 
-  // Configuraci?n de la terminal escolar
+  // Configuración de la terminal escolar
   const [configTerminal, setConfigTerminal] = useState<TerminalConfig>(
     obtenerConfiguracionTerminal
   );
@@ -120,21 +168,21 @@ export default function MarcarPage() {
   const [mensaje, setMensaje] = useState("");
   const [resultado, setResultado] = useState<ResultadoAsistencia | null>(null);
 
-  // Estados de c?mara permanente y control
+  // Estados de cámara permanente y control
   const [camaraActiva, setCamaraActiva] = useState(false);
   const [camaraManualApagada, setCamaraManualApagada] = useState(false);
   const [camaraError, setCamaraError] = useState("");
   const [iniciandoCamara, setIniciandoCamara] = useState(false);
 
-  // Estado din?mico del lector QR
+  // Estado dinámico del lector QR
   const [estadoLecturaQR, setEstadoLecturaQR] = useState<"esperando" | "detectado" | "listo">("esperando");
 
-  // Evidencia y reconocimientos biom?tricos
+  // Evidencia y reconocimientos biométricos
   const [tomandoFoto, setTomandoFoto] = useState(false);
   const [reconociendoFacial, setReconociendoFacial] = useState(false);
   const [estadoVisual, setEstadoVisual] = useState<EstadoVisual>("normal");
 
-  // Control de terminal y seguridad criptogr?fica
+  // Control de terminal y seguridad criptográfica
   const [terminalAutorizado, setTerminalAutorizado] = useState<boolean | null>(null);
   const [terminalIdInput, setTerminalIdInput] = useState("");
   const [terminalTokenInput, setTerminalTokenInput] = useState("");
@@ -142,17 +190,17 @@ export default function MarcarPage() {
   const [validandoTerminal, setValidandoTerminal] = useState(false);
   const [esPantallaCompleta, setEsPantallaCompleta] = useState(false);
 
-  // C?maras disponibles detectadas
+  // Cámaras disponibles detectadas
   const [camaras, setCamaras] = useState<CamaraDispositivo[]>([]);
   const [camaraQrSeleccionada, setCamaraQrSeleccionada] = useState("");
   const [camaraFacialSeleccionada, setCamaraFacialSeleccionada] = useState("");
   const [cargandoCamaras, setCargandoCamaras] = useState(false);
 
-  // Modales de Diagn?stico y Configuraci?n de Terminal
+  // Modales de Diagnóstico y Configuración de Terminal
   const [diagnosticoAbierto, setDiagnosticoAbierto] = useState(false);
   const [panelConfigAbierto, setPanelConfigAbierto] = useState(false);
 
-  // M?tricas de Diagn?stico en Vivo
+  // Métricas de Diagnóstico en Vivo
   const [diagnostico, setDiagnostico] = useState<{
     resolucion: string;
     fps: number;
@@ -168,10 +216,10 @@ export default function MarcarPage() {
   }>({
     resolucion: "1920x1080",
     fps: 20,
-    camaraLabel: "C?mara en espera",
-    tipoCamara: "C?mara HD",
+    camaraLabel: "Cámara en espera",
+    tipoCamara: "Cámara HD",
     estado: "Iniciando",
-    ultimaLectura: "Ninguna a?n",
+    ultimaLectura: "Ninguna aún",
     tiempoLecturaMs: 0,
     tiempoLecturaSegundos: "0.0s",
     focusMode: "Continuo",
@@ -211,14 +259,14 @@ export default function MarcarPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamFotoRef = useRef<MediaStream | null>(null);
 
-  // CONTROLADOR ?NICO DE CICLO DE VIDA (MUTEX ANTI-COLISI?N)
+  // CONTROLADOR ÚNICO DE CICLO DE VIDA (MUTEX ANTI-COLISIÓN)
   const colaOperacionesCamaraRef = useRef<Promise<any>>(Promise.resolve());
   const desmontadoRef = useRef(false);
   const autoInicioEjecutadoRef = useRef(false);
   const reintentosFallidosRef = useRef(0);
   const MAX_REINTENTOS_AUTOMATICOS = 2;
 
-  // Serializador seguro de operaciones de c?mara
+  // Serializador seguro de operaciones de cámara
   function encolarOperacionCamara<T>(nombre: string, operacion: () => Promise<T>): Promise<T> {
     const tarea = colaOperacionesCamaraRef.current
       .catch((err) => {
@@ -252,7 +300,7 @@ export default function MarcarPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // 1. Autorizaci?n de terminal y configuraci?n inicial
+  // 1. Autorización de terminal y configuración inicial
   useEffect(() => {
     desmontadoRef.current = false;
     const logueado = localStorage.getItem("logueado");
@@ -264,7 +312,7 @@ export default function MarcarPage() {
       const cfg = obtenerConfiguracionTerminal();
       setConfigTerminal(cfg);
       setCamaraQrSeleccionada(cfg.camaraSeleccionada);
-      void actualizarListaDispositivos();
+      void actualizarListaDispositivos(true);
     } else {
       setTerminalAutorizado(false);
       return;
@@ -301,7 +349,7 @@ export default function MarcarPage() {
     };
   }, [router]);
 
-  // 2. Auto-iniciar c?mara permanente (1 sola vez protegida contra StrictMode)
+  // 2. Auto-iniciar cámara permanente (1 sola vez protegida contra StrictMode)
   useEffect(() => {
     if (
       terminalAutorizado === true &&
@@ -314,10 +362,11 @@ export default function MarcarPage() {
   }, [terminalAutorizado, camaraManualApagada]);
 
   function nombreCamara(dispositivo: MediaDeviceInfo, indice: number) {
-    return dispositivo.label.trim() || `C?mara ${indice + 1}`;
+    return dispositivo.label.trim() || `Cámara ${indice + 1}`;
   }
 
-  // Selecci?n inteligente de c?mara predeterminada evitando c?maras virtuales desconectadas
+  // Selección inteligente de cámara predeterminada evitando cámaras virtuales desconectadas
+  // Selección inteligente de cámara predeterminada evitando cámaras virtuales desconectadas
   function elegirCamaraPredeterminada({
     dispositivos,
     preferencia,
@@ -331,45 +380,54 @@ export default function MarcarPage() {
   }) {
     if (dispositivos.length === 0) return "";
 
-    // 1. Respetar preferencia expl?cita del usuario si a?n existe en el sistema
-    if (preferencia && dispositivos.some((c) => c.deviceId === preferencia)) {
-      return preferencia;
-    }
-
-    // Filtrar c?maras virtuales comunes (EShare, OBS, etc.) para priorizar c?maras f?sicas integradas
-    const esVirtual = (label: string) => {
-      const l = label.toLowerCase();
-      return l.includes("virtual") || l.includes("eshare") || l.includes("obs") || l.includes("droidcam");
-    };
-
-    const camarasFisicas = dispositivos.filter((c) => !esVirtual(c.label));
+    // Separar cámaras físicas reales de cámaras virtuales
+    const camarasFisicas = dispositivos.filter((c) => !esCamaraVirtual(c.label));
     const listaCandidatas = camarasFisicas.length > 0 ? camarasFisicas : dispositivos;
+
+    // 1. Respetar preferencia del usuario SÓLO si existe Y NO es una cámara virtual
+    if (preferencia) {
+      const encontrada = dispositivos.find((c) => c.deviceId === preferencia);
+      if (encontrada && !esCamaraVirtual(encontrada.label)) {
+        return preferencia;
+      }
+    }
 
     // 2. Si es Laptop / PC: SIEMPRE priorizar la webcam integrada / frontal (dispositivo 0 o palabra clave)
     if (tipoDispositivo === "LAPTOP_PC") {
-      const palabrasLaptop = ["integrated", "integrada", "built-in", "webcam", "front", "frontal", "user", "facetime", "hd camera"];
+      const palabrasLaptop = [
+        "integrated",
+        "integrada",
+        "built-in",
+        "webcam",
+        "front",
+        "frontal",
+        "user",
+        "facetime",
+        "hd camera",
+        "camera",
+      ];
       const encontradaLaptop = listaCandidatas.find((c) =>
         palabrasLaptop.some((p) => c.label.toLowerCase().includes(p))
       );
       if (encontradaLaptop) return encontradaLaptop.deviceId;
+      // Por defecto en laptop, el dispositivo físico 0 siempre es la webcam integrada
       return listaCandidatas[0]?.deviceId || "";
     }
 
-    // 3. Si es Tablet / Celular: priorizar c?mara trasera / environment
+    // 3. Si es Tablet / Celular: priorizar cámara trasera / environment
     if (tipo === "QR") {
       const palabrasTrasera = ["back", "rear", "environment", "trasera", "posterior"];
       const encontradaTrasera = listaCandidatas.find((c) =>
         palabrasTrasera.some((p) => c.label.toLowerCase().includes(p))
       );
       if (encontradaTrasera) return encontradaTrasera.deviceId;
-      return listaCandidatas.at(-1)?.deviceId || listaCandidatas[0]?.deviceId || "";
+      return listaCandidatas[0]?.deviceId || "";
     }
 
     return listaCandidatas[0]?.deviceId || "";
   }
 
-  // Actualizaci?n limpia de la lista de c?maras sin solicitar streams temporales conflictivos
-  async function actualizarListaDispositivos() {
+  async function actualizarListaDispositivos(iniciarCamaraTrasEnum = false) {
     if (!navigator.mediaDevices?.enumerateDevices) return;
     setCargandoCamaras(true);
 
@@ -385,8 +443,17 @@ export default function MarcarPage() {
       setCamaras(camarasEncontradas);
 
       const cfg = obtenerConfiguracionTerminal();
-      const preferidaQr = cfg.camaraSeleccionada || localStorage.getItem("camara_qr_device_id") || "";
+      let preferidaQr = cfg.camaraSeleccionada || localStorage.getItem("camara_qr_device_id") || "";
       const preferidaFacial = localStorage.getItem("camara_facial_device_id") || "";
+
+      // Limpieza de cámara virtual guardada por error (ej. OBS Virtual Camera)
+      const camPref = camarasEncontradas.find((c) => c.deviceId === preferidaQr);
+      if (camPref && esCamaraVirtual(camPref.label)) {
+        console.log(`[CAMARA] Limpiando preferencia virtual previa (${camPref.label}) de almacenamiento local.`);
+        preferidaQr = "";
+        localStorage.removeItem("camara_qr_device_id");
+        guardarConfiguracionTerminal({ camaraSeleccionada: "" });
+      }
 
       const seleccionQr = elegirCamaraPredeterminada({
         dispositivos: camarasEncontradas,
@@ -395,15 +462,20 @@ export default function MarcarPage() {
         tipoDispositivo: cfg.tipoDispositivo,
       });
 
+      const seleccionFacial = elegirCamaraPredeterminada({
+        dispositivos: camarasEncontradas,
+        preferencia: preferidaFacial,
+        tipo: "FACIAL",
+        tipoDispositivo: cfg.tipoDispositivo,
+      });
+
       setCamaraQrSeleccionada(seleccionQr);
-      setCamaraFacialSeleccionada(
-        elegirCamaraPredeterminada({
-          dispositivos: camarasEncontradas,
-          preferencia: preferidaFacial,
-          tipo: "FACIAL",
-          tipoDispositivo: cfg.tipoDispositivo,
-        })
-      );
+      setCamaraFacialSeleccionada(seleccionFacial);
+
+      if (iniciarCamaraTrasEnum && seleccionQr && !camaraManualApagada && !autoInicioEjecutadoRef.current) {
+        autoInicioEjecutadoRef.current = true;
+        void activarCamaraPermanente(seleccionQr);
+      }
     } catch (error) {
       console.warn("[CAMARAS] Error enumerando dispositivos:", error);
     } finally {
@@ -420,7 +492,7 @@ export default function MarcarPage() {
     await new Promise<void>((resolve) => window.setTimeout(resolve, ms));
   }
 
-  // Liberaci?n total y garantizada de recursos de c?mara (Anti-NotReadableError)
+  // Liberación total y garantizada de recursos de cámara (Anti-NotReadableError)
   async function liberarRecursosCamara() {
     if (reconexionTimerRef.current) {
       clearTimeout(reconexionTimerRef.current);
@@ -480,7 +552,7 @@ export default function MarcarPage() {
       videoRef.current.srcObject = null;
     }
   }
-  // 3. Iniciar c?mara permanente V2 con Serializador Mutex y Escalera Progresiva de Compatibilidad
+  // 3. Iniciar cámara permanente V2 con Serializador Mutex y Escalera Progresiva de Compatibilidad
   async function activarCamaraPermanente(
     dispositivoIdCustom?: string,
     modoFacingCustom?: "environment" | "user"
@@ -507,9 +579,9 @@ export default function MarcarPage() {
       let targetDeviceId: string | undefined = dispositivoIdCustom ?? camaraQrSeleccionada ?? cfg.camaraSeleccionada;
 
       // Escalera de compatibilidad progresiva:
-      // Nivel 1: HD 1080p Ideal (sin m?nimos r?gidos que puedan romper c?maras de laptop o virtuales)
-      // Nivel 2: HD 720p Est?ndar
-      // Nivel 3: Universal Seguro (resoluci?n nativa de la c?mara)
+      // Nivel 1: HD 1080p Ideal (sin mínimos rígidos que puedan romper cámaras de laptop o virtuales)
+      // Nivel 2: HD 720p Estándar
+      // Nivel 3: Universal Seguro (resolución nativa de la cámara)
       const nivelesConstraints: Array<{
         nombre: string;
         videoConstraints: MediaTrackConstraints;
@@ -523,14 +595,14 @@ export default function MarcarPage() {
           },
         },
         {
-          nombre: "HD 720p Est?ndar",
+          nombre: "HD 720p Estándar",
           videoConstraints: {
             width: { ideal: 1280 },
             height: { ideal: 720 },
           },
         },
         {
-          nombre: "Resoluci?n Nativa Universal",
+          nombre: "Resolución Nativa Universal",
           videoConstraints: {},
         },
       ];
@@ -543,7 +615,7 @@ export default function MarcarPage() {
         if (desmontadoRef.current) break;
 
         try {
-          console.log(`[TERMINAL V2] Intentando inicializar c?mara (${nivel.nombre})...`);
+          console.log(`[TERMINAL V2] Intentando inicializar cámara (${nivel.nombre})...`);
 
           const lector = new Html5Qrcode("lector-qr", {
             formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
@@ -570,7 +642,7 @@ export default function MarcarPage() {
             }
           } catch {}
 
-          // Iniciar esc?ner: SIN 'qrbox' para escaneo completo sobre 100% del fotograma
+          // Iniciar escáner: SIN 'qrbox' para escaneo completo sobre 100% del fotograma
           await lector.start(
             cameraTarget,
             {
@@ -581,7 +653,7 @@ export default function MarcarPage() {
               const codigoSanitizado = codigoLeido.trim().replace(/^(CODIGO|DNI|ID)[:\s]+/i, "").trim();
               const ahora = Date.now();
 
-              // Prevenci?n inteligente de lecturas duplicadas: 3.5s cooldown para el MISMO c?digo
+              // Prevención inteligente de lecturas duplicadas: 3.5s cooldown para el MISMO código
               if (
                 ultimoCodigoLeidoRef.current.codigo === codigoSanitizado &&
                 ahora - ultimoCodigoLeidoRef.current.timestamp < 3500
@@ -600,7 +672,7 @@ export default function MarcarPage() {
             () => {}
           );
 
-          // Inicializaci?n exitosa
+          // Inicialización exitosa
           lectorIniciadoConExito = true;
           setCamaraActiva(true);
           setCamaraManualApagada(false);
@@ -610,17 +682,17 @@ export default function MarcarPage() {
           await aplicarOptimizacionesHardwareTrack(lector);
           void actualizarListaDispositivos();
 
-          console.log(`[TERMINAL V2] C?mara activa exitosamente con perfil: ${nivel.nombre}`);
+          console.log(`[TERMINAL V2] Cámara activa exitosamente con perfil: ${nivel.nombre}`);
           break;
         } catch (err: any) {
           ultimoErrorCapturado = err;
-          console.warn(`[TERMINAL V2] Fall? inicializaci?n con ${nivel.nombre}:`, err?.name || err?.message || err);
+          console.warn(`[TERMINAL V2] Falló inicialización con ${nivel.nombre}:`, err?.name || err?.message || err);
           await liberarRecursosCamara();
           await esperar(200);
 
-          // Si fall? usando un ID espec?fico (ej. c?mara virtual offline), intentar sin ID en el siguiente paso
+          // Si falló usando un ID específico (ej. cámara virtual offline), intentar sin ID en el siguiente paso
           if (targetDeviceId && nivel === nivelesConstraints[0]) {
-            console.log("[TERMINAL V2] Descartando deviceId para probar c?mara predeterminada del sistema...");
+            console.log("[TERMINAL V2] Descartando deviceId para probar cámara predeterminada del sistema...");
             targetDeviceId = undefined;
           }
         }
@@ -639,7 +711,7 @@ export default function MarcarPage() {
           errMsg.includes("notreadable")
         ) {
           setCamaraError(
-            "No se pudo iniciar la c?mara. Comprueba que ninguna otra aplicaci?n (o c?mara virtual) la est? utilizando e intenta nuevamente."
+            "No se pudo iniciar la cámara. Comprueba que ninguna otra aplicación (o cámara virtual) la está utilizando e intenta nuevamente."
           );
         } else if (
           errName === "NotAllowedError" ||
@@ -647,18 +719,18 @@ export default function MarcarPage() {
           errMsg.includes("denied")
         ) {
           setCamaraError(
-            "Permiso de c?mara denegado. Active el acceso a la c?mara en el navegador para registrar asistencia."
+            "Permiso de cámara denegado. Active el acceso a la cámara en el navegador para registrar asistencia."
           );
         } else if (
           errName === "NotFoundError" ||
           errName === "DevicesNotFoundError" ||
           errMsg.includes("not found")
         ) {
-          setCamaraError("No se detect? ninguna c?mara disponible en el dispositivo.");
+          setCamaraError("No se detectó ninguna cámara disponible en el dispositivo.");
         } else if (errName === "OverconstrainedError") {
-          setCamaraError("La c?mara seleccionada no soporta las caracter?sticas requeridas. Selecciona otra c?mara en Configuraci?n.");
+          setCamaraError("La cámara seleccionada no soporta las características requeridas. Selecciona otra cámara en Configuración.");
         } else {
-          setCamaraError("C?mara desconectada o no disponible. Revisa la conexi?n e intenta nuevamente.");
+          setCamaraError("Cámara desconectada o no disponible. Revisa la conexión e intenta nuevamente.");
         }
       }
 
@@ -666,7 +738,7 @@ export default function MarcarPage() {
     });
   }
 
-  // 3.1 Inspecci?n y optimizaci?n de hardware segura: AutoFocus, Zoom, Linterna y Watchdog
+  // 3.1 Inspección y optimización de hardware segura: AutoFocus, Zoom, Linterna y Watchdog
   async function aplicarOptimizacionesHardwareTrack(lectorInstancia?: Html5Qrcode | null) {
     try {
       await esperar(300);
@@ -677,7 +749,7 @@ export default function MarcarPage() {
       let realWidth = videoEl?.videoWidth || 1920;
       let realHeight = videoEl?.videoHeight || 1080;
       let realFps = 20;
-      let focusModeDetectado = "Est?ndar";
+      let focusModeDetectado = "Estándar";
       let soportaZ = false;
       let zMin = 1;
       let zMax = 1;
@@ -685,21 +757,21 @@ export default function MarcarPage() {
       let zoomActual = 1;
 
       if (track) {
-        // Watchdog protegido contra bucles infinitos (m?ximo 2 intentos autom?ticos)
+        // Watchdog protegido contra bucles infinitos (máximo 2 intentos automáticos)
         track.onended = () => {
           if (desmontadoRef.current || camaraManualApagada) return;
 
           if (reintentosFallidosRef.current >= MAX_REINTENTOS_AUTOMATICOS) {
-            console.warn("[TERMINAL V2] L?mite de reconexiones autom?ticas alcanzado.");
+            console.warn("[TERMINAL V2] Límite de reconexiones automáticas alcanzado.");
             setCamaraError(
-              "La se?al de la c?mara se interrumpi?. Presiona 'Reintentar Conexi?n' o selecciona otra c?mara."
+              "La señal de la cámara se interrumpió. Presiona 'Reintentar Conexión' o selecciona otra cámara."
             );
             setCamaraActiva(false);
             return;
           }
 
           reintentosFallidosRef.current += 1;
-          console.warn(`[TERMINAL V2] Reconexi?n autom?tica (${reintentosFallidosRef.current}/${MAX_REINTENTOS_AUTOMATICOS})...`);
+          console.warn(`[TERMINAL V2] Reconexión automática (${reintentosFallidosRef.current}/${MAX_REINTENTOS_AUTOMATICOS})...`);
 
           if (reconexionTimerRef.current) clearTimeout(reconexionTimerRef.current);
           reconexionTimerRef.current = setTimeout(() => {
@@ -729,7 +801,7 @@ export default function MarcarPage() {
             focusModeDetectado = "Continuo";
           } else if (capabilities.focusMode.includes("auto")) {
             advanced.focusMode = "auto";
-            focusModeDetectado = "Autom?tico";
+            focusModeDetectado = "Automático";
           }
         }
 
@@ -763,12 +835,12 @@ export default function MarcarPage() {
         encontrada?.label ||
         (cfg.tipoDispositivo === "LAPTOP_PC"
           ? "Webcam Integrada HD"
-          : "C?mara Trasera HD");
+          : "Cámara Trasera HD");
       const tipoCam = camLabel.toLowerCase().includes("usb")
         ? "USB"
         : camLabel.toLowerCase().includes("integrated") || cfg.tipoDispositivo === "LAPTOP_PC"
         ? "Webcam Integrada"
-        : "C?mara M?vil / Tablet";
+        : "Cámara Móvil / Tablet";
 
       setDiagnostico((prev) => ({
         ...prev,
@@ -787,7 +859,7 @@ export default function MarcarPage() {
         zoomActual,
       }));
     } catch (err) {
-      console.warn("[CAMARA] No se pudo leer diagn?stico detallado:", err);
+      console.warn("[CAMARA] No se pudo leer diagnóstico detallado:", err);
     }
   }
 
@@ -827,28 +899,28 @@ export default function MarcarPage() {
     }
   }
 
-  // 3.4 1-Tap Girar C?mara inteligente (Laptop vs Celular)
+  // 3.4 1-Tap Girar Cámara inteligente (Laptop vs Celular)
   async function girarCamara() {
     const cfg = obtenerConfiguracionTerminal();
     const esLaptop = cfg.tipoDispositivo === "LAPTOP_PC";
 
-    // Si es Laptop o solo hay una c?mara detectada
+    // Si es Laptop o solo hay una cámara detectada
     if (esLaptop || camaras.length <= 1) {
       if (camaras.length > 1) {
-        // En laptop con m?ltiples c?maras (ej: webcam + USB), ciclar a la siguiente
+        // En laptop con múltiples cámaras (ej: webcam + USB), ciclar a la siguiente
         const idxActual = camaras.findIndex((c) => c.deviceId === camaraQrSeleccionada);
         const siguiente = camaras[(idxActual + 1) % camaras.length];
         if (siguiente) {
           await cambiarCamaraEnVivo(siguiente.deviceId);
-          setMensaje(`?? C?mara: ${siguiente.label}`);
+          setMensaje(`📷 Cámara: ${siguiente.label}`);
           return;
         }
       }
-      setMensaje("?? Webcam ?nica detectada en este equipo.");
+      setMensaje("📷 Webcam única detectada en este equipo.");
       return;
     }
 
-    // Si es m?vil / tablet: alternar entre trasera y delantera
+    // Si es móvil / tablet: alternar entre trasera y delantera
     const nuevoModo: "environment" | "user" =
       cfg.modoCamaraPreferido === "user" ? "environment" : "user";
     const nuevaCfg = guardarConfiguracionTerminal({
@@ -885,7 +957,7 @@ export default function MarcarPage() {
         await activarCamaraPermanente(camaraQrSeleccionada || undefined);
       }
 
-      setMensaje("? Enfoque optimizado.");
+      setMensaje("✓ Enfoque optimizado.");
       setTimeout(() => {
         if (estadoLecturaQR === "listo") {
           setMensaje("Listo siguiente estudiante.");
@@ -893,24 +965,24 @@ export default function MarcarPage() {
       }, 2000);
     } catch (err) {
       console.error("[CAMARA] Error al calibrar enfoque:", err);
-      setMensaje("?? Error al calibrar enfoque");
+      setMensaje("⚠️ Error al calibrar enfoque");
     } finally {
       setMejorandoEnfoque(false);
     }
   }
 
-  // 4. Control Manual: Apagar c?mara
+  // 4. Control Manual: Apagar cámara
   async function apagarCamaraManual() {
     return encolarOperacionCamara("apagarCamaraManual", async () => {
       await liberarRecursosCamara();
       setCamaraManualApagada(true);
       setCamaraActiva(false);
-      setMensaje("La c?mara est? desactivada");
+      setMensaje("La cámara está desactivada");
       setEstadoVisual("normal");
     });
   }
 
-  // 5. Cambio en caliente de c?mara serializado
+  // 5. Cambio en caliente de cámara serializado
   async function cambiarCamaraEnVivo(deviceId: string) {
     setCamaraQrSeleccionada(deviceId);
     guardarConfiguracionTerminal({ camaraSeleccionada: deviceId });
@@ -928,7 +1000,7 @@ export default function MarcarPage() {
     await activarCamaraPermanente(undefined, modo);
   }
 
-  // Alternar entre c?mara trasera y delantera en Tablet/Celular
+  // Alternar entre cámara trasera y delantera en Tablet/Celular
   async function alternarFacingModeMobile(modo: "environment" | "user") {
     const nuevaCfg = guardarConfiguracionTerminal({
       modoCamaraPreferido: modo,
@@ -938,7 +1010,7 @@ export default function MarcarPage() {
     setCamaraQrSeleccionada("");
     await activarCamaraPermanente(undefined, modo);
   }
-  // 7. Extracci?n de fotograma instant?neo desde el sensor mediante Canvas
+  // 7. Extracción de fotograma instantáneo desde el sensor mediante Canvas
   async function capturarFotoDesdeVideoActual(): Promise<Blob | null> {
     try {
       const video = (document.querySelector("#lector-qr video") || document.querySelector("video")) as HTMLVideoElement | null;
@@ -967,7 +1039,7 @@ export default function MarcarPage() {
     return null;
   }
 
-  // 8. Subida as?ncrona de fotograf?a en segundo plano con reintentos autom?ticos
+  // 8. Subida asíncrona de fotografía en segundo plano con reintentos automáticos
   async function subirFotoAsincrona(
     foto: Blob,
     asistenciaId: number,
@@ -1034,7 +1106,7 @@ export default function MarcarPage() {
     console.log("[TERMINAL V2] QR recibido para procesamiento:", codigo);
 
     setEstadoLecturaQR("detectado");
-    setMensaje("?? C?digo detectado. Validando...");
+    setMensaje("⏳ Código detectado. Validando...");
     beep("ok");
 
     try {
@@ -1060,7 +1132,7 @@ export default function MarcarPage() {
       }));
     } catch (err) {
       console.error("[QR DEBUG] Error en procesarLecturaQRContinuo:", err);
-      setMensaje("?? Error procesando marcaci?n");
+      setMensaje("⚠️ Error procesando marcación");
       beep("error");
     } finally {
       await esperar(950);
@@ -1132,11 +1204,11 @@ export default function MarcarPage() {
         const esDuplicado =
           res.status === 409 ||
           Boolean(data.yaRegistrado) ||
-          msg.toLowerCase().includes("ya registr?");
+          msg.toLowerCase().includes("ya registró");
 
         if (esDuplicado) {
           setResultado(data);
-          setMensaje(`?? Ya registr? asistencia hoy`);
+          setMensaje(`?? Ya registró asistencia hoy`);
           setEstadoVisual("aviso");
           beep("error");
           return;
@@ -1154,7 +1226,7 @@ export default function MarcarPage() {
       setMensaje(
         data.esFueraHorario
           ? `?? ${data.message}`
-          : `? ${data.message || "Asistencia registrada"}`
+          : `✓ ${data.message || "Asistencia registrada"}`
       );
 
       if (data.tipo === "ENTRADA") {
@@ -1202,16 +1274,16 @@ export default function MarcarPage() {
       }
     } catch (err: any) {
       console.error("[TERMINAL V2] Error en registro:", err);
-      setMensaje(`? ${err.message || "Error al registrar asistencia"}`);
+      setMensaje(`⚠️ ${err.message || "Error al registrar asistencia"}`);
       setEstadoVisual("error");
       beep("error");
     }
   }
 
-  // Marcaci?n manual por DNI
+  // Marcación manual por DNI
   async function marcarPorDni() {
     if (!dni.trim() || dni.length !== 8) {
-      setMensaje("? Ingrese un DNI v?lido de 8 d?gitos");
+      setMensaje("⚠️ Ingrese un DNI válido de 8 dígitos");
       setEstadoVisual("error");
       return;
     }
@@ -1228,19 +1300,19 @@ export default function MarcarPage() {
     }
   }
 
-  // Marcaci?n facial auxiliar
+  // Marcación facial auxiliar
   async function marcarPorRostroAuxiliar() {
     if (tomandoFoto || reconociendoFacial) return;
 
     setReconociendoFacial(true);
     setResultado(null);
     setEstadoVisual("normal");
-    setMensaje("?? Mire hacia la c?mara para reconocimiento facial...");
+    setMensaje("👤 Mire hacia la cámara para reconocimiento facial...");
 
     try {
       const foto = await capturarFotoDesdeVideoActual();
       if (!foto) {
-        throw new Error("No se pudo capturar imagen de la c?mara");
+        throw new Error("No se pudo capturar imagen de la cámara");
       }
 
       const formData = new FormData();
@@ -1258,16 +1330,16 @@ export default function MarcarPage() {
       const data: ResultadoReconocimientoFacial = await respuesta.json();
 
       if (!respuesta.ok || !data.ok || !data.reconocido || !data.estudiante) {
-        throw new Error(data.message || "No se reconoci? el rostro del estudiante");
+        throw new Error(data.message || "No se reconoció el rostro del estudiante");
       }
 
-      setMensaje(`? ${data.estudiante.nombres} reconocido. Registrando asistencia...`);
+      setMensaje(`✓ ${data.estudiante.nombres} reconocido. Registrando asistencia...`);
       await ejecutarRegistroAsistencia(
         { dni: data.estudiante.dni, metodo: "FACIAL" },
         foto
       );
     } catch (error: any) {
-      setMensaje(`? ${error.message || "Error en reconocimiento facial"}`);
+      setMensaje(`⚠️ ${error.message || "Error en reconocimiento facial"}`);
       setEstadoVisual("error");
       beep("error");
     } finally {
@@ -1323,10 +1395,10 @@ export default function MarcarPage() {
         localStorage.setItem("terminal_token", tToken);
         setTerminalAutorizado(true);
       } else {
-        setErrorTerminal(data?.message || "Terminal no autorizada o credenciales inv?lidas.");
+        setErrorTerminal(data?.message || "Terminal no autorizada o credenciales inválidas.");
       }
     } catch {
-      setErrorTerminal("Error de conexi?n al verificar terminal.");
+      setErrorTerminal("Error de conexión al verificar terminal.");
     } finally {
       setValidandoTerminal(false);
     }
@@ -1338,13 +1410,13 @@ export default function MarcarPage() {
       <main className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
         <div className="flex items-center gap-3 bg-slate-900 px-6 py-4 rounded-2xl border border-slate-800 shadow-2xl">
           <span className="animate-spin text-xl">?</span>
-          <span className="font-bold text-sm">Verificando autorizaci?n de terminal...</span>
+          <span className="font-bold text-sm">Verificando autorización de terminal...</span>
         </div>
       </main>
     );
   }
 
-  // Pantalla de activaci?n / vinculaci?n de terminal
+  // Pantalla de activación / vinculación de terminal
   if (terminalAutorizado === false) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
@@ -1367,7 +1439,7 @@ export default function MarcarPage() {
               {configuracion.nombreColegio || "I.E. Santa Rita de Casia"}
             </h1>
             <p className="text-xs text-slate-300 mt-1">
-              Terminal de Marcaci?n QR Criptogr?fica
+              Terminal de Marcación QR Criptográfica
             </p>
           </div>
 
@@ -1430,7 +1502,7 @@ export default function MarcarPage() {
   // PANTALLA PRINCIPAL: TERMINAL ESCOLAR V2 PROFESIONAL
   return (
     <main className="min-h-screen bg-slate-950 text-white flex flex-col select-none overflow-x-hidden">
-      {/* 1. Header Superior Compacto y Tecnol?gico */}
+      {/* 1. Header Superior Compacto y Tecnológico */}
       <header className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-3 sm:px-6 py-2.5 sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 shadow-lg">
         {/* Identidad y Colegio */}
         <div className="flex items-center gap-3 shrink-0">
@@ -1451,7 +1523,7 @@ export default function MarcarPage() {
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-medium">
-              ?? {configTerminal.nombreTerminal} ({configTerminal.terminalId})
+              🖥️ {configTerminal.nombreTerminal} ({configTerminal.terminalId})
             </p>
           </div>
         </div>
@@ -1482,14 +1554,14 @@ export default function MarcarPage() {
           </span>
 
           <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-950/90 border border-indigo-500/40 text-indigo-300 text-[11px] font-bold">
-            <span>?</span>
-            <span>Esc?ner 100% Fotograma</span>
+            <LuScan className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Escáner 100% Fotograma</span>
           </span>
         </div>
 
-        {/* Acciones R?pidas del Header */}
+        {/* Acciones Rápidas del Header */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Gu?a Visual (Ret?cula HUD) */}
+          {/* Guía Visual (Retícula HUD) */}
           <button
             type="button"
             onClick={() => setGuiaVisual(!guiaVisual)}
@@ -1498,10 +1570,10 @@ export default function MarcarPage() {
                 ? "border-cyan-500/50 bg-cyan-500/20 text-cyan-300"
                 : "border-slate-700 bg-slate-800 text-slate-400 hover:text-white"
             }`}
-            title={guiaVisual ? "Ocultar ret?cula de referencia" : "Mostrar ret?cula de referencia"}
+            title={guiaVisual ? "Ocultar retícula de referencia" : "Mostrar retícula de referencia"}
           >
             {guiaVisual ? <FaEye className="text-xs" /> : <FaEyeSlash className="text-xs" />}
-            <span className="hidden md:inline">Gu?a</span>
+            <span className="hidden md:inline">Guía</span>
           </button>
 
           {/* Ajuste de Video (Contain / Cover) */}
@@ -1519,15 +1591,15 @@ export default function MarcarPage() {
             <span className="hidden md:inline">{ajusteVideo === "contain" ? "Completo" : "Llenar"}</span>
           </button>
 
-          {/* Girar / Cambiar C?mara */}
+          {/* Girar / Cambiar Cámara */}
           <button
             type="button"
             onClick={() => void girarCamara()}
             className="p-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5"
             title={
               configTerminal.tipoDispositivo === "LAPTOP_PC"
-                ? "Alternar c?mara conectada"
-                : "Girar entre c?mara frontal y trasera"
+                ? "Alternar cámara conectada"
+                : "Girar entre cámara frontal y trasera"
             }
           >
             <FaSyncAlt className="text-xs" />
@@ -1555,23 +1627,23 @@ export default function MarcarPage() {
             </button>
           )}
 
-          {/* Diagn?stico */}
+          {/* Diagnóstico */}
           <button
             type="button"
             onClick={() => setDiagnosticoAbierto(true)}
             className="p-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-bold transition"
-            title="Diagn?stico t?cnico del sensor y FPS"
+            title="Diagnóstico técnico del sensor y FPS"
           >
             <span>???</span>
             <span className="hidden xl:inline ml-1">Diag</span>
           </button>
 
-          {/* Configuraci?n */}
+          {/* Configuración */}
           <button
             type="button"
             onClick={() => setPanelConfigAbierto(true)}
             className="p-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition"
-            title="Configuraci?n de c?maras y dispositivos"
+            title="Configuración de cámaras y dispositivos"
           >
             <span>??</span>
           </button>
@@ -1585,9 +1657,9 @@ export default function MarcarPage() {
                 ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-300"
                 : "border-slate-700 bg-slate-800 text-slate-300 hover:text-white"
             }`}
-            title={sidebarColapsado ? "Mostrar panel lateral" : "Maximizar c?mara a toda la pantalla"}
+            title={sidebarColapsado ? "Mostrar panel lateral" : "Maximizar cámara a toda la pantalla"}
           >
-            <span>?</span>
+            <LuMaximize2 className="w-3.5 h-3.5" />
             <span className="hidden xl:inline">{sidebarColapsado ? "Panel" : "Ampliar"}</span>
           </button>
 
@@ -1615,13 +1687,13 @@ export default function MarcarPage() {
 
       {/* 2. Cuerpo Central de la Terminal V2 */}
       <div className="flex-1 w-full max-w-[1920px] mx-auto p-2 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start">
-        {/* Columna Principal de C?mara: 9 de 12 o 12 de 12 si el sidebar est? colapsado */}
+        {/* Columna Principal de Cámara: 9 de 12 o 12 de 12 si el sidebar está colapsado */}
         <section
           className={`flex flex-col gap-3 transition-all duration-300 ${
             sidebarColapsado ? "lg:col-span-12" : "lg:col-span-8 xl:col-span-9"
           }`}
         >
-          {/* Card Principal del Esc?ner */}
+          {/* Card Principal del Escáner */}
           <div
             className={`relative rounded-2xl sm:rounded-3xl border-2 transition-all duration-300 bg-slate-900/90 shadow-2xl overflow-hidden backdrop-blur-xl ${
               resultado
@@ -1629,15 +1701,15 @@ export default function MarcarPage() {
                 : "border-slate-800"
             }`}
           >
-            {/* Header Interno del Esc?ner */}
+            {/* Header Interno del Escáner */}
             <div className="flex items-center justify-between px-3 sm:px-5 py-2 sm:py-2.5 bg-slate-900/95 border-b border-slate-800/80">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
                 <span className="text-xs font-black uppercase tracking-wider text-emerald-400">
-                  {camaraActiva ? "?? Esc?ner QR Full-Frame Listo" : "?? Esc?ner Inactivo"}
+                  {camaraActiva ? "ESCÁNER QR FULL-FRAME LISTO" : "ESCÁNER QR EN PAUSA"}
                 </span>
                 <span className="hidden sm:inline text-[11px] text-slate-400 font-semibold">
-                  (Detecta en cualquier posici?n del fotograma)
+                  (Detecta en cualquier posición del fotograma)
                 </span>
               </div>
 
@@ -1648,7 +1720,7 @@ export default function MarcarPage() {
                     onClick={() => void mejorarEnfoque()}
                     disabled={mejorandoEnfoque}
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/50 text-xs font-bold transition active:scale-95"
-                    title="Calibrar resoluci?n y enfoque"
+                    title="Calibrar resolución y enfoque"
                   >
                     <span>??</span>
                     <span>{mejorandoEnfoque ? "Calibrando..." : "Enfoque"}</span>
@@ -1657,14 +1729,14 @@ export default function MarcarPage() {
                 <div className="text-xs font-bold text-slate-300">
                   {camaraActiva
                     ? estadoLecturaQR === "detectado"
-                      ? "? Procesando carnet..."
-                      : "?? Esperando carnet..."
-                    : "C?mara en pausa"}
+                      ? "Procesando carnet escolar..."
+                      : "Esperando carnet escolar..."
+                    : "Cámara en pausa"}
                 </div>
               </div>
             </div>
 
-            {/* Viewport del Esc?ner V2 */}
+            {/* Viewport del Escáner V2 */}
             <div className="relative w-full min-h-[460px] sm:min-h-[540px] lg:h-[calc(100vh-180px)] bg-black flex items-center justify-center overflow-hidden">
               <style>{`
                 #lector-qr {
@@ -1697,11 +1769,11 @@ export default function MarcarPage() {
               <div
                 id="lector-qr"
                 className={`w-full h-full transition-opacity duration-300 ${
-                  camaraActiva ? "opacity-100" : "opacity-0 hidden"
+                  camaraActiva ? "opacity-100" : "opacity-0"
                 }`}
               />
 
-              {/* Gu?a Hologr?fica Referencial V2 (Opcional, no restringe la lectura) */}
+              {/* Guía Holográfica Referencial V2 (Opcional, no restringe la lectura) */}
               {camaraActiva && !resultado && guiaVisual && (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
                   <div className="relative w-[85%] max-w-[560px] h-[75%] max-h-[420px] rounded-3xl border border-cyan-500/30 flex items-center justify-center shadow-[0_0_40px_rgba(6,182,212,0.15)]">
@@ -1713,13 +1785,13 @@ export default function MarcarPage() {
                     <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse shadow-[0_0_12px_rgba(6,182,212,0.8)]"></div>
 
                     <span className="absolute -bottom-5 px-3.5 py-1 rounded-full bg-slate-950/90 border border-cyan-500/40 text-[11px] font-bold text-cyan-200 shadow-xl backdrop-blur-md">
-                      ? Detecci?n activa en toda la pantalla (centro, bordes y esquinas)
+                      Detección activa en toda la pantalla (centro, bordes y esquinas)
                     </span>
                   </div>
                 </div>
               )}
 
-              {/* Banner de Bienvenida y Resultado de Marcaci?n */}
+              {/* Banner de Bienvenida y Resultado de Marcación */}
               {resultado && (
                 <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 bg-slate-950/92 backdrop-blur-md animate-in fade-in zoom-in duration-150">
                   {resultado.estudiante ? (
@@ -1739,7 +1811,7 @@ export default function MarcarPage() {
                       </div>
 
                       <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-black uppercase tracking-wider mb-2">
-                        <span>?</span>
+                        <LuCircleCheck className="w-4 h-4 text-emerald-400" />
                         <span>{resultado.tipo === "SALIDA" ? "SALIDA REGISTRADA" : "ENTRADA REGISTRADA"}</span>
                       </div>
 
@@ -1748,7 +1820,7 @@ export default function MarcarPage() {
                       </h2>
 
                       <p className="text-sm font-bold text-slate-300 mt-1">
-                        {resultado.estudiante.grado} ? {resultado.estudiante.seccion}
+                        {resultado.estudiante.grado} • {resultado.estudiante.seccion}
                       </p>
 
                       <div className="mt-4 px-6 py-2.5 rounded-2xl bg-slate-950 border border-slate-800 text-white font-mono text-xl sm:text-2xl font-black">
@@ -1763,32 +1835,32 @@ export default function MarcarPage() {
                 </div>
               )}
 
-              {/* Pantalla cuando la c?mara est? apagada manualmente */}
+              {/* Pantalla cuando la cámara está apagada manualmente */}
               {!camaraActiva && !camaraError && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-950/95 z-10">
                   <span className="text-6xl mb-3">??</span>
                   <h3 className="text-2xl font-black text-slate-100">
-                    C?mara en Pausa
+                    Cámara en Pausa
                   </h3>
                   <p className="text-sm text-slate-400 mt-1 max-w-sm">
-                    La c?mara est? apagada. Presione el bot?n para activar el escaneo permanente.
+                    La cámara está apagada. Presione el botón para activar el escaneo permanente.
                   </p>
                   <button
                     type="button"
                     onClick={() => void activarCamaraPermanente()}
                     className="mt-6 inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 font-black text-white text-base shadow-xl shadow-emerald-950/50 transition transform hover:-translate-y-0.5 active:scale-95"
                   >
-                    <span>?</span> Activar C?mara
+                    <LuPlay className="w-5 h-5 mr-1" /> Activar Cámara
                   </button>
                 </div>
               )}
 
-              {/* Pantalla de Error de C?mara Profesional */}
+              {/* Pantalla de Error de Cámara Profesional */}
               {camaraError && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-950/95 border-2 border-red-500/40 z-10">
                   <span className="text-6xl mb-3">??</span>
                   <h3 className="text-2xl font-black text-white">
-                    Aviso de Conexi?n de C?mara
+                    Aviso de Conexión de Cámara
                   </h3>
                   <p className="text-sm text-red-200 mt-2 max-w-lg font-medium leading-relaxed bg-red-950/60 p-4 rounded-2xl border border-red-800/60">
                     {camaraError}
@@ -1799,16 +1871,16 @@ export default function MarcarPage() {
                       onClick={() => void activarCamaraPermanente()}
                       className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm shadow-xl transition active:scale-95"
                     >
-                      <span>??</span> Reintentar Conexi?n
+                      <LuRefreshCw className="w-4 h-4 mr-1.5" /> Reintentar Conexión
                     </button>
 
                     <button
                       type="button"
                       onClick={() => void cambiarCamaraEnVivo("")}
                       className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm shadow-xl transition active:scale-95"
-                      title="Usar la c?mara predeterminada integrada en el equipo"
+                      title="Usar la cámara predeterminada integrada en el equipo"
                     >
-                      <span>??</span> Usar C?mara Integrada
+                      <LuCamera className="w-4 h-4 mr-1.5" /> Usar Cámara Integrada
                     </button>
 
                     <button
@@ -1816,14 +1888,14 @@ export default function MarcarPage() {
                       onClick={() => setPanelConfigAbierto(true)}
                       className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-sm transition"
                     >
-                      <span>??</span> Cambiar Dispositivo
+                      <LuSlidersHorizontal className="w-4 h-4 mr-1.5" /> Cambiar Dispositivo
                     </button>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Barra Inferior del Viewport: Controles R?pidos y Selector */}
+            {/* Barra Inferior del Viewport: Controles Rápidos y Selector */}
             <div className="p-3 bg-slate-900 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 {camaraActiva ? (
@@ -1832,7 +1904,7 @@ export default function MarcarPage() {
                     onClick={apagarCamaraManual}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-xs transition"
                   >
-                    <span>??</span> Pausar
+                    <LuPause className="w-3.5 h-3.5 mr-1" /> Pausar
                   </button>
                 ) : (
                   <button
@@ -1840,7 +1912,7 @@ export default function MarcarPage() {
                     onClick={() => void activarCamaraPermanente()}
                     className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition"
                   >
-                    <span>?</span> Activar
+                    <LuPlay className="w-3.5 h-3.5 mr-1" /> Activar
                   </button>
                 )}
 
@@ -1867,17 +1939,17 @@ export default function MarcarPage() {
                 )}
               </div>
 
-              {/* Selector R?pido de C?mara */}
+              {/* Selector Rápido de Cámara */}
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <span className="text-xs font-bold text-slate-400 shrink-0">
-                  C?mara:
+                  Cámara:
                 </span>
                 <select
                   value={camaraQrSeleccionada}
                   onChange={(e) => void cambiarCamaraEnVivo(e.target.value)}
                   className="w-full sm:w-64 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs font-bold focus:border-blue-500 outline-none"
                 >
-                  <option value="">Predeterminada (HD Autom?tica)</option>
+                  <option value="">Predeterminada (HD Automática)</option>
                   {camaras.map((c, i) => (
                     <option key={c.deviceId || i} value={c.deviceId}>
                       {c.label}
@@ -1891,7 +1963,7 @@ export default function MarcarPage() {
         {/* Columna Lateral Compacta: DNI, Reconocimiento Facial e Historial */}
         {!sidebarColapsado && (
           <aside className="lg:col-span-4 xl:col-span-3 flex flex-col gap-3">
-            {/* Pesta?as del Panel Lateral */}
+            {/* Pestañas del Panel Lateral */}
             <div className="flex rounded-2xl bg-slate-900 border border-slate-800 p-1">
               <button
                 type="button"
@@ -1933,7 +2005,7 @@ export default function MarcarPage() {
               </button>
             </div>
 
-            {/* Contenido Pesta?a 1: Marcaci?n Manual por DNI */}
+            {/* Contenido Pestaña 1: Marcación Manual por DNI */}
             {pestanaSidebar === "dni" && (
               <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-4 shadow-xl space-y-3">
                 <div className="flex items-center gap-2">
@@ -1942,7 +2014,7 @@ export default function MarcarPage() {
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-white">
-                      Marcaci?n por DNI
+                      Marcación por DNI
                     </h3>
                     <p className="text-[11px] text-slate-400">
                       Para alumnos sin carnet escolar
@@ -1958,7 +2030,7 @@ export default function MarcarPage() {
                     value={dni}
                     onChange={(e) => setDni(e.target.value.replace(/\D/g, "").slice(0, 8))}
                     onKeyDown={manejarEnterDni}
-                    placeholder="DNI (8 d?gitos)"
+                    placeholder="DNI (8 dígitos)"
                     className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-lg font-mono font-bold text-center text-white placeholder:text-slate-500 focus:border-emerald-500 outline-none"
                   />
 
@@ -1974,7 +2046,7 @@ export default function MarcarPage() {
               </div>
             )}
 
-            {/* Contenido Pesta?a 2: Reconocimiento Facial Auxiliar */}
+            {/* Contenido Pestaña 2: Reconocimiento Facial Auxiliar */}
             {pestanaSidebar === "facial" && (
               <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-4 shadow-xl space-y-3">
                 <div className="flex items-center gap-2">
@@ -1986,7 +2058,7 @@ export default function MarcarPage() {
                       Reconocimiento Facial
                     </h3>
                     <p className="text-[11px] text-slate-400">
-                      Identificaci?n biom?trica AWS
+                      Identificación biométrica AWS
                     </p>
                   </div>
                 </div>
@@ -2002,7 +2074,7 @@ export default function MarcarPage() {
               </div>
             )}
 
-            {/* Contenido Pesta?a 3: Historial en Vivo de ?ltimas Asistencias */}
+            {/* Contenido Pestaña 3: Historial en Vivo de últimas Asistencias */}
             {pestanaSidebar === "historial" && (
               <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-4 shadow-xl space-y-3">
                 <div className="flex items-center justify-between">
@@ -2011,13 +2083,13 @@ export default function MarcarPage() {
                     <span>Marcaciones Recientes</span>
                   </h3>
                   <span className="text-[10px] font-bold text-slate-400">
-                    ?ltimas 5
+                    últimas 5
                   </span>
                 </div>
 
                 {historialMarcas.length === 0 ? (
                   <p className="text-xs text-slate-500 text-center py-4">
-                    A?n no hay marcaciones en esta sesi?n.
+                    Aún no hay marcaciones en esta sesión.
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -2052,17 +2124,17 @@ export default function MarcarPage() {
             {/* Tarjeta Informativa Compacta */}
             <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 text-[11px] text-slate-400 space-y-1">
               <p className="font-bold text-slate-300 flex items-center gap-1">
-                <span>???</span> Terminal V2 Escolar
+                <LuShieldCheck className="w-4 h-4 text-emerald-400 inline mr-1" /> Terminal V2 Escolar
               </p>
               <p>
-                Detecci?n perim?trica total sin restricci?n de encuadre.
+                Detección perimétrica total sin restricción de encuadre.
               </p>
             </div>
           </aside>
         )}
       </div>
 
-      {/* MODAL DE DIAGN?STICO DE C?MARA */}
+      {/* MODAL DE DIAGNÓSTICO DE CÁMARA */}
       {diagnosticoAbierto && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-lg rounded-3xl border-2 border-cyan-500/40 bg-slate-900 p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-150">
@@ -2070,7 +2142,7 @@ export default function MarcarPage() {
               <div className="flex items-center gap-2.5 text-cyan-400">
                 <span className="text-2xl">???</span>
                 <h3 className="text-lg font-black text-white">
-                  Diagn?stico de C?mara del Terminal V2
+                  Diagnóstico de Cámara del Terminal V2
                 </h3>
               </div>
               <button
@@ -2084,7 +2156,7 @@ export default function MarcarPage() {
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
-                <span className="text-slate-400 font-bold block">Resoluci?n del Sensor</span>
+                <span className="text-slate-400 font-bold block">Resolución del Sensor</span>
                 <span className="text-lg font-mono font-black text-emerald-400">
                   {diagnostico.resolucion}
                 </span>
@@ -2096,11 +2168,11 @@ export default function MarcarPage() {
                 <span className="text-lg font-mono font-black text-cyan-400">
                   {diagnostico.fps} FPS
                 </span>
-                <span className="text-[10px] text-slate-500 block mt-0.5">Full-Frame din?mico</span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">Full-Frame dinámico</span>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 col-span-2">
-                <span className="text-slate-400 font-bold block">C?mara Usada</span>
+                <span className="text-slate-400 font-bold block">Cámara Usada</span>
                 <span className="text-sm font-bold text-white block truncate">
                   {diagnostico.camaraLabel}
                 </span>
@@ -2131,13 +2203,13 @@ export default function MarcarPage() {
               onClick={() => setDiagnosticoAbierto(false)}
               className="w-full py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-xs font-black text-white transition shadow-lg"
             >
-              Cerrar Diagn?stico
+              Cerrar Diagnóstico
             </button>
           </div>
         </div>
       )}
 
-      {/* MODAL DE CONFIGURACI?N DE TERMINAL */}
+      {/* MODAL DE CONFIGURACIÓN DE TERMINAL */}
       {panelConfigAbierto && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-lg rounded-3xl border-2 border-slate-700 bg-slate-900 p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
@@ -2145,7 +2217,7 @@ export default function MarcarPage() {
               <div className="flex items-center gap-2.5 text-blue-400">
                 <span className="text-2xl">??</span>
                 <h3 className="text-lg font-black text-white">
-                  Configuraci?n de Terminal
+                  Configuración de Terminal
                 </h3>
               </div>
               <button
@@ -2157,10 +2229,10 @@ export default function MarcarPage() {
               </button>
             </div>
 
-            {/* Selector de C?maras Disponibles */}
+            {/* Selector de Cámaras Disponibles */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
-                C?maras detectadas en el equipo:
+                Cámaras detectadas en el equipo:
               </label>
               <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                 <button
@@ -2174,9 +2246,9 @@ export default function MarcarPage() {
                 >
                   <div className="flex items-center gap-2">
                     <span>??</span>
-                    <span>Predeterminada del sistema (HD Autom?tica)</span>
+                    <span>Predeterminada del sistema (HD Automática)</span>
                   </div>
-                  {!camaraQrSeleccionada && <span className="text-blue-400 shrink-0">? Activa</span>}
+                  {!camaraQrSeleccionada && <span className="text-blue-400 shrink-0">✓ Activa</span>}
                 </button>
 
                 {camaras.map((cam, idx) => {
@@ -2194,7 +2266,7 @@ export default function MarcarPage() {
                       }`}
                     >
                       <div className="flex items-center gap-2 truncate">
-                        <span>{esVirtual ? "???" : "??"}</span>
+                        {esVirtual ? <LuSlidersHorizontal className="w-4 h-4 text-amber-400 shrink-0" /> : <LuCamera className="w-4 h-4 text-slate-300 shrink-0" />}
                         <span className="truncate">{cam.label}</span>
                         {esVirtual && (
                           <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold shrink-0">
@@ -2202,7 +2274,7 @@ export default function MarcarPage() {
                           </span>
                         )}
                       </div>
-                      {esSeleccionada && <span className="text-blue-400 shrink-0">? Activa</span>}
+                      {esSeleccionada && <span className="text-blue-400 shrink-0">✓ Activa</span>}
                     </button>
                   );
                 })}

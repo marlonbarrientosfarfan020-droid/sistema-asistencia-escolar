@@ -147,7 +147,7 @@ No se identificaron vulnerabilidades críticas que comprometan la seguridad de l
    En Vercel Serverless, los eventos emitidos por un contenedor lambda no se reflejan automáticamente en clientes SSE conectados a otro contenedor.  
    *Mitigación actual:* El cliente refresca datos al interactuar y cuenta con reconexión automática. A mediano plazo se recomienda incorporar Upstash Redis Pub/Sub.
 2. **Variable `APP_URL` configurada como `localhost`:**  
-   En el archivo `.env` local `APP_URL="http://localhost:3000"`. En las variables de entorno de Vercel debe configurarse la URL de producción (ej. `https://asistencia-santa-rita.vercel.app`).
+   En el archivo `.env` local `APP_URL="http://localhost:3000"`. En las variables de entorno de Vercel debe configurarse la URL de producción (ej. `https://sistema-asistencia-escolar.vercel.app`).
 3. **Archivos de Código Muerto:**  
    `lib/aws-reconocer.ts` (0 bytes) y `services/geminiService.ts` no afectan la compilación pero deben eliminarse en una futura limpieza cosmética.
 4. **Metadata por Defecto en `app/layout.tsx`:**  

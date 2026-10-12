@@ -389,6 +389,7 @@ export const ModelName = {
   Turno: 'Turno',
   Asistencia: 'Asistencia',
   Usuario: 'Usuario',
+  UsuarioModulo: 'UsuarioModulo',
   Configuracion: 'Configuracion',
   Auditoria: 'Auditoria',
   AlertaAsistencia: 'AlertaAsistencia',
@@ -422,7 +423,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "colegio" | "estudiante" | "turno" | "asistencia" | "usuario" | "configuracion" | "auditoria" | "alertaAsistencia" | "analisisIA" | "riesgoEstudianteIA" | "calendarioEscolar" | "historialReporteAutomatico" | "biometriaFacial" | "rostroFacial" | "codigoFamiliar" | "sistemaControl" | "systemHealthLog" | "terminal" | "salidaExcepcional" | "evidenciaFotografica" | "fotoActivaEstudiante" | "colaLimpiezaBlob" | "registroIdempotencia"
+    modelProps: "colegio" | "estudiante" | "turno" | "asistencia" | "usuario" | "usuarioModulo" | "configuracion" | "auditoria" | "alertaAsistencia" | "analisisIA" | "riesgoEstudianteIA" | "calendarioEscolar" | "historialReporteAutomatico" | "biometriaFacial" | "rostroFacial" | "codigoFamiliar" | "sistemaControl" | "systemHealthLog" | "terminal" | "salidaExcepcional" | "evidenciaFotografica" | "fotoActivaEstudiante" | "colaLimpiezaBlob" | "registroIdempotencia"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -793,6 +794,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UsuarioCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UsuarioCountAggregateOutputType> | number
+        }
+      }
+    }
+    UsuarioModulo: {
+      payload: Prisma.$UsuarioModuloPayload<ExtArgs>
+      fields: Prisma.UsuarioModuloFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.UsuarioModuloFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsuarioModuloPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.UsuarioModuloFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsuarioModuloPayload>
+        }
+        findFirst: {
+          args: Prisma.UsuarioModuloFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsuarioModuloPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.UsuarioModuloFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsuarioModuloPayload>
+        }
+        findMany: {
+          args: Prisma.UsuarioModuloFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsuarioModuloPayload>[]
+        }
+        create: {
+          args: Prisma.UsuarioModuloCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsuarioModuloPayload>
+        }
+        createMany: {
+          args: Prisma.UsuarioModuloCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.UsuarioModuloCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsuarioModuloPayload>[]
+        }
+        delete: {
+          args: Prisma.UsuarioModuloDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsuarioModuloPayload>
+        }
+        update: {
+          args: Prisma.UsuarioModuloUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsuarioModuloPayload>
+        }
+        deleteMany: {
+          args: Prisma.UsuarioModuloDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.UsuarioModuloUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.UsuarioModuloUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsuarioModuloPayload>[]
+        }
+        upsert: {
+          args: Prisma.UsuarioModuloUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsuarioModuloPayload>
+        }
+        aggregate: {
+          args: Prisma.UsuarioModuloAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateUsuarioModulo>
+        }
+        groupBy: {
+          args: Prisma.UsuarioModuloGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UsuarioModuloGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.UsuarioModuloCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UsuarioModuloCountAggregateOutputType> | number
         }
       }
     }
@@ -2260,6 +2335,16 @@ export const UsuarioScalarFieldEnum = {
 export type UsuarioScalarFieldEnum = (typeof UsuarioScalarFieldEnum)[keyof typeof UsuarioScalarFieldEnum]
 
 
+export const UsuarioModuloScalarFieldEnum = {
+  id: 'id',
+  usuarioId: 'usuarioId',
+  modulo: 'modulo',
+  createdAt: 'createdAt'
+} as const
+
+export type UsuarioModuloScalarFieldEnum = (typeof UsuarioModuloScalarFieldEnum)[keyof typeof UsuarioModuloScalarFieldEnum]
+
+
 export const ConfiguracionScalarFieldEnum = {
   id: 'id',
   colegioId: 'colegioId',
@@ -2856,6 +2941,7 @@ export type GlobalOmitConfig = {
   turno?: Prisma.TurnoOmit
   asistencia?: Prisma.AsistenciaOmit
   usuario?: Prisma.UsuarioOmit
+  usuarioModulo?: Prisma.UsuarioModuloOmit
   configuracion?: Prisma.ConfiguracionOmit
   auditoria?: Prisma.AuditoriaOmit
   alertaAsistencia?: Prisma.AlertaAsistenciaOmit

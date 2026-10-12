@@ -5,6 +5,12 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useConfiguracionColegio } from "@/hooks/useConfiguracionColegio";
+import {
+  CATEGORIAS_MODULOS,
+  MODULOS_POR_CATEGORIA,
+  obtenerModulosPorRol,
+  esRutaPermitida,
+} from "@/lib/modulos";
 
 type MenuItem = {
   href: string;
@@ -24,7 +30,9 @@ export default function DashboardLayout({
 
   const [rol, setRol] = useState("");
   const [usuario, setUsuario] = useState("");
+  const [modulosPermitidos, setModulosPermitidos] = useState<string[]>([]);
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [cargandoAuth, setCargandoAuth] = useState(true);
 
   const esAdmin = rol === "ADMIN";
   const esDemo = rol === "DEMO";
@@ -57,6 +65,7 @@ export default function DashboardLayout({
     const logueado = localStorage.getItem("logueado");
     const rolGuardado = localStorage.getItem("rol");
     const usuarioGuardado = localStorage.getItem("usuario");
+    const modulosGuardados = localStorage.getItem("modulos");
 
     if (logueado !== "true") {
       router.replace("/login");
@@ -65,6 +74,31 @@ export default function DashboardLayout({
 
     setRol(rolGuardado || "");
     setUsuario(usuarioGuardado || "");
+
+    let mods: string[] = [];
+    if (modulosGuardados) {
+      try {
+        mods = JSON.parse(modulosGuardados);
+      } catch {
+        mods = [];
+      }
+    }
+    if (!Array.isArray(mods) || mods.length === 0) {
+      mods = obtenerModulosPorRol(rolGuardado || "");
+    }
+    setModulosPermitidos(mods);
+    setCargandoAuth(false);
+
+    // Sincronizar en segundo plano con la sesión del servidor para revocaciones inmediatas
+    fetch("/api/auth/sesion", { cache: "no-store", credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.usuario?.modulos && Array.isArray(data.usuario.modulos)) {
+          setModulosPermitidos(data.usuario.modulos);
+          localStorage.setItem("modulos", JSON.stringify(data.usuario.modulos));
+        }
+      })
+      .catch(() => {});
 
     window.history.pushState(null, "", window.location.href);
 
@@ -126,6 +160,18 @@ export default function DashboardLayout({
       clearTimeout(temporizador);
     };
   }, [router]);
+
+// Protección de rutas: redirige a acceso denegado si no tiene permiso
+  useEffect(() => {
+    if (cargandoAuth) return;
+    if (pathname === "/dashboard/acceso-denegado" || pathname === "/login") return;
+
+    const permitida = esRutaPermitida(pathname, modulosPermitidos, esAdmin);
+    if (!permitida) {
+      console.warn(`[RouteGuard] Acceso denegado para ${usuario} en ruta: ${pathname}`);
+      router.replace("/dashboard/acceso-denegado");
+    }
+  }, [pathname, modulosPermitidos, esAdmin, cargandoAuth, usuario, router]);
 
   useEffect(() => {
     setMenuAbierto(false);
@@ -196,149 +242,7 @@ export default function DashboardLayout({
   }
 
   function Sidebar() {
-    const gestionItems: MenuItem[] = [
-      {
-        href: "/dashboard/estudiantes",
-        icono: "🎓",
-        texto: "Estudiantes",
-        visible: puedeGestionar,
-      },
-      {
-        href: "/dashboard/padres",
-        icono: "👨‍👩‍👧",
-        texto: "Familias / Padres",
-        visible: puedeGestionar,
-      },
-      {
-        href: "/dashboard/asistencias",
-        icono: "✅",
-        texto: "Asistencias",
-        visible: puedeGestionar,
-      },
-      {
-        href: "/dashboard/salidas",
-        icono: "🚪",
-        texto: "Gestión de Salidas",
-        visible: puedeGestionar,
-      },
-      {
-        href: "/dashboard/tardanzas",
-        icono: "⏰",
-        texto: "Tardanzas",
-        visible: puedeGestionar,
-      },
-      {
-        href: "/dashboard/ausentes",
-        icono: "🚫",
-        texto: "Ausentes",
-        visible: puedeGestionar,
-      },
-      {
-        href: "/dashboard/reporte-estudiante",
-        icono: "📄",
-        texto: "Reporte estudiante",
-        visible: puedeGestionar,
-      },
-      {
-        href: "/dashboard/reportes-mensuales",
-        icono: "📈",
-        texto: "Reportes mensuales",
-        visible: puedeGestionar,
-      },
-    ];
-
-    const inteligenciaItems: MenuItem[] = [
-      {
-        href: "/dashboard/inteligencia",
-        icono: "🤖",
-        texto: "Inteligencia Escolar",
-        visible: puedeAnalizar,
-      },
-      {
-        href: "/dashboard/inteligencia-institucional",
-        icono: "🧠",
-        texto: "Inteligencia y Reportes IA",
-        visible: puedeAnalizar,
-      },
-      {
-        href: "/dashboard/inteligencia/ranking",
-        icono: "🏆",
-        texto: "Ranking IA",
-        visible: puedeAnalizar,
-      },
-      {
-        href: "/dashboard/inteligencia/historial",
-        icono: "🗂️",
-        texto: "Historial IA",
-        visible: puedeAnalizar,
-      },
-    ];
-
-    const administracionItems: MenuItem[] = [
-      {
-        href: "/dashboard/supermotor",
-        icono: "🚀",
-        texto: "SuperMotor",
-        visible: puedeGestionar,
-      },
-      {
-        href: "/dashboard/monitoreo",
-        icono: "🩺",
-        texto: "Monitoreo y Salud",
-        visible: puedeAdministrar,
-      },
-      {
-        href: "/dashboard/calendario",
-        icono: "🗓️",
-        texto: "Calendario escolar",
-        visible: puedeAnalizar,
-      },
-      {
-        href: "/dashboard/usuarios",
-        icono: "👥",
-        texto: "Usuarios",
-        visible: esAdmin,
-      },
-      {
-        href: "/dashboard/turnos",
-        icono: "⏱️",
-        texto: "Turnos",
-        visible: puedeAdministrar,
-      },
-      {
-        href: "/dashboard/automatizaciones",
-        icono: "⚡",
-        texto: "Automatizaciones",
-        visible: puedeAdministrar,
-      },
-      {
-        href: "/dashboard/configuracion",
-        icono: "🔧",
-        texto: "Configuración",
-        visible: puedeAdministrar,
-      },
-      {
-        href: "/dashboard/auditoria",
-        icono: "🔍",
-        texto: "Auditoría",
-        visible: puedeAdministrar,
-      },
-      {
-        href: "/dashboard/backup",
-        icono: "💾",
-        texto: "Backup",
-        visible: esAdmin,
-      },
-    ];
-
-    const desarrolloItems: MenuItem[] = [
-      {
-        href: "/dashboard/modo-desarrollador",
-        icono: "🧪",
-        texto: "Modo desarrollador",
-        visible: esAdmin,
-      },
-    ];
+    // Menú dinámico centralizado generado desde MODULOS_POR_CATEGORIA
 
     return (
       <div className="flex min-h-full flex-col">
@@ -389,49 +293,23 @@ export default function DashboardLayout({
         </div>
 
         <nav className="mt-7 flex-1 space-y-6">
-          <GrupoMenu
-            titulo="Panel"
-            items={[
-              {
-                href: "/dashboard",
-                icono: "🏠",
-                texto: "Dashboard",
-                visible: puedeAnalizar,
-              },
-            ]}
-          />
+          {CATEGORIAS_MODULOS.map((categoria) => {
+            const modulosDeCategoria = MODULOS_POR_CATEGORIA[categoria] || [];
+            const items: MenuItem[] = modulosDeCategoria.map((mod) => ({
+              href: mod.ruta,
+              icono: mod.icono,
+              texto: mod.nombre,
+              visible: esAdmin || modulosPermitidos.includes(mod.id),
+            }));
 
-          <GrupoMenu
-            titulo="Gestión"
-            items={gestionItems}
-          />
-
-          <GrupoMenu
-            titulo="Inteligencia artificial"
-            items={inteligenciaItems}
-          />
-
-          <GrupoMenu
-            titulo="Administración"
-            items={administracionItems}
-          />
-
-          <GrupoMenu
-            titulo="Desarrollo"
-            items={desarrolloItems}
-          />
-
-          <GrupoMenu
-            titulo="Operación"
-            items={[
-              {
-                href: "/marcar",
-                icono: "📲",
-                texto: "Marcar asistencia",
-                visible: true,
-              },
-            ]}
-          />
+            return (
+              <GrupoMenu
+                key={categoria}
+                titulo={categoria}
+                items={items}
+              />
+            );
+          })}
 
           {esDemo && (
             <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-200">
@@ -445,9 +323,21 @@ export default function DashboardLayout({
             </div>
           )}
 
-          {esPersonal && (
-            <div className="rounded-xl border border-blue-400/40 bg-blue-500/10 px-4 py-3 text-sm font-semibold text-blue-200">
-              👨‍💼 Personal: consulta y operación de asistencia
+          {rol === "PORTERIA" && (
+            <div className="rounded-xl border border-purple-400/40 bg-purple-500/10 px-4 py-3 text-sm font-semibold text-purple-200">
+              🚪 Portería: control de ingresos y salidas
+            </div>
+          )}
+
+          {rol === "DOCENTE" && (
+            <div className="rounded-xl border border-sky-400/40 bg-sky-500/10 px-4 py-3 text-sm font-semibold text-sky-200">
+              📚 Docente: gestión de aula y asistencia
+            </div>
+          )}
+
+          {rol === "SECRETARIA" && (
+            <div className="rounded-xl border border-teal-400/40 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-200">
+              📋 Secretaría: administración escolar y reportes
             </div>
           )}
         </nav>

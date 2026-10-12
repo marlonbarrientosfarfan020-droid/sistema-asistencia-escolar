@@ -233,6 +233,7 @@ export type UsuarioWhereInput = {
   estado?: Prisma.BoolFilter<"Usuario"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Usuario"> | Date | string
   colegio?: Prisma.XOR<Prisma.ColegioNullableScalarRelationFilter, Prisma.ColegioWhereInput> | null
+  modulosPermitidos?: Prisma.UsuarioModuloListRelationFilter
 }
 
 export type UsuarioOrderByWithRelationInput = {
@@ -244,6 +245,7 @@ export type UsuarioOrderByWithRelationInput = {
   estado?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   colegio?: Prisma.ColegioOrderByWithRelationInput
+  modulosPermitidos?: Prisma.UsuarioModuloOrderByRelationAggregateInput
 }
 
 export type UsuarioWhereUniqueInput = Prisma.AtLeast<{
@@ -258,6 +260,7 @@ export type UsuarioWhereUniqueInput = Prisma.AtLeast<{
   estado?: Prisma.BoolFilter<"Usuario"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Usuario"> | Date | string
   colegio?: Prisma.XOR<Prisma.ColegioNullableScalarRelationFilter, Prisma.ColegioWhereInput> | null
+  modulosPermitidos?: Prisma.UsuarioModuloListRelationFilter
 }, "id" | "usuario">
 
 export type UsuarioOrderByWithAggregationInput = {
@@ -295,6 +298,7 @@ export type UsuarioCreateInput = {
   estado?: boolean
   createdAt?: Date | string
   colegio?: Prisma.ColegioCreateNestedOneWithoutUsuariosInput
+  modulosPermitidos?: Prisma.UsuarioModuloCreateNestedManyWithoutUsuarioInput
 }
 
 export type UsuarioUncheckedCreateInput = {
@@ -305,6 +309,7 @@ export type UsuarioUncheckedCreateInput = {
   rol: string
   estado?: boolean
   createdAt?: Date | string
+  modulosPermitidos?: Prisma.UsuarioModuloUncheckedCreateNestedManyWithoutUsuarioInput
 }
 
 export type UsuarioUpdateInput = {
@@ -314,6 +319,7 @@ export type UsuarioUpdateInput = {
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   colegio?: Prisma.ColegioUpdateOneWithoutUsuariosNestedInput
+  modulosPermitidos?: Prisma.UsuarioModuloUpdateManyWithoutUsuarioNestedInput
 }
 
 export type UsuarioUncheckedUpdateInput = {
@@ -324,6 +330,7 @@ export type UsuarioUncheckedUpdateInput = {
   rol?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modulosPermitidos?: Prisma.UsuarioModuloUncheckedUpdateManyWithoutUsuarioNestedInput
 }
 
 export type UsuarioCreateManyInput = {
@@ -402,6 +409,11 @@ export type UsuarioSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
 }
 
+export type UsuarioScalarRelationFilter = {
+  is?: Prisma.UsuarioWhereInput
+  isNot?: Prisma.UsuarioWhereInput
+}
+
 export type UsuarioCreateNestedManyWithoutColegioInput = {
   create?: Prisma.XOR<Prisma.UsuarioCreateWithoutColegioInput, Prisma.UsuarioUncheckedCreateWithoutColegioInput> | Prisma.UsuarioCreateWithoutColegioInput[] | Prisma.UsuarioUncheckedCreateWithoutColegioInput[]
   connectOrCreate?: Prisma.UsuarioCreateOrConnectWithoutColegioInput | Prisma.UsuarioCreateOrConnectWithoutColegioInput[]
@@ -444,12 +456,27 @@ export type UsuarioUncheckedUpdateManyWithoutColegioNestedInput = {
   deleteMany?: Prisma.UsuarioScalarWhereInput | Prisma.UsuarioScalarWhereInput[]
 }
 
+export type UsuarioCreateNestedOneWithoutModulosPermitidosInput = {
+  create?: Prisma.XOR<Prisma.UsuarioCreateWithoutModulosPermitidosInput, Prisma.UsuarioUncheckedCreateWithoutModulosPermitidosInput>
+  connectOrCreate?: Prisma.UsuarioCreateOrConnectWithoutModulosPermitidosInput
+  connect?: Prisma.UsuarioWhereUniqueInput
+}
+
+export type UsuarioUpdateOneRequiredWithoutModulosPermitidosNestedInput = {
+  create?: Prisma.XOR<Prisma.UsuarioCreateWithoutModulosPermitidosInput, Prisma.UsuarioUncheckedCreateWithoutModulosPermitidosInput>
+  connectOrCreate?: Prisma.UsuarioCreateOrConnectWithoutModulosPermitidosInput
+  upsert?: Prisma.UsuarioUpsertWithoutModulosPermitidosInput
+  connect?: Prisma.UsuarioWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UsuarioUpdateToOneWithWhereWithoutModulosPermitidosInput, Prisma.UsuarioUpdateWithoutModulosPermitidosInput>, Prisma.UsuarioUncheckedUpdateWithoutModulosPermitidosInput>
+}
+
 export type UsuarioCreateWithoutColegioInput = {
   usuario: string
   password: string
   rol: string
   estado?: boolean
   createdAt?: Date | string
+  modulosPermitidos?: Prisma.UsuarioModuloCreateNestedManyWithoutUsuarioInput
 }
 
 export type UsuarioUncheckedCreateWithoutColegioInput = {
@@ -459,6 +486,7 @@ export type UsuarioUncheckedCreateWithoutColegioInput = {
   rol: string
   estado?: boolean
   createdAt?: Date | string
+  modulosPermitidos?: Prisma.UsuarioModuloUncheckedCreateNestedManyWithoutUsuarioInput
 }
 
 export type UsuarioCreateOrConnectWithoutColegioInput = {
@@ -500,6 +528,60 @@ export type UsuarioScalarWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Usuario"> | Date | string
 }
 
+export type UsuarioCreateWithoutModulosPermitidosInput = {
+  usuario: string
+  password: string
+  rol: string
+  estado?: boolean
+  createdAt?: Date | string
+  colegio?: Prisma.ColegioCreateNestedOneWithoutUsuariosInput
+}
+
+export type UsuarioUncheckedCreateWithoutModulosPermitidosInput = {
+  id?: number
+  colegioId?: string | null
+  usuario: string
+  password: string
+  rol: string
+  estado?: boolean
+  createdAt?: Date | string
+}
+
+export type UsuarioCreateOrConnectWithoutModulosPermitidosInput = {
+  where: Prisma.UsuarioWhereUniqueInput
+  create: Prisma.XOR<Prisma.UsuarioCreateWithoutModulosPermitidosInput, Prisma.UsuarioUncheckedCreateWithoutModulosPermitidosInput>
+}
+
+export type UsuarioUpsertWithoutModulosPermitidosInput = {
+  update: Prisma.XOR<Prisma.UsuarioUpdateWithoutModulosPermitidosInput, Prisma.UsuarioUncheckedUpdateWithoutModulosPermitidosInput>
+  create: Prisma.XOR<Prisma.UsuarioCreateWithoutModulosPermitidosInput, Prisma.UsuarioUncheckedCreateWithoutModulosPermitidosInput>
+  where?: Prisma.UsuarioWhereInput
+}
+
+export type UsuarioUpdateToOneWithWhereWithoutModulosPermitidosInput = {
+  where?: Prisma.UsuarioWhereInput
+  data: Prisma.XOR<Prisma.UsuarioUpdateWithoutModulosPermitidosInput, Prisma.UsuarioUncheckedUpdateWithoutModulosPermitidosInput>
+}
+
+export type UsuarioUpdateWithoutModulosPermitidosInput = {
+  usuario?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  rol?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  colegio?: Prisma.ColegioUpdateOneWithoutUsuariosNestedInput
+}
+
+export type UsuarioUncheckedUpdateWithoutModulosPermitidosInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  colegioId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  usuario?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  rol?: Prisma.StringFieldUpdateOperationsInput | string
+  estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 export type UsuarioCreateManyColegioInput = {
   id?: number
   usuario: string
@@ -515,6 +597,7 @@ export type UsuarioUpdateWithoutColegioInput = {
   rol?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modulosPermitidos?: Prisma.UsuarioModuloUpdateManyWithoutUsuarioNestedInput
 }
 
 export type UsuarioUncheckedUpdateWithoutColegioInput = {
@@ -524,6 +607,7 @@ export type UsuarioUncheckedUpdateWithoutColegioInput = {
   rol?: Prisma.StringFieldUpdateOperationsInput | string
   estado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modulosPermitidos?: Prisma.UsuarioModuloUncheckedUpdateManyWithoutUsuarioNestedInput
 }
 
 export type UsuarioUncheckedUpdateManyWithoutColegioInput = {
@@ -536,6 +620,35 @@ export type UsuarioUncheckedUpdateManyWithoutColegioInput = {
 }
 
 
+/**
+ * Count Type UsuarioCountOutputType
+ */
+
+export type UsuarioCountOutputType = {
+  modulosPermitidos: number
+}
+
+export type UsuarioCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  modulosPermitidos?: boolean | UsuarioCountOutputTypeCountModulosPermitidosArgs
+}
+
+/**
+ * UsuarioCountOutputType without action
+ */
+export type UsuarioCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UsuarioCountOutputType
+   */
+  select?: Prisma.UsuarioCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * UsuarioCountOutputType without action
+ */
+export type UsuarioCountOutputTypeCountModulosPermitidosArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UsuarioModuloWhereInput
+}
+
 
 export type UsuarioSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -546,6 +659,8 @@ export type UsuarioSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   estado?: boolean
   createdAt?: boolean
   colegio?: boolean | Prisma.Usuario$colegioArgs<ExtArgs>
+  modulosPermitidos?: boolean | Prisma.Usuario$modulosPermitidosArgs<ExtArgs>
+  _count?: boolean | Prisma.UsuarioCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["usuario"]>
 
 export type UsuarioSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -583,6 +698,8 @@ export type UsuarioSelectScalar = {
 export type UsuarioOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "colegioId" | "usuario" | "password" | "rol" | "estado" | "createdAt", ExtArgs["result"]["usuario"]>
 export type UsuarioInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   colegio?: boolean | Prisma.Usuario$colegioArgs<ExtArgs>
+  modulosPermitidos?: boolean | Prisma.Usuario$modulosPermitidosArgs<ExtArgs>
+  _count?: boolean | Prisma.UsuarioCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UsuarioIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   colegio?: boolean | Prisma.Usuario$colegioArgs<ExtArgs>
@@ -595,6 +712,7 @@ export type $UsuarioPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   name: "Usuario"
   objects: {
     colegio: Prisma.$ColegioPayload<ExtArgs> | null
+    modulosPermitidos: Prisma.$UsuarioModuloPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -999,6 +1117,7 @@ readonly fields: UsuarioFieldRefs;
 export interface Prisma__UsuarioClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   colegio<T extends Prisma.Usuario$colegioArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Usuario$colegioArgs<ExtArgs>>): Prisma.Prisma__ColegioClient<runtime.Types.Result.GetResult<Prisma.$ColegioPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  modulosPermitidos<T extends Prisma.Usuario$modulosPermitidosArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Usuario$modulosPermitidosArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UsuarioModuloPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1452,6 +1571,30 @@ export type Usuario$colegioArgs<ExtArgs extends runtime.Types.Extensions.Interna
    */
   include?: Prisma.ColegioInclude<ExtArgs> | null
   where?: Prisma.ColegioWhereInput
+}
+
+/**
+ * Usuario.modulosPermitidos
+ */
+export type Usuario$modulosPermitidosArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UsuarioModulo
+   */
+  select?: Prisma.UsuarioModuloSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UsuarioModulo
+   */
+  omit?: Prisma.UsuarioModuloOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UsuarioModuloInclude<ExtArgs> | null
+  where?: Prisma.UsuarioModuloWhereInput
+  orderBy?: Prisma.UsuarioModuloOrderByWithRelationInput | Prisma.UsuarioModuloOrderByWithRelationInput[]
+  cursor?: Prisma.UsuarioModuloWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UsuarioModuloScalarFieldEnum | Prisma.UsuarioModuloScalarFieldEnum[]
 }
 
 /**

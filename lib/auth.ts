@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { validarTerminalRequest } from "@/lib/terminal-auth";
+import { obtenerModulosPorRol } from "@/lib/modulos";
 
 const COOKIE_NAME = "sesion_santa_rita";
 
@@ -10,8 +11,12 @@ export type RolUsuario =
   | "ADMIN_COLEGIO"
   | "DIRECTIVO"
   | "DIRECTOR"
+  | "DOCENTE"
+  | "SECRETARIA"
+  | "PORTERIA"
   | "DEMO"
   | "PERSONAL"
+  | "PERSONALIZADO"
   | "PADRE";
 
 export type SesionUsuario = {
@@ -19,14 +24,15 @@ export type SesionUsuario = {
   usuario: string;
   rol: RolUsuario;
   colegioId?: string | null;
+  modulos?: string[];
 };
 
 function obtenerClaveSecreta() {
-  const secreto = process.env.AUTH_SECRET;
+  const secreto = process.env.AUTH_SECRET || process.env.JWT_SECRET;
 
   if (!secreto || secreto.length < 32) {
     throw new Error(
-      "AUTH_SECRET no está configurado o tiene menos de 32 caracteres"
+      "AUTH_SECRET o JWT_SECRET no está configurado o tiene menos de 32 caracteres"
     );
   }
 
@@ -40,8 +46,12 @@ function esRolValido(valor: unknown): valor is RolUsuario {
     valor === "ADMIN_COLEGIO" ||
     valor === "DIRECTIVO" ||
     valor === "DIRECTOR" ||
+    valor === "DOCENTE" ||
+    valor === "SECRETARIA" ||
+    valor === "PORTERIA" ||
     valor === "DEMO" ||
     valor === "PERSONAL" ||
+    valor === "PERSONALIZADO" ||
     valor === "PADRE"
   );
 }
@@ -54,6 +64,7 @@ export async function crearTokenSesion(
     usuario: sesion.usuario,
     rol: sesion.rol,
     colegioId: sesion.colegioId ?? (sesion.rol === "SUPER_ADMIN" ? null : "SANTA_RITA_001"),
+    modulos: sesion.modulos || [],
   })
     .setProtectedHeader({
       alg: "HS256",
@@ -139,11 +150,15 @@ export async function obtenerSesion(request?: Request): Promise<SesionUsuario | 
         ? colegioIdRaw
         : "SANTA_RITA_001";
 
+    const modulosRaw = (resultado.payload as any).modulos;
+    const modulos: string[] = Array.isArray(modulosRaw) ? (modulosRaw as string[]) : [];
+
     return {
       usuarioId,
       usuario,
       rol,
       colegioId,
+      modulos,
     };
   } catch (error) {
     console.error(
@@ -357,4 +372,37 @@ export async function exigirAdminDirectivoDemoOPersonal(request?: Request) {
     "DEMO",
     "PERSONAL",
   ], request);
+}
+export async function exigirPermisoModulo(moduloId: string, request?: Request) {
+  const acceso = await exigirSesion(request);
+  if (!acceso.autorizado) {
+    return acceso;
+  }
+
+  const { rol, modulos } = acceso.sesion;
+
+  // Los administradores principales tienen acceso completo
+  if (rol === "SUPER_ADMIN" || rol === "ADMIN" || rol === "ADMIN_COLEGIO") {
+    return acceso;
+  }
+
+  // Comprobar si el módulo está explícitamente en los autorizados o en la plantilla del rol
+  const permitidos = modulos && modulos.length > 0 ? modulos : obtenerModulosPorRol(rol);
+
+  if (!permitidos.includes(moduloId)) {
+    return {
+      autorizado: false as const,
+      respuesta: Response.json(
+        {
+          ok: false,
+          message: `No tiene permisos para acceder al módulo "${moduloId}"`,
+        },
+        {
+          status: 403,
+        }
+      ),
+    };
+  }
+
+  return acceso;
 }

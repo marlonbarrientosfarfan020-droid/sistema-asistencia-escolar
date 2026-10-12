@@ -13,14 +13,14 @@ export const maxDuration = 60;
  * Autorizado para cron jobs Vercel / GitHub Actions (CRON_SECRET) o administradores escolares.
  */
 export async function POST(request: Request) {
-  let autorizado = esCronAutorizado(request);
+  const esCron = esCronAutorizado(request);
+  let sesionAdmin = null;
 
-  if (!autorizado) {
-    const sesionAdmin = await exigirAdminODirectivo(request);
-    autorizado = sesionAdmin.autorizado;
+  if (!esCron) {
+    sesionAdmin = await exigirAdminODirectivo(request);
   }
 
-  if (!autorizado) {
+  if (!esCron && !sesionAdmin?.autorizado) {
     return respuestaCronNoAutorizado();
   }
 
@@ -34,11 +34,15 @@ export async function POST(request: Request) {
 
     const { colegioId, fechaDia, turnoId, forzar } = body;
 
+    // Seguridad estricta: los cron jobs automáticos NUNCA pueden forzar cierres
+    // anticipados. Solo un administrador humano autenticado puede usar 'forzar'.
+    const forzarPermitido = Boolean(forzar) && !esCron && Boolean(sesionAdmin?.autorizado);
+
     const resultado = await ejecutarCierreJornadasVencidas({
       colegioId: colegioId || "SANTA_RITA_001",
       fechaDiaFiltro: fechaDia,
       turnoIdFiltro: turnoId ? Number(turnoId) : undefined,
-      forzarCierre: Boolean(forzar),
+      forzarCierre: forzarPermitido,
     });
 
     return NextResponse.json(resultado);

@@ -110,7 +110,7 @@ Aplicar el script consolidado aditivo directamente sobre Neon:
 En la consola de Vercel (Project Settings -> Environment Variables), verificar:
 - `CRON_SECRET`: Cadena aleatoria de 32+ caracteres.
 - `POLITICA_PURGA_APROBADA`: Valor `"NO"` (para garantizar cero borrados físicos de blob).
-- `APP_URL`: URL oficial de producción (ej. `https://asistencia-santa-rita.vercel.app`).
+- `APP_URL`: URL oficial de producción (ej. `https://sistema-asistencia-escolar.vercel.app`).
 
 ### FASE 4: Fusión de Código y Despliegue
 1. Realizar commit y push de la rama `feature/terminal-v2-camara-qr`.

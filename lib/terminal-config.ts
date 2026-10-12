@@ -2,12 +2,19 @@ import { TerminalConfig } from "@/types/terminal";
 
 const STORAGE_KEY_TERMINAL = "configuracion_terminal_escolar";
 
+export function detectarTipoDispositivo(): "LAPTOP_PC" | "TABLET_CELULAR" {
+  if (typeof window === "undefined") return "LAPTOP_PC";
+  const ua = navigator.userAgent.toLowerCase();
+  const esMovil = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
+  return esMovil ? "TABLET_CELULAR" : "LAPTOP_PC";
+}
+
 export const CONFIGURACION_TERMINAL_DEFAULT: TerminalConfig = {
   terminalId: "PUERTA_PRINCIPAL_01",
   nombreTerminal: "Puerta Principal",
-  tipoDispositivo: "TABLET_CELULAR",
+  tipoDispositivo: "LAPTOP_PC",
   camaraSeleccionada: "",
-  modoCamaraPreferido: "environment",
+  modoCamaraPreferido: "user",
   estadoTerminal: "ONLINE",
   colegioId: "SANTA_RITA_001",
 };

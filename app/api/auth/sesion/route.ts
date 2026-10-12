@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { obtenerSesion } from "@/lib/auth";
+import { obtenerModulosPorRol } from "@/lib/modulos";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +34,7 @@ export async function GET() {
           id: sesion.usuarioId,
           nombre: sesion.usuario,
           rol: sesion.rol,
+          modulos: sesion.modulos && sesion.modulos.length > 0 ? sesion.modulos : obtenerModulosPorRol(sesion.rol),
         },
       },
       {

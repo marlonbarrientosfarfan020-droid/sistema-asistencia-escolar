@@ -16,11 +16,11 @@ export type SesionPadre = {
 };
 
 function obtenerClaveSecreta() {
-  const secreto = process.env.AUTH_SECRET;
+  const secreto = process.env.AUTH_SECRET || process.env.JWT_SECRET;
 
   if (!secreto || secreto.length < 32) {
     throw new Error(
-      "AUTH_SECRET no est� configurado o tiene menos de 32 caracteres"
+      "AUTH_SECRET o JWT_SECRET no está configurado o tiene menos de 32 caracteres"
     );
   }
 

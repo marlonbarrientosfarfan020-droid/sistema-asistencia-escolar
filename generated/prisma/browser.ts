@@ -43,6 +43,11 @@ export type Asistencia = Prisma.AsistenciaModel
  */
 export type Usuario = Prisma.UsuarioModel
 /**
+ * Model UsuarioModulo
+ * 
+ */
+export type UsuarioModulo = Prisma.UsuarioModuloModel
+/**
  * Model Configuracion
  * 
  */

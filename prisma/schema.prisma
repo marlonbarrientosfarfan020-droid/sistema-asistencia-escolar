@@ -158,11 +158,25 @@ model Usuario {
   estado    Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  colegio Colegio? @relation(fields: [colegioId], references: [codigo], onDelete: SetNull)
+  colegio           Colegio?        @relation(fields: [colegioId], references: [codigo], onDelete: SetNull)
+  modulosPermitidos UsuarioModulo[]
 
   @@index([colegioId])
   @@index([estado])
   @@index([rol])
+}
+
+model UsuarioModulo {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int
+  modulo    String
+  createdAt DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, modulo])
+  @@index([usuarioId])
+  @@index([modulo])
 }
 
 model Configuracion {

@@ -5,6 +5,7 @@ import {
   type RolUsuario,
 } from "@/lib/auth";
 import bcrypt from "bcryptjs";
+import { obtenerModulosPorRol } from "@/lib/modulos";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,11 +13,17 @@ export const dynamic = "force-dynamic";
 const COOKIE_NAME = "sesion_santa_rita";
 
 const ROLES_PERMITIDOS: RolUsuario[] = [
+  "SUPER_ADMIN",
   "ADMIN",
+  "ADMIN_COLEGIO",
   "DIRECTOR",
   "DIRECTIVO",
+  "DOCENTE",
+  "SECRETARIA",
+  "PORTERIA",
   "DEMO",
   "PERSONAL",
+  "PERSONALIZADO",
 ];
 
 function esRolPermitido(
@@ -121,10 +128,29 @@ export async function POST(request: Request) {
       );
     }
 
+    // Cargar módulos dinámicos autorizados de manera resiliente
+    let modulosDb: string[] = [];
+    try {
+      const filas = await prisma.usuarioModulo.findMany({
+        where: {
+          usuarioId: usuarioEncontrado.id,
+        },
+        select: {
+          modulo: true,
+        },
+      });
+      modulosDb = filas.map((m: { modulo: string }) => m.modulo);
+    } catch (errModulos) {
+      console.warn("Aviso al consultar UsuarioModulo:", errModulos);
+    }
+
+    const modulos = modulosDb.length > 0 ? modulosDb : obtenerModulosPorRol(rol);
+
     const token = await crearTokenSesion({
       usuarioId: usuarioEncontrado.id,
       usuario: usuarioEncontrado.usuario,
       rol,
+      modulos,
     });
 
     const respuesta = NextResponse.json(
@@ -135,6 +161,7 @@ export async function POST(request: Request) {
           id: usuarioEncontrado.id,
           nombre: usuarioEncontrado.usuario,
           rol,
+          modulos,
         },
       },
       {

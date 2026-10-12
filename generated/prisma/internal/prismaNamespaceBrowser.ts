@@ -56,6 +56,7 @@ export const ModelName = {
   Turno: 'Turno',
   Asistencia: 'Asistencia',
   Usuario: 'Usuario',
+  UsuarioModulo: 'UsuarioModulo',
   Configuracion: 'Configuracion',
   Auditoria: 'Auditoria',
   AlertaAsistencia: 'AlertaAsistencia',
@@ -183,6 +184,16 @@ export const UsuarioScalarFieldEnum = {
 } as const
 
 export type UsuarioScalarFieldEnum = (typeof UsuarioScalarFieldEnum)[keyof typeof UsuarioScalarFieldEnum]
+
+
+export const UsuarioModuloScalarFieldEnum = {
+  id: 'id',
+  usuarioId: 'usuarioId',
+  modulo: 'modulo',
+  createdAt: 'createdAt'
+} as const
+
+export type UsuarioModuloScalarFieldEnum = (typeof UsuarioModuloScalarFieldEnum)[keyof typeof UsuarioModuloScalarFieldEnum]
 
 
 export const ConfiguracionScalarFieldEnum = {
