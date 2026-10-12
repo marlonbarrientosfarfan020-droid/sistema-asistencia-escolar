@@ -11,10 +11,18 @@ import {
 } from "next/navigation";
 
 type RolUsuario =
+  | "SUPER_ADMIN"
   | "ADMIN"
+  | "ADMIN_COLEGIO"
   | "DIRECTIVO"
+  | "DIRECTOR"
+  | "DOCENTE"
+  | "SECRETARIA"
+  | "PORTERIA"
   | "DEMO"
-  | "PERSONAL";
+  | "PERSONAL"
+  | "PERSONALIZADO"
+  | "PADRE";
 
 type Props = {
   rolesPermitidos: RolUsuario[];

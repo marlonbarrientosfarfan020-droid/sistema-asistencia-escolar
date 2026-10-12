@@ -314,8 +314,17 @@ export default function Dashboard() {
       const esPuntual = estadoUpper === "PRESENTE" || estadoUpper === "PUNTUAL";
       const esTarde = estadoUpper === "TARDE" || estadoUpper === "TARDANZA";
 
+      let nombreTurnoStr = "";
+      if (eventoDatos.estudiante?.turno) {
+        if (typeof eventoDatos.estudiante.turno === "object" && eventoDatos.estudiante.turno !== null) {
+          nombreTurnoStr = String(eventoDatos.estudiante.turno.nombre || "");
+        } else {
+          nombreTurnoStr = String(eventoDatos.estudiante.turno);
+        }
+      }
+
       const nuevaAsistencia: Asistencia = {
-        id: Number(eventoDatos.asistenciaId) || Date.now(),
+        id: Number(eventoDatos.asistenciaId || eventoDatos.id) || Date.now(),
         fecha: String(eventoDatos.fecha || new Date().toISOString()),
         horaEntrada: eventoDatos.hora || eventoDatos.hora24 || null,
         horaSalida: null,
@@ -323,11 +332,11 @@ export default function Dashboard() {
         estado: esTarde ? "TARDE" : "PUNTUAL",
         estadoSalida: null,
         estudiante: {
-          nombres: eventoDatos.estudiante?.nombres || "Estudiante",
-          apellidos: eventoDatos.estudiante?.apellidos || "",
-          grado: eventoDatos.estudiante?.grado || "",
-          seccion: eventoDatos.estudiante?.seccion || "",
-          turno: eventoDatos.estudiante?.turno ? { nombre: eventoDatos.estudiante.turno } : null,
+          nombres: String(eventoDatos.estudiante?.nombres || "Estudiante"),
+          apellidos: String(eventoDatos.estudiante?.apellidos || ""),
+          grado: String(eventoDatos.estudiante?.grado || ""),
+          seccion: String(eventoDatos.estudiante?.seccion || ""),
+          turno: nombreTurnoStr ? { nombre: nombreTurnoStr } : null,
         },
       };
 
@@ -617,16 +626,24 @@ export default function Dashboard() {
   const grados = useMemo(
     () =>
       Array.from(
-        new Set((datos.resumenTurnos || []).flatMap((turno) => (turno.secciones || []).map((s) => s.grado))),
-      ).sort((a, b) => a.localeCompare(b, "es", { numeric: true })),
+        new Set(
+          (datos.resumenTurnos || [])
+            .flatMap((turno) => (turno.secciones || []).map((s) => s.grado))
+            .filter((g): g is string => typeof g === "string" && g.length > 0)
+        )
+      ).sort((a, b) => String(a || "").localeCompare(String(b || ""), "es", { numeric: true })),
     [datos.resumenTurnos],
   );
 
   const secciones = useMemo(
     () =>
       Array.from(
-        new Set((datos.resumenTurnos || []).flatMap((turno) => (turno.secciones || []).map((s) => s.seccion))),
-      ).sort((a, b) => a.localeCompare(b, "es")),
+        new Set(
+          (datos.resumenTurnos || [])
+            .flatMap((turno) => (turno.secciones || []).map((s) => s.seccion))
+            .filter((s): s is string => typeof s === "string" && s.length > 0)
+        )
+      ).sort((a, b) => String(a || "").localeCompare(String(b || ""), "es")),
     [datos.resumenTurnos],
   );
 
@@ -799,23 +816,23 @@ export default function Dashboard() {
   const graficoAlertas = [
     {
       name: "Avisos",
-      value: datos.alertas.ingresoPendiente,
+      value: datos.alertas?.ingresoPendiente || 0,
       color: "#facc15",
     },
     {
       name: "Tardanzas",
-      value: datos.alertas.tardanza,
+      value: datos.alertas?.tardanza || 0,
       color: "#f97316",
     },
     {
       name: "Ausencias",
-      value: datos.alertas.ausencia,
+      value: datos.alertas?.ausencia || 0,
       color: "#f43f5e",
     },
   ];
 
   const gradosGrafico = useMemo(() => {
-    return datos.resumenGrados
+    return (datos.resumenGrados || [])
       .filter(
         (item) =>
           filtros.grado ===
@@ -839,8 +856,14 @@ export default function Dashboard() {
 
   function hora(fecha: string | null | undefined) {
     if (!fecha) return "-";
+    const str = String(fecha).trim();
+    if (/^\d{1,2}:\d{2}(:\d{2})?(\s?[AP]M)?$/i.test(str)) {
+      return str;
+    }
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return str;
 
-    return new Date(fecha).toLocaleTimeString("es-PE", {
+    return d.toLocaleTimeString("es-PE", {
       hour: "2-digit",
       minute: "2-digit",
       timeZone: "America/Lima",
@@ -849,8 +872,11 @@ export default function Dashboard() {
 
   function fechaHora(fecha: string | null | undefined) {
     if (!fecha) return "Sin registro";
+    const str = String(fecha).trim();
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return str;
 
-    return new Date(fecha).toLocaleString("es-PE", {
+    return d.toLocaleString("es-PE", {
       dateStyle: "short",
       timeStyle: "short",
       timeZone: "America/Lima",
@@ -858,7 +884,7 @@ export default function Dashboard() {
   }
 
   return (
-    <ProteccionRol rolesPermitidos={["ADMIN", "DIRECTIVO", "DEMO"]}>
+    <ProteccionRol rolesPermitidos={["ADMIN", "SUPER_ADMIN", "ADMIN_COLEGIO", "DIRECTIVO", "DIRECTOR", "DEMO"]}>
       <main className="min-h-screen bg-[#020806] text-slate-100">
         <div className="mx-auto max-w-[1920px] px-3 py-3 sm:px-5 lg:px-6">
           <header className={`${PANEL} overflow-hidden`}>
@@ -906,7 +932,7 @@ export default function Dashboard() {
                 onChange={(value) => setFiltros((f) => ({ ...f, turno: value }))}
                 options={[
                   { value: "TODOS", label: "Todos los turnos" },
-                  ...datos.resumenTurnos.map((t) => ({
+                  ...(datos.resumenTurnos || []).map((t) => ({
                     value: t.nombre,
                     label: t.nombre,
                   })),
@@ -1060,25 +1086,29 @@ export default function Dashboard() {
               />
 
               <div className="relative mt-3 h-[310px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={graficoEstadoActualEstudiantes}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={75}
-                      outerRadius={115}
-                      paddingAngle={4}
-                      stroke="transparent"
-                    >
-                      {graficoEstadoActualEstudiantes.map((item) => (
-                        <Cell key={item.name} fill={item.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend verticalAlign="bottom" iconType="circle" />
-                  </PieChart>
-                </ResponsiveContainer>
+                {isMounted ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={graficoEstadoActualEstudiantes}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={75}
+                        outerRadius={115}
+                        paddingAngle={4}
+                        stroke="transparent"
+                      >
+                        {graficoEstadoActualEstudiantes.map((item) => (
+                          <Cell key={item.name} fill={item.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend verticalAlign="bottom" iconType="circle" />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-slate-900/30 rounded-2xl animate-pulse" />
+                )}
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center pb-10">
                   <div className="text-center">
                     <p className="text-4xl font-black text-white">
@@ -1099,19 +1129,23 @@ export default function Dashboard() {
                 badge="Flujo por turno"
               />
               <div className="mt-4 h-[310px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={turnosJornadaGrafico}>
-                    <CartesianGrid stroke="#17312b" strokeDasharray="4 4" vertical={false} />
-                    <XAxis dataKey="nombre" tick={{ fill: "#94a3b8", fontWeight: 700 }} />
-                    <YAxis allowDecimals={false} tick={{ fill: "#64748b" }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Bar dataKey="entradas" name="Entradas" fill="#10b981" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="salidas" name="Salidas" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="pendientes" name="Pendientes salida" fill="#f59e0b" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="sinSalida" name="Sin salida" fill="#f43f5e" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                {isMounted ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={turnosJornadaGrafico}>
+                      <CartesianGrid stroke="#17312b" strokeDasharray="4 4" vertical={false} />
+                      <XAxis dataKey="nombre" tick={{ fill: "#94a3b8", fontWeight: 700 }} />
+                      <YAxis allowDecimals={false} tick={{ fill: "#64748b" }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                      <Bar dataKey="entradas" name="Entradas" fill="#10b981" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="salidas" name="Salidas" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="pendientes" name="Pendientes salida" fill="#f59e0b" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="sinSalida" name="Sin salida" fill="#f43f5e" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-slate-900/30 rounded-2xl animate-pulse" />
+                )}
               </div>
             </div>
           </section>
@@ -1125,25 +1159,29 @@ export default function Dashboard() {
               />
 
               <div className="relative mt-3 h-[310px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={graficoEstado}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={75}
-                      outerRadius={115}
-                      paddingAngle={4}
-                      stroke="transparent"
-                    >
-                      {graficoEstado.map((item) => (
-                        <Cell key={item.name} fill={item.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend verticalAlign="bottom" iconType="circle" />
-                  </PieChart>
-                </ResponsiveContainer>
+                {isMounted ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={graficoEstado}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={75}
+                        outerRadius={115}
+                        paddingAngle={4}
+                        stroke="transparent"
+                      >
+                        {graficoEstado.map((item) => (
+                          <Cell key={item.name} fill={item.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend verticalAlign="bottom" iconType="circle" />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-slate-900/30 rounded-2xl animate-pulse" />
+                )}
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center pb-10">
                   <div className="text-center">
                     <p className="text-4xl font-black text-white">
@@ -1163,19 +1201,23 @@ export default function Dashboard() {
                 subtitle="Presentes, pendientes, tardanzas y ausentes"
               />
               <div className="mt-4 h-[310px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={turnosGrafico}>
-                    <CartesianGrid stroke="#17312b" strokeDasharray="4 4" vertical={false} />
-                    <XAxis dataKey="nombre" tick={{ fill: "#94a3b8", fontWeight: 700 }} />
-                    <YAxis allowDecimals={false} tick={{ fill: "#64748b" }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Bar dataKey="presentes" name="Presentes" fill="#22c55e" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="sinIngreso" name="Sin ingreso" fill="#eab308" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="tardanzaSinIngreso" name="Tardanza" fill="#f97316" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="ausentesConfirmados" name="Ausentes" fill="#f43f5e" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                {isMounted ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={turnosGrafico}>
+                      <CartesianGrid stroke="#17312b" strokeDasharray="4 4" vertical={false} />
+                      <XAxis dataKey="nombre" tick={{ fill: "#94a3b8", fontWeight: 700 }} />
+                      <YAxis allowDecimals={false} tick={{ fill: "#64748b" }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                      <Bar dataKey="presentes" name="Presentes" fill="#22c55e" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="sinIngreso" name="Sin ingreso" fill="#eab308" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="tardanzaSinIngreso" name="Tardanza" fill="#f97316" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="ausentesConfirmados" name="Ausentes" fill="#f43f5e" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-slate-900/30 rounded-2xl animate-pulse" />
+                )}
               </div>
             </div>
           </section>
@@ -1188,18 +1230,22 @@ export default function Dashboard() {
                 badge="Actualización automática"
               />
               <div className="mt-4 h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={datos.tendenciaSemanal}>
-                    <CartesianGrid stroke="#17312b" strokeDasharray="4 4" vertical={false} />
-                    <XAxis dataKey="dia" tick={{ fill: "#94a3b8", fontWeight: 700 }} />
-                    <YAxis allowDecimals={false} tick={{ fill: "#64748b" }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Line type="monotone" dataKey="presentes" name="Presentes" stroke="#22c55e" strokeWidth={3} dot={{ r: 4 }} />
-                    <Line type="monotone" dataKey="ausentes" name="Ausentes" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4 }} />
-                    <Line type="monotone" dataKey="tardanzas" name="Tardanzas" stroke="#f97316" strokeWidth={3} dot={{ r: 4 }} />
-                  </LineChart>
-                </ResponsiveContainer>
+                {isMounted ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={datos.tendenciaSemanal}>
+                      <CartesianGrid stroke="#17312b" strokeDasharray="4 4" vertical={false} />
+                      <XAxis dataKey="dia" tick={{ fill: "#94a3b8", fontWeight: 700 }} />
+                      <YAxis allowDecimals={false} tick={{ fill: "#64748b" }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                      <Line type="monotone" dataKey="presentes" name="Presentes" stroke="#22c55e" strokeWidth={3} dot={{ r: 4 }} />
+                      <Line type="monotone" dataKey="ausentes" name="Ausentes" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4 }} />
+                      <Line type="monotone" dataKey="tardanzas" name="Tardanzas" stroke="#f97316" strokeWidth={3} dot={{ r: 4 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-slate-900/30 rounded-2xl animate-pulse" />
+                )}
               </div>
             </div>
 
@@ -1210,25 +1256,29 @@ export default function Dashboard() {
                 badge={`${datos.alertas.total} mensajes`}
               />
               <div className="mt-4 h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={graficoAlertas}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={55}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      stroke="transparent"
-                    >
-                      {graficoAlertas.map((item) => (
-                        <Cell key={item.name} fill={item.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend verticalAlign="bottom" iconType="circle" />
-                  </PieChart>
-                </ResponsiveContainer>
+                {isMounted ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={graficoAlertas}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={55}
+                        outerRadius={100}
+                        paddingAngle={5}
+                        stroke="transparent"
+                      >
+                        {graficoAlertas.map((item) => (
+                          <Cell key={item.name} fill={item.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend verticalAlign="bottom" iconType="circle" />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-slate-900/30 rounded-2xl animate-pulse" />
+                )}
               </div>
             </div>
           </section>
@@ -1240,22 +1290,26 @@ export default function Dashboard() {
                 subtitle="Tardanzas y ausencias confirmadas"
               />
               <div className="mt-4 h-[320px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={topSecciones} layout="vertical" margin={{ left: 20 }}>
-                    <CartesianGrid stroke="#17312b" strokeDasharray="4 4" horizontal={false} />
-                    <XAxis type="number" allowDecimals={false} tick={{ fill: "#64748b" }} />
-                    <YAxis
-                      type="category"
-                      dataKey="etiqueta"
-                      width={120}
-                      tick={{ fill: "#cbd5e1", fontSize: 11, fontWeight: 700 }}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Bar dataKey="tardanzaSinIngreso" name="Tardanza sin ingreso" fill="#f97316" radius={[0, 8, 8, 0]} />
-                    <Bar dataKey="ausentesConfirmados" name="Ausentes" fill="#f43f5e" radius={[0, 8, 8, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                {isMounted ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={topSecciones} layout="vertical" margin={{ left: 20 }}>
+                      <CartesianGrid stroke="#17312b" strokeDasharray="4 4" horizontal={false} />
+                      <XAxis type="number" allowDecimals={false} tick={{ fill: "#64748b" }} />
+                      <YAxis
+                        type="category"
+                        dataKey="etiqueta"
+                        width={120}
+                        tick={{ fill: "#cbd5e1", fontSize: 11, fontWeight: 700 }}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                      <Bar dataKey="tardanzaSinIngreso" name="Tardanza sin ingreso" fill="#f97316" radius={[0, 8, 8, 0]} />
+                      <Bar dataKey="ausentesConfirmados" name="Ausentes" fill="#f43f5e" radius={[0, 8, 8, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-slate-900/30 rounded-2xl animate-pulse" />
+                )}
               </div>
             </div>
 
@@ -1325,85 +1379,89 @@ export default function Dashboard() {
               />
 
               <div className="mt-4 h-[330px]">
-                <ResponsiveContainer
-                  width="100%"
-                  height="100%"
-                >
-                  <BarChart
-                    data={gradosGrafico}
-                    margin={{
-                      top: 10,
-                      right: 10,
-                      left: 0,
-                      bottom: 5,
-                    }}
+                {isMounted ? (
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
                   >
-                    <CartesianGrid
-                      stroke="#17312b"
-                      strokeDasharray="4 4"
-                      vertical={false}
-                    />
-
-                    <XAxis
-                      dataKey="etiqueta"
-                      tick={{
-                        fill: "#cbd5e1",
-                        fontWeight: 800,
+                    <BarChart
+                      data={gradosGrafico}
+                      margin={{
+                        top: 10,
+                        right: 10,
+                        left: 0,
+                        bottom: 5,
                       }}
-                    />
+                    >
+                      <CartesianGrid
+                        stroke="#17312b"
+                        strokeDasharray="4 4"
+                        vertical={false}
+                      />
 
-                    <YAxis
-                      allowDecimals={false}
-                      tick={{
-                        fill: "#64748b",
-                      }}
-                    />
+                      <XAxis
+                        dataKey="etiqueta"
+                        tick={{
+                          fill: "#cbd5e1",
+                          fontWeight: 800,
+                        }}
+                      />
 
-                    <Tooltip
-                      content={
-                        <CustomTooltip />
-                      }
-                    />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{
+                          fill: "#64748b",
+                        }}
+                      />
 
-                    <Legend />
+                      <Tooltip
+                        content={
+                          <CustomTooltip />
+                        }
+                      />
 
-                    <Bar
-                      dataKey="presentes"
-                      name="Presentes"
-                      fill="#22c55e"
-                      radius={[
-                        8,
-                        8,
-                        0,
-                        0,
-                      ]}
-                    />
+                      <Legend />
 
-                    <Bar
-                      dataKey="sinIngreso"
-                      name="Sin ingreso"
-                      fill="#eab308"
-                      radius={[
-                        8,
-                        8,
-                        0,
-                        0,
-                      ]}
-                    />
+                      <Bar
+                        dataKey="presentes"
+                        name="Presentes"
+                        fill="#22c55e"
+                        radius={[
+                          8,
+                          8,
+                          0,
+                          0,
+                        ]}
+                      />
 
-                    <Bar
-                      dataKey="ausentesConfirmados"
-                      name="Ausentes"
-                      fill="#f43f5e"
-                      radius={[
-                        8,
-                        8,
-                        0,
-                        0,
-                      ]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                      <Bar
+                        dataKey="sinIngreso"
+                        name="Sin ingreso"
+                        fill="#eab308"
+                        radius={[
+                          8,
+                          8,
+                          0,
+                          0,
+                        ]}
+                      />
+
+                      <Bar
+                        dataKey="ausentesConfirmados"
+                        name="Ausentes"
+                        fill="#f43f5e"
+                        radius={[
+                          8,
+                          8,
+                          0,
+                          0,
+                        ]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-slate-900/30 rounded-2xl animate-pulse" />
+                )}
               </div>
             </div>
 
@@ -1448,13 +1506,13 @@ export default function Dashboard() {
                   icono="⏰"
                   titulo="Turnos activos"
                   valor={
-                    datos.resumenTurnos
+                    (datos.resumenTurnos || [])
                       .filter(
                         (turno) =>
                           turno.activo
                       ).length
                   }
-                  detalle={datos.resumenTurnos
+                  detalle={(datos.resumenTurnos || [])
                     .map(
                       (turno) =>
                         turno.nombre
@@ -1547,36 +1605,40 @@ export default function Dashboard() {
 
             <div className="mt-4 grid grid-cols-[92px_1fr] items-center gap-4">
               <div className="relative h-[92px]">
-                <ResponsiveContainer
-                  width="100%"
-                  height="100%"
-                >
-                  <RadialBarChart
-                    innerRadius="72%"
-                    outerRadius="100%"
-                    data={[
-                      {
-                        value: porcentaje,
-                        fill:
-                          porcentaje >= 80
-                            ? "#22c55e"
-                            : porcentaje >= 50
-                              ? "#eab308"
-                              : "#f43f5e",
-                      },
-                    ]}
-                    startAngle={90}
-                    endAngle={-270}
+                {isMounted ? (
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
                   >
-                    <RadialBar
-                      dataKey="value"
-                      background={{
-                        fill: "#132238",
-                      }}
-                      cornerRadius={10}
-                    />
-                  </RadialBarChart>
-                </ResponsiveContainer>
+                    <RadialBarChart
+                      innerRadius="72%"
+                      outerRadius="100%"
+                      data={[
+                        {
+                          value: isFinite(porcentaje) ? porcentaje : 0,
+                          fill:
+                            porcentaje >= 80
+                              ? "#22c55e"
+                              : porcentaje >= 50
+                                ? "#eab308"
+                                : "#f43f5e",
+                        },
+                      ]}
+                      startAngle={90}
+                      endAngle={-270}
+                    >
+                      <RadialBar
+                        dataKey="value"
+                        background={{
+                          fill: "#132238",
+                        }}
+                        cornerRadius={10}
+                      />
+                    </RadialBarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-slate-900/40 rounded-full" />
+                )}
 
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                   <span className="text-lg font-black text-white">
@@ -1842,16 +1904,23 @@ function ActividadAlerta({
         ? "Ausencia confirmada"
         : "Alerta de tardanza";
 
+  const turnoTexto =
+    typeof alerta.estudiante?.turno?.nombre === "string"
+      ? alerta.estudiante.turno.nombre
+      : typeof (alerta.estudiante as any)?.turno === "string"
+      ? String((alerta.estudiante as any).turno)
+      : "Sin turno";
+
   return (
     <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-950/55 p-4 hover:border-emerald-500/30">
       <div className="flex min-w-0 gap-3">
         <span className="text-xl">{icono}</span>
         <div className="min-w-0">
           <p className="truncate font-black text-white">
-            {alerta.estudiante.nombres} {alerta.estudiante.apellidos}
+            {alerta.estudiante?.nombres || "Estudiante"} {alerta.estudiante?.apellidos || ""}
           </p>
           <p className="mt-1 text-xs font-semibold text-slate-500">
-            {alerta.estudiante.grado}° {alerta.estudiante.seccion} · {alerta.estudiante.turno?.nombre || "Sin turno"}
+            {alerta.estudiante?.grado || "-"}° {alerta.estudiante?.seccion || "-"} · {turnoTexto}
           </p>
           <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-emerald-300">
             {nombre}
@@ -1876,14 +1945,23 @@ function ActividadAsistencia({
   const esSalida = Boolean(asistencia.horaSalida);
   const horaMostrar = asistencia.horaSalida || asistencia.horaEntrada;
 
+  const turnoTexto =
+    typeof asistencia.estudiante?.turno?.nombre === "string"
+      ? asistencia.estudiante.turno.nombre
+      : typeof (asistencia.estudiante?.turno as any)?.nombre === "object" && (asistencia.estudiante?.turno as any)?.nombre?.nombre
+      ? String((asistencia.estudiante?.turno as any)?.nombre?.nombre)
+      : typeof (asistencia.estudiante as any)?.turno === "string"
+      ? String((asistencia.estudiante as any).turno)
+      : "Sin turno";
+
   return (
     <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-950/55 p-4 hover:border-blue-500/30">
       <div>
         <p className="font-black text-white">
-          {asistencia.estudiante.nombres} {asistencia.estudiante.apellidos}
+          {asistencia.estudiante?.nombres || "Estudiante"} {asistencia.estudiante?.apellidos || ""}
         </p>
         <p className="mt-1 text-xs font-semibold text-slate-500">
-          {asistencia.estudiante.grado}° {asistencia.estudiante.seccion} · {asistencia.estudiante.turno?.nombre || "Sin turno"}
+          {asistencia.estudiante?.grado || "-"}° {asistencia.estudiante?.seccion || "-"} · {turnoTexto}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {esSalidaExcepcional ? (
