@@ -88,8 +88,11 @@ type EstadoVisual =
 
 type ResultadoAsistencia = {
   ok?: boolean;
+  codigoResultado?: string;
   yaRegistrado?: boolean;
   tipo?: "ENTRADA" | "SALIDA";
+  hora?: string;
+  horaFormateada?: string;
   estado?: string;
   estadoJornada?: string;
   estadoSalida?: string;
@@ -117,6 +120,7 @@ type ResultadoAsistencia = {
     tipo?: string;
     fotoUrl?: string | null;
     fotoEntrada?: string | null;
+    fotoSalida?: string | null;
   };
 };
 
@@ -167,6 +171,7 @@ export default function MarcarPage() {
   const [dni, setDni] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [resultado, setResultado] = useState<ResultadoAsistencia | null>(null);
+  const [modoOperativo, setModoOperativo] = useState<"ENTRADA" | "SALIDA">("ENTRADA");
 
   // Estados de cámara permanente y control
   const [camaraActiva, setCamaraActiva] = useState(false);
@@ -483,9 +488,28 @@ export default function MarcarPage() {
     }
   }
 
-  function beep(tipo: "ok" | "error") {
-    const audio = new Audio(tipo === "ok" ? "/beep-ok.mp3" : "/beep-error.mp3");
-    audio.play().catch(() => {});
+  function beep(tipo: "ok" | "error" | "warning") {
+    try {
+      if (tipo === "warning") {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+          gain.gain.setValueAtTime(0.15, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.25);
+          return;
+        }
+      }
+      const audio = new Audio(tipo === "ok" ? "/beep-ok.mp3" : "/beep-error.mp3");
+      audio.play().catch(() => {});
+    } catch {}
   }
 
   async function esperar(ms: number) {
@@ -1014,7 +1038,7 @@ export default function MarcarPage() {
   async function capturarFotoDesdeVideoActual(): Promise<Blob | null> {
     try {
       const video = (document.querySelector("#lector-qr video") || document.querySelector("video")) as HTMLVideoElement | null;
-      if (video && video.videoWidth > 0 && video.videoHeight > 0) {
+      if (video && video.videoWidth > 0 && video.videoHeight > 0 && video.readyState >= 2) {
         const canvas = document.createElement("canvas");
         const ancho = Math.min(video.videoWidth, 640);
         const alto = Math.round((video.videoHeight * ancho) / video.videoWidth);
@@ -1024,11 +1048,24 @@ export default function MarcarPage() {
         if (ctx) {
           ctx.drawImage(video, 0, 0, ancho, alto);
 
+          // Verificar que el fotograma contenga imagen y no sea totalmente negro
+          try {
+            const muestra = ctx.getImageData(0, 0, Math.min(ancho, 40), Math.min(alto, 40)).data;
+            let suma = 0;
+            for (let i = 0; i < muestra.length; i += 4) {
+              suma += muestra[i] + muestra[i + 1] + muestra[i + 2];
+            }
+            if (suma === 0) {
+              console.warn("[FOTO DEBUG] Fotograma negro detectado; descartando.");
+              return null;
+            }
+          } catch {}
+
           const blob = await new Promise<Blob | null>((resolve) => {
             canvas.toBlob((b) => resolve(b), "image/jpeg", 0.75);
           });
 
-          if (blob && blob.size > 0 && blob.type === "image/jpeg") {
+          if (blob && blob.size > 500 && blob.type === "image/jpeg") {
             return blob;
           }
         }
@@ -1116,8 +1153,8 @@ export default function MarcarPage() {
       const esDniNumerico = /^\d{8}$/.test(codigoLimpio);
 
       const payload = esDniNumerico
-        ? { dni: codigoLimpio, codigo: codigoLimpio, metodo: "QR" }
-        : { codigo: codigoLimpio, metodo: "QR" };
+        ? { dni: codigoLimpio, codigo: codigoLimpio, metodo: "QR", intencionOperativa: modoOperativo }
+        : { codigo: codigoLimpio, metodo: "QR", intencionOperativa: modoOperativo };
 
       await ejecutarRegistroAsistencia(payload, fotoBlob);
 
@@ -1167,7 +1204,7 @@ export default function MarcarPage() {
         ? crypto.randomUUID()
         : `idemp_${Date.now()}_${Math.random().toString(36).substring(7)}`);
     const clientTimestamp = datos.clientTimestamp || Date.now();
-    const intencionOperativa = datos.intencionOperativa || "AUTO";
+    const intencionOperativa = datos.intencionOperativa || modoOperativo || "ENTRADA";
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6000);
@@ -1199,40 +1236,98 @@ export default function MarcarPage() {
 
       const data: ResultadoAsistencia = await res.json();
 
-      if (!res.ok) {
-        const msg = data.message || `No se pudo registrar asistencia (${res.status})`;
-        const esDuplicado =
-          res.status === 409 ||
-          Boolean(data.yaRegistrado) ||
-          msg.toLowerCase().includes("ya registró");
+      // Determinar código de resultado estructurado
+      const codigoResultado = data.codigoResultado || (
+        data.yaRegistrado
+          ? (data.tipo === "SALIDA" ? "SALIDA_YA_REGISTRADA" : "ASISTENCIA_YA_REGISTRADA")
+          : (data.tipo === "SALIDA" ? "SALIDA_REGISTRADA" : "ENTRADA_REGISTRADA")
+      );
 
-        if (esDuplicado) {
-          setResultado(data);
-          setMensaje(`?? Ya registró asistencia hoy`);
-          setEstadoVisual("aviso");
+      const horaFormateada =
+        data.horaFormateada ||
+        data.hora ||
+        data.asistencia?.horaFormateada ||
+        data.asistencia?.hora ||
+        (data.tipo === "SALIDA"
+          ? (data.asistencia?.horaSalida ? new Date(data.asistencia.horaSalida).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "America/Lima" }) : "--:--")
+          : (data.asistencia?.horaEntrada ? new Date(data.asistencia.horaEntrada).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "America/Lima" }) : "--:--"));
+
+      if (!res.ok && codigoResultado !== "ASISTENCIA_YA_REGISTRADA" && codigoResultado !== "SALIDA_YA_REGISTRADA") {
+        if (codigoResultado === "FUERA_DE_HORARIO" || data.esFueraHorario) {
+          setResultado({
+            ...data,
+            codigoResultado: "FUERA_DE_HORARIO",
+            hora: horaFormateada,
+            horaFormateada,
+          });
+          setMensaje(`🚫 ${data.message || "Operación fuera de horario escolar"}`);
+          setEstadoVisual("error");
           beep("error");
           return;
         }
 
-        throw new Error(msg);
+        const msg = data.message || `No se pudo registrar asistencia (${res.status})`;
+        setResultado({
+          ...data,
+          codigoResultado: "ERROR_DE_REGISTRO",
+          message: msg,
+        });
+        setMensaje(`⚠️ ${msg}`);
+        setEstadoVisual("error");
+        beep("error");
+        return;
       }
 
-      setResultado({
-        ...data,
-        fotoUrl: data.asistencia?.fotoUrl || null,
-        estadoEvidencia: fotoBlob ? "Evidencia en captura" : "Evidencia no disponible",
-      });
-
-      setMensaje(
-        data.esFueraHorario
-          ? `?? ${data.message}`
-          : `✓ ${data.message || "Asistencia registrada"}`
-      );
-
-      if (data.tipo === "ENTRADA") {
+      // Procesar estados exitosos o ya registrados
+      if (codigoResultado === "ENTRADA_REGISTRADA") {
+        setResultado({
+          ...data,
+          codigoResultado,
+          hora: horaFormateada,
+          horaFormateada,
+          fotoUrl: data.asistencia?.fotoUrl || null,
+          estadoEvidencia: fotoBlob ? "Foto pendiente de sincronización" : "Sin foto",
+        });
+        setMensaje(`✓ ${data.message || "Entrada registrada correctamente"}`);
         setEstadoVisual("entrada");
-      } else if (data.tipo === "SALIDA") {
-        setEstadoVisual(data.esFueraHorario ? "aviso" : "salida");
+        beep("ok");
+      } else if (codigoResultado === "ASISTENCIA_YA_REGISTRADA") {
+        setResultado({
+          ...data,
+          codigoResultado,
+          tipo: "ENTRADA",
+          hora: horaFormateada,
+          horaFormateada,
+          estadoEvidencia: "Entrada previa conservada",
+        });
+        setMensaje(`⚠️ Entrada ya registrada previamente`);
+        setEstadoVisual("aviso");
+        beep("warning");
+      } else if (codigoResultado === "SALIDA_REGISTRADA") {
+        setResultado({
+          ...data,
+          codigoResultado,
+          tipo: "SALIDA",
+          hora: horaFormateada,
+          horaFormateada,
+          fotoUrl: data.asistencia?.fotoSalida || null,
+          estadoEvidencia: fotoBlob ? "Foto de salida pendiente" : "Sin foto",
+        });
+        setMensaje(`✓ ${data.message || "Salida registrada correctamente"}`);
+        setEstadoVisual("salida");
+        beep("ok");
+      } else if (codigoResultado === "SALIDA_YA_REGISTRADA") {
+        setResultado({
+          ...data,
+          codigoResultado,
+          tipo: "SALIDA",
+          hora: horaFormateada,
+          horaFormateada,
+          estadoEvidencia: "Salida previa conservada",
+        });
+        setMensaje(`⚠️ Salida ya registrada previamente`);
+        setEstadoVisual("aviso");
+        beep("warning");
       }
 
       if (fotoBlob && data.asistencia?.id) {
@@ -1528,6 +1623,40 @@ export default function MarcarPage() {
           </div>
         </div>
 
+        {/* Selector de Modo Operativo ENTRADA / SALIDA */}
+        <div className="inline-flex items-center p-1 bg-slate-950/90 border border-slate-700/80 rounded-2xl shadow-inner">
+          <button
+            type="button"
+            onClick={() => {
+              setModoOperativo("ENTRADA");
+              setMensaje("Modo ENTRADA activo. Escanee QR de ingreso.");
+            }}
+            className={`inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black transition-all ${
+              modoOperativo === "ENTRADA"
+                ? "bg-emerald-600 text-white shadow-md shadow-emerald-950/60 ring-2 ring-emerald-400/50"
+                : "text-slate-400 hover:text-white hover:bg-slate-800/80"
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>ENTRADA</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setModoOperativo("SALIDA");
+              setMensaje("Modo SALIDA activo. Escanee QR de salida.");
+            }}
+            className={`inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black transition-all ${
+              modoOperativo === "SALIDA"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-950/60 ring-2 ring-blue-400/50"
+                : "text-slate-400 hover:text-white hover:bg-slate-800/80"
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+            <span>SALIDA</span>
+          </button>
+        </div>
+
         {/* Reloj Digital en Vivo y Chips de Estado */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {horaActual && (
@@ -1791,12 +1920,28 @@ export default function MarcarPage() {
                 </div>
               )}
 
-              {/* Banner de Bienvenida y Resultado de Marcación */}
+              {/* Banner de Bienvenida y Resultado de Marcación Estructurado */}
               {resultado && (
                 <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 bg-slate-950/92 backdrop-blur-md animate-in fade-in zoom-in duration-150">
                   {resultado.estudiante ? (
-                    <div className="flex flex-col items-center text-center max-w-lg w-full bg-slate-900/90 border-2 border-emerald-500/80 rounded-3xl p-6 sm:p-8 shadow-[0_0_60px_rgba(16,185,129,0.35)]">
-                      <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border-4 border-emerald-400 bg-slate-800 shadow-2xl mb-4">
+                    <div className={`flex flex-col items-center text-center max-w-lg w-full bg-slate-900/95 border-2 rounded-3xl p-6 sm:p-8 ${
+                      resultado.codigoResultado === "ENTRADA_REGISTRADA"
+                        ? "border-emerald-500/80 shadow-[0_0_60px_rgba(16,185,129,0.35)]"
+                        : resultado.codigoResultado === "SALIDA_REGISTRADA"
+                        ? "border-blue-500/80 shadow-[0_0_60px_rgba(59,130,246,0.35)]"
+                        : resultado.codigoResultado === "ASISTENCIA_YA_REGISTRADA" || resultado.codigoResultado === "SALIDA_YA_REGISTRADA"
+                        ? "border-amber-500/80 shadow-[0_0_60px_rgba(245,158,11,0.35)]"
+                        : "border-rose-500/80 shadow-[0_0_60px_rgba(244,63,94,0.35)]"
+                    }`}>
+                      <div className={`relative w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border-4 bg-slate-800 shadow-2xl mb-4 ${
+                        resultado.codigoResultado === "ENTRADA_REGISTRADA"
+                          ? "border-emerald-400"
+                          : resultado.codigoResultado === "SALIDA_REGISTRADA"
+                          ? "border-blue-400"
+                          : resultado.codigoResultado === "ASISTENCIA_YA_REGISTRADA" || resultado.codigoResultado === "SALIDA_YA_REGISTRADA"
+                          ? "border-amber-400"
+                          : "border-rose-400"
+                      }`}>
                         {resultado.estudiante.fotoPerfilUrl ? (
                           <img
                             src={resultado.estudiante.fotoPerfilUrl}
@@ -1804,15 +1949,35 @@ export default function MarcarPage() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-4xl text-emerald-300">
-                            ??
+                          <div className="w-full h-full flex items-center justify-center text-4xl text-slate-300">
+                            👩‍🎓
                           </div>
                         )}
                       </div>
 
-                      <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-black uppercase tracking-wider mb-2">
-                        <LuCircleCheck className="w-4 h-4 text-emerald-400" />
-                        <span>{resultado.tipo === "SALIDA" ? "SALIDA REGISTRADA" : "ENTRADA REGISTRADA"}</span>
+                      {/* Badge con Semántica de Operación */}
+                      <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider mb-2 border ${
+                        resultado.codigoResultado === "ENTRADA_REGISTRADA"
+                          ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-300"
+                          : resultado.codigoResultado === "SALIDA_REGISTRADA"
+                          ? "bg-blue-500/20 border-blue-400/40 text-blue-300"
+                          : resultado.codigoResultado === "ASISTENCIA_YA_REGISTRADA"
+                          ? "bg-amber-500/20 border-amber-400/40 text-amber-300"
+                          : resultado.codigoResultado === "SALIDA_YA_REGISTRADA"
+                          ? "bg-amber-500/20 border-amber-400/40 text-amber-300"
+                          : "bg-rose-500/20 border-rose-400/40 text-rose-300"
+                      }`}>
+                        {resultado.codigoResultado === "ENTRADA_REGISTRADA" ? (
+                          <><span>✅</span><span>ENTRADA REGISTRADA</span></>
+                        ) : resultado.codigoResultado === "SALIDA_REGISTRADA" ? (
+                          <><span>👋</span><span>SALIDA REGISTRADA</span></>
+                        ) : resultado.codigoResultado === "ASISTENCIA_YA_REGISTRADA" ? (
+                          <><span>⚠️</span><span>ASISTENCIA YA REGISTRADA</span></>
+                        ) : resultado.codigoResultado === "SALIDA_YA_REGISTRADA" ? (
+                          <><span>⚠️</span><span>SALIDA YA REGISTRADA PREVIAMENTE</span></>
+                        ) : (
+                          <><span>🚫</span><span>OPERACIÓN FUERA DE HORARIO</span></>
+                        )}
                       </div>
 
                       <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight">
@@ -1823,11 +1988,18 @@ export default function MarcarPage() {
                         {resultado.estudiante.grado} • {resultado.estudiante.seccion}
                       </p>
 
+                      {/* Hora real y persistida garantizada */}
                       <div className="mt-4 px-6 py-2.5 rounded-2xl bg-slate-950 border border-slate-800 text-white font-mono text-xl sm:text-2xl font-black">
-                        Hora: {resultado.asistencia?.horaFormateada || resultado.asistencia?.hora || "--:--"}
+                        Hora: {resultado.hora || resultado.horaFormateada || (resultado.asistencia as any)?.horaFormateada || (resultado.asistencia as any)?.hora || "--:--"}
                       </div>
 
-                      <p className="text-xs text-emerald-400 mt-4 font-bold animate-pulse">
+                      {resultado.message && (
+                        <p className="text-xs text-slate-300 mt-2 max-w-sm font-medium">
+                          {resultado.message}
+                        </p>
+                      )}
+
+                      <p className="text-xs text-slate-400 mt-4 font-bold animate-pulse">
                         Listo para el siguiente estudiante...
                       </p>
                     </div>

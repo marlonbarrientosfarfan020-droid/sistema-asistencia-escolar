@@ -558,21 +558,38 @@ export async function POST(request: Request) {
      * CASO A: REGISTRO DE ENTRADA (Primera marcación del día)
      */
     if (!asistencia) {
+      // Si la intención declarada era SALIDA pero no tiene registro previo de entrada
+      if (intencionOperativa === "SALIDA") {
+        return NextResponse.json(
+          {
+            ok: false,
+            codigoResultado: "SIN_AUTORIZACION",
+            tipo: "SALIDA",
+            message: `El estudiante ${estudiante.nombres} ${estudiante.apellidos} no registra entrada el día de hoy. No puede marcar salida sin haber ingresado.`,
+            estudiante,
+          },
+          { status: 400 }
+        );
+      }
+
       if (ahora < ventanaTurno.inicioPermitido) {
         return NextResponse.json(
           {
             ok: false,
+            codigoResultado: "FUERA_DE_HORARIO",
+            fueraDeHorario: true,
+            tipoRestriccion: "ENTRADA_ANTICIPADA",
+            tipo: "ENTRADA",
             message:
               `Todavía no está habilitado el ingreso para el turno ${estudiante.turno.nombre}. ` +
               `Puede marcar desde las ${formatoHora12(ventanaTurno.inicioPermitido)}. ` +
               `Hora actual: ${horaActual12}.`,
-            fueraDeHorario: true,
-            tipoRestriccion: "ENTRADA_ANTICIPADA",
             turno: {
               nombre: estudiante.turno.nombre,
               horaEntrada: estudiante.turno.horaEntrada,
               horaSalida: estudiante.turno.horaSalida,
             },
+            estudiante,
           },
           { status: 409 }
         );
@@ -582,17 +599,20 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             ok: false,
+            codigoResultado: "FUERA_DE_HORARIO",
+            fueraDeHorario: true,
+            tipoRestriccion: "ENTRADA_FINALIZADA",
+            tipo: "ENTRADA",
             message:
               `El horario de entrada del turno ${estudiante.turno.nombre} ya terminó. ` +
               `La entrada se permite hasta las ${formatoHora12(ventanaTurno.horaSalidaTurno)}. ` +
               `Hora actual: ${horaActual12}.`,
-            fueraDeHorario: true,
-            tipoRestriccion: "ENTRADA_FINALIZADA",
             turno: {
               nombre: estudiante.turno.nombre,
               horaEntrada: estudiante.turno.horaEntrada,
               horaSalida: estudiante.turno.horaSalida,
             },
+            estudiante,
           },
           { status: 409 }
         );
@@ -737,10 +757,13 @@ export async function POST(request: Request) {
 
       const respEntradaExitosa = {
         ok: true,
+        codigoResultado: "ENTRADA_REGISTRADA",
         tipo: "ENTRADA",
         estado: estadoAsistencia,
         estadoJornada: "ABIERTA",
         estadoSalida: "PENDIENTE",
+        hora: horaActual12,
+        horaFormateada: horaActual12,
         estudiante,
         asistencia: nuevaAsistencia,
         message: "Entrada registrada correctamente",
@@ -926,10 +949,13 @@ export async function POST(request: Request) {
 
       const respCasoCExitosa = {
         ok: true,
+        codigoResultado: "ENTRADA_REGISTRADA",
         tipo: "ENTRADA",
         estado: estadoAsistencia,
         estadoJornada: "ABIERTA",
         estadoSalida: "PENDIENTE",
+        hora: horaActual12,
+        horaFormateada: horaActual12,
         estudiante,
         asistencia: asistenciaActualizada,
         message: "Entrada registrada correctamente (Actualizada inasistencia previa)",
@@ -942,76 +968,45 @@ export async function POST(request: Request) {
      * CASO B: EL ESTUDIANTE YA TIENE REGISTRADA ENTRADA (JORNADA ABIERTA)
      */
     if (!asistencia.horaSalida) {
-      // GUARDIA 1: Si la intención declarada de la marcación era estrictamente ENTRADA
-      if (intencionOperativa === "ENTRADA") {
-        const horaReg = formatoHora12(asistencia.horaEntrada || asistencia.fecha);
-        const respYaEntro = {
-          ok: true,
-          yaRegistrado: true,
-          tipo: "ENTRADA",
-          estado: asistencia.estado,
-          estadoJornada: "ABIERTA",
-          estadoSalida: "PENDIENTE",
-          estudiante,
-          asistencia,
-          message: `El estudiante ${estudiante.nombres} ${estudiante.apellidos} ya registró su entrada hoy a las ${horaReg}.`,
-        };
-        await guardarEnCacheIdempotencia(idempotencyKey, 409, respYaEntro, estudiante.id, estudiante.colegioId || colegioId);
-        return NextResponse.json(respYaEntro, { status: 409 });
-      }
-
-      // GUARDIA 2: Si es un reintento HTTP rezagado (> 3 minutos desde que el cliente escaneó)
-      // Un escaneo matutino de entrada que llega con retraso NO debe convertirse accidentalmente en salida
-      if (clientTimestamp && ahora.getTime() - Number(clientTimestamp) > 3 * 60 * 1000) {
-        console.warn(
-          `[IDEMPOTENCIA API] Reintento HTTP rezagado detectado para estudiante ${estudiante.id}. ` +
-          `Desfase: ${ahora.getTime() - Number(clientTimestamp)}ms. Bloqueando conversión accidental a salida.`
-        );
-        const horaReg = formatoHora12(asistencia.horaEntrada || asistencia.fecha);
-        const respRezagado = {
-          ok: true,
-          yaRegistrado: true,
-          reintentoRezagado: true,
-          tipo: "ENTRADA",
-          estado: asistencia.estado,
-          estadoJornada: "ABIERTA",
-          estadoSalida: "PENDIENTE",
-          estudiante,
-          asistencia,
-          message: `Marcación previa reconocida (reintento HTTP rezagado). Entrada registrada a las ${horaReg}.`,
-        };
-        await guardarEnCacheIdempotencia(idempotencyKey, 409, respRezagado, estudiante.id, estudiante.colegioId || colegioId);
-        return NextResponse.json(respRezagado, { status: 409 });
-      }
-
-      // 1. Protección contra doble-escaneo accidental (menos de 3 minutos de haber entrado)
+      const horaEntradaReg = formatoHora12(asistencia.horaEntrada || asistencia.fecha);
       const tiempoDesdeEntradaMs = asistencia.horaEntrada
         ? ahora.getTime() - new Date(asistencia.horaEntrada).getTime()
         : 0;
 
-      if (tiempoDesdeEntradaMs < 3 * 60 * 1000) {
-        const horaReg = formatoHora12(asistencia.horaEntrada || asistencia.fecha);
-        return NextResponse.json(
-          {
-            ok: true,
-            yaRegistrado: true,
-            salidaAunNoDisponible: true,
-            tipo: "ENTRADA",
-            estado: asistencia.estado,
-            estadoJornada: "ABIERTA",
-            estadoSalida: "PENDIENTE",
-            estudiante,
-            asistencia,
-            message: `El estudiante ${estudiante.nombres} ${estudiante.apellidos} ya registró entrada hoy a las ${horaReg}. La jornada escolar está ABIERTA.`,
-            turno: {
-              nombre: estudiante.turno.nombre,
-              horaSalida: estudiante.turno.horaSalida,
-            },
+      // SUB-CASO B.1: INTENCIÓN DECLARADA DE ENTRADA O MODO ENTRADA O ESCANEO REPETIDO
+      // Un escaneo repetido en modo entrada, o cualquier intento donde intencionOperativa !== "SALIDA",
+      // NUNCA debe transformarse en salida, ni alterar horaSalida.
+      const esIntencionExplicitaSalida = intencionOperativa === "SALIDA";
+      const dentroPeriodoEntradaAuto = !esIntencionExplicitaSalida && (
+        intencionOperativa === "ENTRADA" ||
+        tiempoDesdeEntradaMs < 60 * 60 * 1000 ||
+        ahora < ventanaTurno.inicioSalidaPermitido
+      );
+
+      if (dentroPeriodoEntradaAuto || !esIntencionExplicitaSalida) {
+        const respYaEntro = {
+          ok: true,
+          codigoResultado: "ASISTENCIA_YA_REGISTRADA",
+          yaRegistrado: true,
+          tipo: "ENTRADA",
+          estado: asistencia.estado,
+          estadoJornada: asistencia.estadoJornada || "ABIERTA",
+          estadoSalida: asistencia.estadoSalida || "PENDIENTE",
+          hora: horaEntradaReg,
+          horaFormateada: horaEntradaReg,
+          estudiante,
+          asistencia,
+          message: `El estudiante ${estudiante.nombres} ${estudiante.apellidos} ya registró su entrada hoy a las ${horaEntradaReg}. La jornada escolar permanece ABIERTA.`,
+          turno: {
+            nombre: estudiante.turno.nombre,
+            horaSalida: estudiante.turno.horaSalida,
           },
-          { status: 409 }
-        );
+        };
+        await guardarEnCacheIdempotencia(idempotencyKey, 200, respYaEntro, estudiante.id, estudiante.colegioId || colegioId);
+        return NextResponse.json(respYaEntro, { status: 200 });
       }
 
+      // SUB-CASO B.2: INTENCIÓN EXPLÍCITA DE SALIDA (MODO SALIDA)
       // 2. Cálculo del estado de salida contemplando la ventana anticipada, oficial y margen posterior
       const {
         estadoSalida,
@@ -1031,15 +1026,19 @@ export async function POST(request: Request) {
       if (esBloqueadoAntesVentana) {
         const horaInicioSalida = formatoHora12(inicioVentanaSalida);
         const horaSalidaOficial = formatoHora12(ventanaTurno.horaSalidaTurno);
+        const horaEntradaPrevia = formatoHora12(asistencia.horaEntrada || asistencia.fecha);
         return NextResponse.json(
           {
             ok: false,
+            codigoResultado: "FUERA_DE_HORARIO",
             salidaAnticipada: true,
             tipoRestriccion: "SALIDA_ANTICIPADA",
             tipo: "SALIDA",
             estado: asistencia.estado,
             estadoJornada: "ABIERTA",
             estadoSalida: "PENDIENTE",
+            hora: horaEntradaPrevia,
+            horaFormateada: horaEntradaPrevia,
             estudiante,
             asistencia,
             message:
@@ -1185,11 +1184,13 @@ export async function POST(request: Request) {
 
       const respSalidaExitosa = {
         ok: true,
+        codigoResultado: "SALIDA_REGISTRADA",
         tipo: "SALIDA",
         estado: asistencia.estado,
         estadoJornada: "CERRADA",
         estadoSalida,
-        esFueraHorario,
+        hora: horaActual12,
+        horaFormateada: horaActual12,
         estudiante,
         asistencia: asistenciaCerrada,
         message: mensajeSalida,

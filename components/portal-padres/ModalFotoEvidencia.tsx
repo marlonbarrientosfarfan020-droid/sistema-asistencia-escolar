@@ -47,8 +47,13 @@ export function esUrlEvidenciaValida(url: unknown): boolean {
   ) {
     return false;
   }
-  // Debe ser URL http/https o data:image
-  if (!u.startsWith("http://") && !u.startsWith("https://") && !u.startsWith("data:image/")) {
+  // Debe ser URL http/https, data:image o ruta proxy relativa segura
+  if (
+    !u.startsWith("http://") &&
+    !u.startsWith("https://") &&
+    !u.startsWith("data:image/") &&
+    !u.startsWith("/")
+  ) {
     return false;
   }
   return true;
