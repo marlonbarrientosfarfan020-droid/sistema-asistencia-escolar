@@ -8,6 +8,7 @@ export type TerminalConfig = {
   tipoDispositivo: TipoDispositivoTerminal;
   camaraSeleccionada: string;
   modoCamaraPreferido: "environment" | "user";
+  resolucionPreferida?: "1080p" | "720p" | "480p" | "auto";
   estadoTerminal: EstadoConexionTerminal;
   ultimaConexion?: string;
   colegioId?: string;
@@ -17,4 +18,5 @@ export type CamaraDispositivo = {
   deviceId: string;
   label: string;
   kind?: string;
+  esVirtual?: boolean;
 };

@@ -71,12 +71,79 @@ export const CAMARAS_VIRTUALES_BLACKLIST = [
   "snap camera",
   "ndi",
   "epoccam",
+  "camtwist",
+  "logi capture",
+  "xsplit",
+  "sparkocam",
+  "animaze",
+  "vdo.ninja",
+  "fake",
+  "dummy",
+  "software",
 ];
 
 export function esCamaraVirtual(label: string): boolean {
   if (!label) return false;
   const l = label.toLowerCase();
   return CAMARAS_VIRTUALES_BLACKLIST.some((palabra) => l.includes(palabra));
+}
+
+/**
+ * Obtiene el elemento HTMLVideoElement activo sin depender únicamente de selectores DOM frágiles.
+ * Utiliza el método oficial getRenderedCameraOrFail().getSurface() de Html5Qrcode si está disponible.
+ */
+export function obtenerVideoElementActivo(lector?: Html5Qrcode | null): HTMLVideoElement | null {
+  try {
+    if (lector) {
+      const rendered = (lector as any).getRenderedCameraOrFail?.();
+      const surface = rendered?.getSurface?.();
+      if (surface && surface instanceof HTMLVideoElement) {
+        return surface;
+      }
+    }
+  } catch {}
+
+  const contenedor = typeof document !== "undefined" ? document.getElementById("lector-qr") : null;
+  const video = contenedor?.querySelector("video") || (typeof document !== "undefined" ? document.querySelector("video") : null);
+  return video instanceof HTMLVideoElement ? video : null;
+}
+
+/**
+ * Negocia y lee la resolución y FPS reales negociados por el sensor de hardware.
+ */
+export async function obtenerResolucionRealVideo(
+  videoEl: HTMLVideoElement | null,
+  track?: MediaStreamTrack | null
+): Promise<{ width: number; height: number; fps: number }> {
+  let settings: MediaTrackSettings = {};
+  try {
+    if (track?.getSettings) {
+      settings = track.getSettings();
+    }
+  } catch {}
+
+  let width = settings.width || 0;
+  let height = settings.height || 0;
+  let fps = Math.round(settings.frameRate || 0);
+
+  if (videoEl) {
+    if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
+      width = videoEl.videoWidth;
+      height = videoEl.videoHeight;
+    } else {
+      // Esperar hasta que metadata esté lista en el elemento de video (máx 600ms)
+      for (let i = 0; i < 6; i++) {
+        await new Promise((r) => setTimeout(r, 100));
+        if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
+          width = videoEl.videoWidth;
+          height = videoEl.videoHeight;
+          break;
+        }
+      }
+    }
+  }
+
+  return { width, height, fps: fps > 0 ? fps : 30 };
 }
 
 type EstadoVisual =
@@ -332,8 +399,27 @@ export default function MarcarPage() {
       void actualizarListaDispositivos();
     };
 
+    // Recuperación inteligente al volver a la pestaña (Android Chrome, iOS Safari, etc.)
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        if (!desmontadoRef.current && !camaraManualApagada && autoInicioEjecutadoRef.current) {
+          const videoEl = obtenerVideoElementActivo(scannerRef.current);
+          const stream = videoEl?.srcObject as MediaStream | null;
+          const track = stream?.getVideoTracks()?.[0];
+          const streamDetenido = !track || track.readyState !== "live" || track.muted;
+          const videoPausado = !videoEl || videoEl.paused || videoEl.ended;
+
+          if (streamDetenido || videoPausado) {
+            console.warn("[TERMINAL V2] Pestaña reactivada tras suspensión/background. Restaurando cámara permanente...");
+            void activarCamaraPermanente();
+          }
+        }
+      }
+    };
+
     window.addEventListener("popstate", bloquearAtras);
     navigator.mediaDevices?.addEventListener("devicechange", onDeviceChange);
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     const onFullscreenChange = () => {
       setEsPantallaCompleta(Boolean(document.fullscreenElement));
@@ -348,11 +434,12 @@ export default function MarcarPage() {
       }
       window.removeEventListener("popstate", bloquearAtras);
       navigator.mediaDevices?.removeEventListener("devicechange", onDeviceChange);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       document.removeEventListener("fullscreenchange", onFullscreenChange);
       detenerCamaraFoto();
       void liberarRecursosCamara();
     };
-  }, [router]);
+  }, [router, camaraManualApagada]);
 
   // 2. Auto-iniciar cámara permanente (1 sola vez protegida contra StrictMode)
   useEffect(() => {
@@ -397,7 +484,7 @@ export default function MarcarPage() {
       }
     }
 
-    // 2. Si es Laptop / PC: SIEMPRE priorizar la webcam integrada / frontal (dispositivo 0 o palabra clave)
+    // 2. Si es Laptop / PC: SIEMPRE priorizar webcam física integrada o USB
     if (tipoDispositivo === "LAPTOP_PC") {
       const palabrasLaptop = [
         "integrated",
@@ -410,6 +497,7 @@ export default function MarcarPage() {
         "facetime",
         "hd camera",
         "camera",
+        "usb",
       ];
       const encontradaLaptop = listaCandidatas.find((c) =>
         palabrasLaptop.some((p) => c.label.toLowerCase().includes(p))
@@ -419,13 +507,30 @@ export default function MarcarPage() {
       return listaCandidatas[0]?.deviceId || "";
     }
 
-    // 3. Si es Tablet / Celular: priorizar cámara trasera / environment
+    // 3. Si es Tablet / Celular: priorizar cámara trasera estándar / environment
     if (tipo === "QR") {
-      const palabrasTrasera = ["back", "rear", "environment", "trasera", "posterior"];
-      const encontradaTrasera = listaCandidatas.find((c) =>
+      const palabrasTrasera = [
+        "back",
+        "rear",
+        "environment",
+        "trasera",
+        "posterior",
+        "facing back",
+        "camera 0",
+        "0, facing back",
+      ];
+      const candidatasTraseras = listaCandidatas.filter((c) =>
         palabrasTrasera.some((p) => c.label.toLowerCase().includes(p))
       );
-      if (encontradaTrasera) return encontradaTrasera.deviceId;
+
+      if (candidatasTraseras.length > 0) {
+        // En celulares con múltiples lentes (macro, ultra gran angular 0.5x, estándar 1x):
+        // Descartar lentes ultra gran angular que distorsionan el código QR a corta distancia
+        const lenteEstandar = candidatasTraseras.find(
+          (c) => !/ultra|0\.5x|wide-angle|fisheye/i.test(c.label)
+        );
+        return (lenteEstandar || candidatasTraseras[0]).deviceId;
+      }
       return listaCandidatas[0]?.deviceId || "";
     }
 
@@ -440,10 +545,14 @@ export default function MarcarPage() {
       const dispositivos = await navigator.mediaDevices.enumerateDevices();
       const camarasEncontradas: CamaraDispositivo[] = dispositivos
         .filter((dispositivo) => dispositivo.kind === "videoinput")
-        .map((dispositivo, indice) => ({
-          deviceId: dispositivo.deviceId,
-          label: nombreCamara(dispositivo, indice),
-        }));
+        .map((dispositivo, indice) => {
+          const lbl = nombreCamara(dispositivo, indice);
+          return {
+            deviceId: dispositivo.deviceId,
+            label: lbl,
+            esVirtual: esCamaraVirtual(lbl),
+          };
+        });
 
       setCamaras(camarasEncontradas);
 
@@ -576,6 +685,7 @@ export default function MarcarPage() {
       videoRef.current.srcObject = null;
     }
   }
+
   // 3. Iniciar cámara permanente V2 con Serializador Mutex y Escalera Progresiva de Compatibilidad
   async function activarCamaraPermanente(
     dispositivoIdCustom?: string,
@@ -600,22 +710,34 @@ export default function MarcarPage() {
       }
 
       // Resolver ID de dispositivo
-      let targetDeviceId: string | undefined = dispositivoIdCustom ?? camaraQrSeleccionada ?? cfg.camaraSeleccionada;
+      let targetDeviceId: string | undefined =
+        dispositivoIdCustom ?? camaraQrSeleccionada ?? cfg.camaraSeleccionada;
 
-      // Escalera de compatibilidad progresiva:
-      // Nivel 1: HD 1080p Ideal (sin mínimos rígidos que puedan romper cámaras de laptop o virtuales)
-      // Nivel 2: HD 720p Estándar
-      // Nivel 3: Universal Seguro (resolución nativa de la cámara)
+      // Si el deviceId seleccionado corresponde a una cámara virtual deshabilitada, descartarlo
+      if (targetDeviceId) {
+        const camEncontrada = camaras.find((c) => c.deviceId === targetDeviceId);
+        if (camEncontrada && esCamaraVirtual(camEncontrada.label)) {
+          targetDeviceId = undefined;
+        }
+      }
+
+      // Separación técnica: FPS de decodificación QR (ZXing) vs FPS del MediaStream
+      // Laptop: 20 FPS decodificación zxing. Celulares: 18 FPS para evitar sobrecalentamiento y mantener fluidez.
+      const decoderFps = esLaptop ? 20 : 18;
+
+      // Escalera de compatibilidad progresiva Full HD -> HD 720p -> SD 480p -> Universal Nativa
+      // Ningún nivel impone "exact" rígido que provoque OverconstrainedError en hardware modesto
       const nivelesConstraints: Array<{
         nombre: string;
         videoConstraints: MediaTrackConstraints;
       }> = [
         {
-          nombre: "HD 1080p Ideal",
+          nombre: "Full HD 1080p (Preferente)",
           videoConstraints: {
             width: { ideal: 1920 },
             height: { ideal: 1080 },
             aspectRatio: { ideal: 16 / 9 },
+            frameRate: { ideal: 30, min: 15 },
           },
         },
         {
@@ -623,11 +745,23 @@ export default function MarcarPage() {
           videoConstraints: {
             width: { ideal: 1280 },
             height: { ideal: 720 },
+            aspectRatio: { ideal: 16 / 9 },
+            frameRate: { ideal: 30, min: 15 },
           },
         },
         {
-          nombre: "Resolución Nativa Universal",
-          videoConstraints: {},
+          nombre: "SD 480p Universal",
+          videoConstraints: {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            frameRate: { ideal: 30, min: 15 },
+          },
+        },
+        {
+          nombre: "Resolución Nativa del Sensor",
+          videoConstraints: {
+            frameRate: { ideal: 30 },
+          },
         },
       ];
 
@@ -648,7 +782,7 @@ export default function MarcarPage() {
           scannerRef.current = lector;
 
           // Constraints limpias: si hay targetDeviceId, NO mezclar con facingMode incompatible
-          const finalConstraints: any = { ...nivel.videoConstraints };
+          const finalConstraints: MediaTrackConstraints = { ...nivel.videoConstraints };
           let cameraTarget: any = {};
 
           if (targetDeviceId) {
@@ -658,11 +792,11 @@ export default function MarcarPage() {
             finalConstraints.facingMode = facingMode;
           }
 
-          // Solicitar foco continuo solo si el navegador soporta la constraint
+          // Solicitar foco continuo en advanced solo si el navegador soporta la constraint
           try {
             const supported = navigator.mediaDevices?.getSupportedConstraints?.();
             if (supported && (supported as any).focusMode) {
-              finalConstraints.advanced = [{ focusMode: "continuous" }];
+              finalConstraints.advanced = [{ focusMode: "continuous" } as any];
             }
           } catch {}
 
@@ -670,14 +804,14 @@ export default function MarcarPage() {
           await lector.start(
             cameraTarget,
             {
-              fps: 20,
+              fps: decoderFps,
               videoConstraints: finalConstraints,
             },
             async (codigoLeido) => {
               const codigoSanitizado = codigoLeido.trim().replace(/^(CODIGO|DNI|ID)[:\s]+/i, "").trim();
               const ahora = Date.now();
 
-              // Prevención inteligente de lecturas duplicadas: 3.5s cooldown para el MISMO código
+              // Prevención inteligente de lecturas duplicadas: 3.5s cooldown para el MISMO carnet
               if (
                 ultimoCodigoLeidoRef.current.codigo === codigoSanitizado &&
                 ahora - ultimoCodigoLeidoRef.current.timestamp < 3500
@@ -685,6 +819,7 @@ export default function MarcarPage() {
                 return;
               }
 
+              // Si hay una transacción de red en curso, no procesar lecturas concurrentes
               if (procesandoQR.current) {
                 return;
               }
@@ -714,9 +849,9 @@ export default function MarcarPage() {
           await liberarRecursosCamara();
           await esperar(200);
 
-          // Si falló usando un ID específico (ej. cámara virtual offline), intentar sin ID en el siguiente paso
+          // Si falló usando un ID específico (ej. cámara virtual desconectada), reintentar sin ID
           if (targetDeviceId && nivel === nivelesConstraints[0]) {
-            console.log("[TERMINAL V2] Descartando deviceId para probar cámara predeterminada del sistema...");
+            console.log("[TERMINAL V2] Descartando deviceId para probar cámara física predeterminada...");
             targetDeviceId = undefined;
           }
         }
@@ -735,7 +870,7 @@ export default function MarcarPage() {
           errMsg.includes("notreadable")
         ) {
           setCamaraError(
-            "No se pudo iniciar la cámara. Comprueba que ninguna otra aplicación (o cámara virtual) la está utilizando e intenta nuevamente."
+            "No se pudo iniciar la cámara. Comprueba que ninguna otra aplicación (o cámara virtual) la esté utilizando e intenta nuevamente."
           );
         } else if (
           errName === "NotAllowedError" ||
@@ -752,7 +887,7 @@ export default function MarcarPage() {
         ) {
           setCamaraError("No se detectó ninguna cámara disponible en el dispositivo.");
         } else if (errName === "OverconstrainedError") {
-          setCamaraError("La cámara seleccionada no soporta las características requeridas. Selecciona otra cámara en Configuración.");
+          setCamaraError("La cámara seleccionada no soporta las características solicitadas. Selecciona otra cámara en Configuración.");
         } else {
           setCamaraError("Cámara desconectada o no disponible. Revisa la conexión e intenta nuevamente.");
         }
@@ -762,17 +897,14 @@ export default function MarcarPage() {
     });
   }
 
-  // 3.1 Inspección y optimización de hardware segura: AutoFocus, Zoom, Linterna y Watchdog
+  // 3.1 Inspección y optimización de hardware segura: AutoFocus, Zoom, Linterna y Diagnóstico Real
   async function aplicarOptimizacionesHardwareTrack(lectorInstancia?: Html5Qrcode | null) {
     try {
       await esperar(300);
-      const videoEl = (document.querySelector("#lector-qr video") || document.querySelector("video")) as HTMLVideoElement | null;
+      const videoEl = obtenerVideoElementActivo(lectorInstancia || scannerRef.current);
       const stream = videoEl?.srcObject as MediaStream | null;
       const track = stream?.getVideoTracks()?.[0];
 
-      let realWidth = videoEl?.videoWidth || 1920;
-      let realHeight = videoEl?.videoHeight || 1080;
-      let realFps = 20;
       let focusModeDetectado = "Estándar";
       let soportaZ = false;
       let zMin = 1;
@@ -804,13 +936,8 @@ export default function MarcarPage() {
         };
 
         const capabilities: any = track.getCapabilities ? track.getCapabilities() : {};
-        const settings: any = track.getSettings ? track.getSettings() : {};
 
-        realWidth = videoEl?.videoWidth || settings.width || realWidth;
-        realHeight = videoEl?.videoHeight || settings.height || realHeight;
-        realFps = Math.round(settings.frameRate || 20);
-
-        // Linterna
+        // Linterna (Torch API de hardware)
         if ("torch" in capabilities) {
           setSoportaLinterna(true);
         } else {
@@ -835,6 +962,7 @@ export default function MarcarPage() {
           zMin = capabilities.zoom.min || 1;
           zMax = capabilities.zoom.max || 5;
           zStep = capabilities.zoom.step || 0.1;
+          const settings: any = track.getSettings ? track.getSettings() : {};
           zoomActual = settings.zoom || 1;
           setSoportaZoom(true);
           setRangoZoom({ min: zMin, max: zMax, step: zStep });
@@ -852,6 +980,10 @@ export default function MarcarPage() {
         }
       }
 
+      // Obtener resolución y FPS REALES negociados por el sensor de hardware
+      const { width: realWidth, height: realHeight, fps: realFps } =
+        await obtenerResolucionRealVideo(videoEl, track);
+
       const cfg = obtenerConfiguracionTerminal();
       const devId = camaraQrSeleccionada;
       const encontrada = camaras.find((c) => c.deviceId === devId);
@@ -866,18 +998,24 @@ export default function MarcarPage() {
         ? "Webcam Integrada"
         : "Cámara Móvil / Tablet";
 
+      const estadoResolucion =
+        realWidth >= 1920 && realHeight >= 1080
+          ? "Full HD (1080p)"
+          : realWidth >= 1280 && realHeight >= 720
+          ? "HD Estándar (720p)"
+          : realWidth >= 640 && realHeight >= 480
+          ? "SD Estándar (480p)"
+          : realWidth > 0
+          ? `Nativa (${realWidth}x${realHeight})`
+          : "Conectada";
+
       setDiagnostico((prev) => ({
         ...prev,
-        resolucion: `${realWidth}x${realHeight}`,
-        fps: realFps > 0 ? realFps : 20,
+        resolucion: realWidth > 0 && realHeight > 0 ? `${realWidth}x${realHeight}` : "Negociando...",
+        fps: realFps > 0 ? realFps : 30,
         camaraLabel: camLabel,
         tipoCamara: tipoCam,
-        estado:
-          realWidth >= 1920 && realHeight >= 1080
-            ? "Full HD (1080p)"
-            : realWidth >= 1280 && realHeight >= 720
-            ? "HD Estándar (720p)"
-            : `Nativa SD (${realWidth}x${realHeight})`,
+        estado: estadoResolucion,
         focusMode: focusModeDetectado,
         zoomSoportado: soportaZ,
         zoomActual,
@@ -891,7 +1029,7 @@ export default function MarcarPage() {
   async function aplicarZoom(nuevoZoom: number) {
     try {
       setNivelZoom(nuevoZoom);
-      const video = (document.querySelector("#lector-qr video") || document.querySelector("video")) as HTMLVideoElement | null;
+      const video = obtenerVideoElementActivo(scannerRef.current);
       const stream = video?.srcObject as MediaStream | null;
       const track = stream?.getVideoTracks()?.[0];
       if (track && track.getCapabilities) {
@@ -910,7 +1048,7 @@ export default function MarcarPage() {
   // 3.3 Alternar linterna / flash (Torch API)
   async function alternarLinterna() {
     try {
-      const video = (document.querySelector("#lector-qr video") || document.querySelector("video")) as HTMLVideoElement | null;
+      const video = obtenerVideoElementActivo(scannerRef.current);
       const stream = video?.srcObject as MediaStream | null;
       const track = stream?.getVideoTracks()?.[0];
       if (track) {
@@ -931,7 +1069,7 @@ export default function MarcarPage() {
     // Si es Laptop o solo hay una cámara detectada
     if (esLaptop || camaras.length <= 1) {
       if (camaras.length > 1) {
-        // En laptop con múltiples cámaras (ej: webcam + USB), ciclar a la siguiente
+        // En laptop con múltiples cámaras (ej: webcam + USB), ciclar a la siguiente física
         const idxActual = camaras.findIndex((c) => c.deviceId === camaraQrSeleccionada);
         const siguiente = camaras[(idxActual + 1) % camaras.length];
         if (siguiente) {
@@ -960,10 +1098,10 @@ export default function MarcarPage() {
   async function mejorarEnfoque() {
     if (mejorandoEnfoque) return;
     setMejorandoEnfoque(true);
-    setMensaje("?? Calibrando enfoque...");
+    setMensaje("🔍 Calibrando enfoque...");
 
     try {
-      const videoEl = (document.querySelector("#lector-qr video") || document.querySelector("video")) as HTMLVideoElement | null;
+      const videoEl = obtenerVideoElementActivo(scannerRef.current);
       const track = (videoEl?.srcObject as MediaStream)?.getVideoTracks()?.[0];
       let calibradoEnCaliente = false;
 
@@ -1034,41 +1172,72 @@ export default function MarcarPage() {
     setCamaraQrSeleccionada("");
     await activarCamaraPermanente(undefined, modo);
   }
+
   // 7. Extracción de fotograma instantáneo desde el sensor mediante Canvas
   async function capturarFotoDesdeVideoActual(): Promise<Blob | null> {
     try {
-      const video = (document.querySelector("#lector-qr video") || document.querySelector("video")) as HTMLVideoElement | null;
-      if (video && video.videoWidth > 0 && video.videoHeight > 0 && video.readyState >= 2) {
-        const canvas = document.createElement("canvas");
-        const ancho = Math.min(video.videoWidth, 640);
-        const alto = Math.round((video.videoHeight * ancho) / video.videoWidth);
-        canvas.width = ancho;
-        canvas.height = alto;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(video, 0, 0, ancho, alto);
+      const video = obtenerVideoElementActivo(scannerRef.current);
+      if (!video) {
+        console.warn("[FOTO DEBUG] Elemento de video no disponible.");
+        return null;
+      }
 
-          // Verificar que el fotograma contenga imagen y no sea totalmente negro
-          try {
-            const muestra = ctx.getImageData(0, 0, Math.min(ancho, 40), Math.min(alto, 40)).data;
-            let suma = 0;
-            for (let i = 0; i < muestra.length; i += 4) {
-              suma += muestra[i] + muestra[i + 1] + muestra[i + 2];
-            }
-            if (suma === 0) {
-              console.warn("[FOTO DEBUG] Fotograma negro detectado; descartando.");
-              return null;
-            }
-          } catch {}
+      // 1. Validar que el video tenga dimensiones activas y fotograma cargado
+      if (video.videoWidth <= 0 || video.videoHeight <= 0 || video.readyState < 2) {
+        console.warn(
+          `[FOTO DEBUG] Video no listo para captura (dimensiones: ${video.videoWidth}x${video.videoHeight}, readyState: ${video.readyState}).`
+        );
+        return null;
+      }
 
-          const blob = await new Promise<Blob | null>((resolve) => {
-            canvas.toBlob((b) => resolve(b), "image/jpeg", 0.75);
-          });
+      // 2. Validar que el MediaStreamTrack esté en estado live
+      const stream = video.srcObject as MediaStream | null;
+      const track = stream?.getVideoTracks()?.[0];
+      if (track && (track.readyState !== "live" || !track.enabled)) {
+        console.warn("[FOTO DEBUG] MediaStreamTrack no está activo/live.");
+        return null;
+      }
 
-          if (blob && blob.size > 500 && blob.type === "image/jpeg") {
-            return blob;
-          }
+      // 3. Crear canvas para captura nítida (máximo 720px de ancho conservando aspecto)
+      const canvas = document.createElement("canvas");
+      const anchoMax = 720;
+      const escala = Math.min(1, anchoMax / video.videoWidth);
+      const ancho = Math.round(video.videoWidth * escala);
+      const alto = Math.round(video.videoHeight * escala);
+      canvas.width = ancho;
+      canvas.height = alto;
+
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (!ctx) return null;
+
+      ctx.drawImage(video, 0, 0, ancho, alto);
+
+      // 4. Muestreo de luminancia para descartar fotogramas totalmente negros o vacíos
+      try {
+        const muestra = ctx.getImageData(0, 0, Math.min(ancho, 32), Math.min(alto, 32)).data;
+        let suma = 0;
+        for (let i = 0; i < muestra.length; i += 4) {
+          suma += muestra[i] + muestra[i + 1] + muestra[i + 2];
         }
+        if (suma === 0) {
+          console.warn("[FOTO DEBUG] Fotograma negro detectado; descartando.");
+          canvas.width = 0;
+          canvas.height = 0;
+          return null;
+        }
+      } catch {}
+
+      // 5. Compresión JPEG con balance óptimo calidad/peso (calidad 0.80)
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((b) => resolve(b), "image/jpeg", 0.8);
+      });
+
+      // Liberar recursos de memoria del canvas
+      canvas.width = 0;
+      canvas.height = 0;
+
+      if (blob && blob.size > 1000 && blob.type === "image/jpeg") {
+        return blob;
       }
     } catch (err) {
       console.warn("[FOTO DEBUG] Error al capturar fotograma desde video:", err);
@@ -1076,7 +1245,7 @@ export default function MarcarPage() {
     return null;
   }
 
-  // 8. Subida asíncrona de fotografía en segundo plano con reintentos automáticos
+  // 8. Subida asíncrona de fotografía en segundo plano con confirmación real
   async function subirFotoAsincrona(
     foto: Blob,
     asistenciaId: number,
@@ -1093,10 +1262,10 @@ export default function MarcarPage() {
         new File([foto], `asistencia-${asistenciaId}-${Date.now()}.jpg`, { type: "image/jpeg" })
       );
       formData.append("asistenciaId", String(asistenciaId));
-      formData.append("tipo", tipo || "ENTRADA");
+      formData.append("tipo", tipo || modoOperativo || "ENTRADA");
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
 
       try {
         const respuesta = await fetch("/api/asistencias/foto", {
@@ -1117,8 +1286,22 @@ export default function MarcarPage() {
 
         const data = await respuesta.json().catch(() => null);
 
-        if (respuesta.ok && data?.ok) {
-          return data.fotoUrl || "";
+        if (respuesta.ok && data?.ok && data.fotoUrl) {
+          // Sincronización confirmada: actualizar historial y badge
+          setHistorialMarcas((prev) =>
+            prev.map((m) => (m.id === asistenciaId ? { ...m, fotoUrl: data.fotoUrl } : m))
+          );
+          setResultado((prev) => {
+            if (prev && (prev.asistencia?.id === asistenciaId || !prev.asistencia?.id)) {
+              return {
+                ...prev,
+                fotoUrl: data.fotoUrl,
+                estadoEvidencia: "Foto guardada en nube",
+              };
+            }
+            return prev;
+          });
+          return data.fotoUrl;
         }
 
         if (data?.limiteAlcanzado || data?.completada) {
@@ -1130,9 +1313,20 @@ export default function MarcarPage() {
       }
 
       if (intento < maxIntentos) {
-        await new Promise((res) => setTimeout(res, intento * 1000));
+        await esperar(intento * 1000);
       }
     }
+
+    // Si falló tras todos los reintentos: actualizar estado sin afirmar falsamente foto guardada
+    setResultado((prev) => {
+      if (prev && (prev.asistencia?.id === asistenciaId || !prev.asistencia?.id)) {
+        return {
+          ...prev,
+          estadoEvidencia: "Foto no guardada (error de sincronización)",
+        };
+      }
+      return prev;
+    });
 
     return "";
   }
@@ -1172,7 +1366,7 @@ export default function MarcarPage() {
       setMensaje("⚠️ Error procesando marcación");
       beep("error");
     } finally {
-      await esperar(950);
+      await esperar(1000);
 
       setResultado(null);
       setMensaje("Listo siguiente estudiante.");
@@ -1576,7 +1770,7 @@ export default function MarcarPage() {
               disabled={validandoTerminal}
               className="w-full py-3.5 rounded-xl font-black text-sm text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2"
             >
-              <span>??</span>
+              <LuShieldCheck className="w-4 h-4" />
               <span>{validandoTerminal ? "Verificando..." : "ACTIVAR TERMINAL"}</span>
             </button>
 
@@ -1661,7 +1855,7 @@ export default function MarcarPage() {
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {horaActual && (
             <div className="px-3 py-1 rounded-xl bg-slate-800/90 border border-slate-700/80 font-mono text-xs sm:text-sm font-black text-cyan-300 tracking-wider shadow-inner flex items-center gap-1.5">
-              <span>??</span>
+              <LuClock className="w-3.5 h-3.5 text-cyan-400" />
               <span>{horaActual}</span>
             </div>
           )}
@@ -1672,13 +1866,17 @@ export default function MarcarPage() {
           </span>
 
           <span
-            className={`hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+            className={`hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
               camaraActiva
                 ? "bg-blue-950/90 border-blue-500/40 text-blue-300"
                 : "bg-red-950/90 border-red-500/40 text-red-300"
             }`}
           >
-            <span>{camaraActiva ? "??" : "??"}</span>
+            {camaraActiva ? (
+              <LuCamera className="w-3.5 h-3.5 text-blue-300" />
+            ) : (
+              <LuCameraOff className="w-3.5 h-3.5 text-red-300" />
+            )}
             <span>{camaraActiva ? `${diagnostico.resolucion} @ ${diagnostico.fps}fps` : "Apagada"}</span>
           </span>
 
@@ -1760,21 +1958,21 @@ export default function MarcarPage() {
           <button
             type="button"
             onClick={() => setDiagnosticoAbierto(true)}
-            className="p-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-bold transition"
+            className="p-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-bold transition flex items-center gap-1"
             title="Diagnóstico técnico del sensor y FPS"
           >
-            <span>???</span>
-            <span className="hidden xl:inline ml-1">Diag</span>
+            <LuActivity className="w-3.5 h-3.5" />
+            <span className="hidden xl:inline">Diag</span>
           </button>
 
           {/* Configuración */}
           <button
             type="button"
             onClick={() => setPanelConfigAbierto(true)}
-            className="p-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition"
+            className="p-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition flex items-center justify-center"
             title="Configuración de cámaras y dispositivos"
           >
-            <span>??</span>
+            <LuSettings className="w-3.5 h-3.5" />
           </button>
 
           {/* Colapsar Sidebar */}
@@ -1806,10 +2004,10 @@ export default function MarcarPage() {
           <button
             type="button"
             onClick={bloquearTerminal}
-            className="p-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-amber-500/40 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-xs font-bold transition"
+            className="p-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-amber-500/40 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-xs font-bold transition flex items-center justify-center"
             title="Bloquear terminal"
           >
-            <span>??</span>
+            <LuLock className="w-3.5 h-3.5" />
           </button>
         </div>
       </header>
@@ -2010,7 +2208,7 @@ export default function MarcarPage() {
               {/* Pantalla cuando la cámara está apagada manualmente */}
               {!camaraActiva && !camaraError && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-950/95 z-10">
-                  <span className="text-6xl mb-3">??</span>
+                  <LuCameraOff className="w-16 h-16 mb-3 text-slate-500" />
                   <h3 className="text-2xl font-black text-slate-100">
                     Cámara en Pausa
                   </h3>
@@ -2030,7 +2228,7 @@ export default function MarcarPage() {
               {/* Pantalla de Error de Cámara Profesional */}
               {camaraError && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-950/95 border-2 border-red-500/40 z-10">
-                  <span className="text-6xl mb-3">??</span>
+                  <LuTriangleAlert className="w-16 h-16 mb-3 text-amber-400" />
                   <h3 className="text-2xl font-black text-white">
                     Aviso de Conexión de Cámara
                   </h3>
@@ -2159,7 +2357,7 @@ export default function MarcarPage() {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                <span>??</span>
+                <LuScanFace className="w-3.5 h-3.5" />
                 <span>Facial</span>
               </button>
 
@@ -2172,7 +2370,7 @@ export default function MarcarPage() {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                <span>??</span>
+                <LuClock className="w-3.5 h-3.5" />
                 <span>Recientes</span>
               </button>
             </div>
@@ -2182,7 +2380,7 @@ export default function MarcarPage() {
               <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-4 shadow-xl space-y-3">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm font-bold">
-                    ??
+                    <LuCreditCard className="w-4 h-4" />
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-white">
@@ -2223,7 +2421,7 @@ export default function MarcarPage() {
               <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-4 shadow-xl space-y-3">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-sm">
-                    ??
+                    <LuScanFace className="w-4 h-4" />
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-white">
@@ -2251,7 +2449,7 @@ export default function MarcarPage() {
               <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-4 shadow-xl space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-black text-white flex items-center gap-1.5">
-                    <span>??</span>
+                    <LuClock className="w-4 h-4 text-blue-400" />
                     <span>Marcaciones Recientes</span>
                   </h3>
                   <span className="text-[10px] font-bold text-slate-400">
@@ -2312,7 +2510,7 @@ export default function MarcarPage() {
           <div className="w-full max-w-lg rounded-3xl border-2 border-cyan-500/40 bg-slate-900 p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-150">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2.5 text-cyan-400">
-                <span className="text-2xl">???</span>
+                <LuActivity className="w-6 h-6" />
                 <h3 className="text-lg font-black text-white">
                   Diagnóstico de Cámara del Terminal V2
                 </h3>
@@ -2320,9 +2518,9 @@ export default function MarcarPage() {
               <button
                 type="button"
                 onClick={() => setDiagnosticoAbierto(false)}
-                className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
+                className="p-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition font-bold text-xs"
               >
-                ?
+                Cerrar
               </button>
             </div>
 
@@ -2332,15 +2530,15 @@ export default function MarcarPage() {
                 <span className="text-lg font-mono font-black text-emerald-400">
                   {diagnostico.resolucion}
                 </span>
-                <span className="text-[10px] text-slate-500 block mt-0.5">Captura nativa HD</span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">{diagnostico.estado}</span>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
-                <span className="text-slate-400 font-bold block">FPS de Escaneo</span>
+                <span className="text-slate-400 font-bold block">FPS de Video</span>
                 <span className="text-lg font-mono font-black text-cyan-400">
                   {diagnostico.fps} FPS
                 </span>
-                <span className="text-[10px] text-slate-500 block mt-0.5">Full-Frame dinámico</span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">Fluidez óptima</span>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 col-span-2">
@@ -2387,7 +2585,7 @@ export default function MarcarPage() {
           <div className="w-full max-w-lg rounded-3xl border-2 border-slate-700 bg-slate-900 p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2.5 text-blue-400">
-                <span className="text-2xl">??</span>
+                <LuSettings className="w-6 h-6" />
                 <h3 className="text-lg font-black text-white">
                   Configuración de Terminal
                 </h3>
@@ -2395,9 +2593,9 @@ export default function MarcarPage() {
               <button
                 type="button"
                 onClick={() => setPanelConfigAbierto(false)}
-                className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
+                className="p-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition font-bold text-xs"
               >
-                ?
+                Cerrar
               </button>
             </div>
 
@@ -2417,7 +2615,7 @@ export default function MarcarPage() {
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <span>??</span>
+                    <LuCamera className="w-4 h-4 text-emerald-400" />
                     <span>Predeterminada del sistema (HD Automática)</span>
                   </div>
                   {!camaraQrSeleccionada && <span className="text-blue-400 shrink-0">✓ Activa</span>}
@@ -2425,7 +2623,7 @@ export default function MarcarPage() {
 
                 {camaras.map((cam, idx) => {
                   const esSeleccionada = camaraQrSeleccionada === cam.deviceId;
-                  const esVirtual = cam.label.toLowerCase().includes("virtual") || cam.label.toLowerCase().includes("eshare") || cam.label.toLowerCase().includes("obs");
+                  const esVirtual = cam.esVirtual ?? esCamaraVirtual(cam.label);
                   return (
                     <button
                       key={cam.deviceId || idx}
@@ -2438,7 +2636,11 @@ export default function MarcarPage() {
                       }`}
                     >
                       <div className="flex items-center gap-2 truncate">
-                        {esVirtual ? <LuSlidersHorizontal className="w-4 h-4 text-amber-400 shrink-0" /> : <LuCamera className="w-4 h-4 text-slate-300 shrink-0" />}
+                        {esVirtual ? (
+                          <LuSlidersHorizontal className="w-4 h-4 text-amber-400 shrink-0" />
+                        ) : (
+                          <LuCamera className="w-4 h-4 text-slate-300 shrink-0" />
+                        )}
                         <span className="truncate">{cam.label}</span>
                         {esVirtual && (
                           <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold shrink-0">
