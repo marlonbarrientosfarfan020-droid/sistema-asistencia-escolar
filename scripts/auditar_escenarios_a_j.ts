@@ -1,16 +1,16 @@
-import { prisma } from 'c:/Users/Ingeniero de Sistema/Documents/Proyectos/sistema-asistencia/lib/prisma';
+import { prisma } from '../lib/prisma';
 import bcrypt from 'bcryptjs';
 import {
   MODULOS_OPERATIVOS,
   obtenerModulosPorRol,
   esRutaPermitida,
-} from 'c:/Users/Ingeniero de Sistema/Documents/Proyectos/sistema-asistencia/lib/modulos';
+} from '../lib/modulos';
 import {
   obtenerVentanaTurno,
   fechaPeru,
   horaPeru,
-} from 'c:/Users/Ingeniero de Sistema/Documents/Proyectos/sistema-asistencia/lib/timezone';
-import { ejecutarCierreJornadasVencidas } from 'c:/Users/Ingeniero de Sistema/Documents/Proyectos/sistema-asistencia/services/jornada/cierreJornadaService';
+} from '../lib/timezone';
+import { ejecutarCierreJornadasVencidas } from '../services/jornada/cierreJornadaService';
 
 async function main() {
   console.log('========================================================================');

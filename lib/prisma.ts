@@ -7,7 +7,9 @@ const globalForPrisma = globalThis as unknown as {
 
 function crearPrismaClient() {
   const connectionString =
-    process.env.DATABASE_URL;
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_PRISMA_URL ||
+    process.env.POSTGRES_URL;
 
   if (!connectionString) {
     throw new Error(
@@ -18,6 +20,7 @@ function crearPrismaClient() {
   const adapter = new PrismaPg({
     connectionString,
   });
+
 
   return new PrismaClient({
     adapter,
@@ -30,7 +33,6 @@ export const prisma =
 
 if (
   process.env.NODE_ENV !==
-  "production"
-) {
+  "production") {
   globalForPrisma.prisma = prisma;
 }
