@@ -185,11 +185,14 @@ export async function ejecutarCierreJornadasVencidas(
   }
 
   // 4. Actualizar estado del SuperMotor si todos los turnos del día están concluidos
+  // Respetar estrictamente el modo MANUAL: no apagar el motorActivo del director en modo manual
   let supermotorCerrado = false;
   if (todosTurnosConcluidos && turnos.length > 0) {
     try {
       const estadoMotor = await obtenerEstadoSuperMotor(colegioId);
-      if (estadoMotor.estadoJornada !== "CERRADO") {
+      const esModoAutomatico = (estadoMotor as any).modoOperacion === "AUTOMATICO";
+
+      if (esModoAutomatico && estadoMotor.estadoJornada !== "CERRADO") {
         await actualizarEstadoSuperMotor({
           colegioId,
           motorActivo: false,

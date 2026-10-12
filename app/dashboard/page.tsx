@@ -284,6 +284,7 @@ function numero(valor: unknown) {
 }
 
 export default function Dashboard() {
+  const [isMounted, setIsMounted] = useState(false);
   const [datos, setDatos] = useState<DashboardData>(ESTADO_INICIAL);
   const [mensaje, setMensaje] = useState("");
   const [horaActual, setHoraActual] = useState("");
@@ -439,6 +440,7 @@ export default function Dashboard() {
         headers: {
           "x-user-role": localStorage.getItem("rol") || "",
         },
+        credentials: "include",
         cache: "no-store",
         signal,
       });
@@ -537,6 +539,7 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
+    setIsMounted(true);
     let activo = true;
     const controller = new AbortController();
 
@@ -584,14 +587,14 @@ export default function Dashboard() {
   }, [sseConectado]);
 
   const turnosFiltrados = useMemo(() => {
-    return datos.resumenTurnos.filter(
+    return (datos.resumenTurnos || []).filter(
       (turno) => filtros.turno === "TODOS" || turno.nombre === filtros.turno,
     );
   }, [datos.resumenTurnos, filtros.turno]);
 
   const seccionesFiltradas = useMemo(() => {
     return turnosFiltrados.flatMap((turno) =>
-      turno.secciones
+      (turno.secciones || [])
         .filter(
           (item) => filtros.grado === "TODOS" || item.grado === filtros.grado,
         )
@@ -604,9 +607,9 @@ export default function Dashboard() {
           turno: turno.nombre,
           etiqueta: `${turno.nombre} · ${item.grado}° ${item.seccion}`,
           incidencias:
-            item.tardanzaSinIngreso +
-            item.ausentesConfirmados +
-            item.tardanzas,
+            (item.tardanzaSinIngreso || 0) +
+            (item.ausentesConfirmados || 0) +
+            (item.tardanzas || 0),
         })),
     );
   }, [turnosFiltrados, filtros.grado, filtros.seccion]);
@@ -614,7 +617,7 @@ export default function Dashboard() {
   const grados = useMemo(
     () =>
       Array.from(
-        new Set(datos.resumenTurnos.flatMap((turno) => turno.secciones.map((s) => s.grado))),
+        new Set((datos.resumenTurnos || []).flatMap((turno) => (turno.secciones || []).map((s) => s.grado))),
       ).sort((a, b) => a.localeCompare(b, "es", { numeric: true })),
     [datos.resumenTurnos],
   );
@@ -622,7 +625,7 @@ export default function Dashboard() {
   const secciones = useMemo(
     () =>
       Array.from(
-        new Set(datos.resumenTurnos.flatMap((turno) => turno.secciones.map((s) => s.seccion))),
+        new Set((datos.resumenTurnos || []).flatMap((turno) => (turno.secciones || []).map((s) => s.seccion))),
       ).sort((a, b) => a.localeCompare(b, "es")),
     [datos.resumenTurnos],
   );
@@ -1310,7 +1313,7 @@ export default function Dashboard() {
 
           <section className="mt-4 grid gap-4 xl:grid-cols-3">
             {turnosFiltrados.map((turno) => (
-              <TurnoCard key={turno.id} turno={turno} />
+              <TurnoCard key={turno.id} turno={turno} isMounted={isMounted} />
             ))}
           </section>
           <section className="mt-4 grid gap-4 xl:grid-cols-12">
@@ -1939,21 +1942,23 @@ function Badge({ estado }: { estado: string }) {
   );
 }
 
-function TurnoCard({ turno }: { turno: TurnoResumen }) {
+function TurnoCard({ turno, isMounted }: { turno: TurnoResumen; isMounted?: boolean }) {
   const sinIngreso =
-    turno.esperandoIngreso +
-    turno.ingresoPendiente +
-    turno.tardanzaSinIngreso;
+    (turno.esperandoIngreso || 0) +
+    (turno.ingresoPendiente || 0) +
+    (turno.tardanzaSinIngreso || 0);
 
+  const total = Number(turno.total) || 0;
+  const presentes = Number(turno.presentes) || 0;
   const porcentaje =
-    turno.total > 0
-      ? Math.round((turno.presentes / turno.total) * 100)
+    total > 0
+      ? Math.round((presentes / total) * 100)
       : 0;
 
   const radial = [
     {
       name: "Asistencia",
-      value: porcentaje,
+      value: isFinite(porcentaje) ? porcentaje : 0,
       fill: porcentaje >= 80 ? "#22c55e" : porcentaje >= 50 ? "#eab308" : "#f43f5e",
     },
   ];
@@ -1979,17 +1984,21 @@ function TurnoCard({ turno }: { turno: TurnoResumen }) {
 
       <div className="mt-4 grid grid-cols-[130px_1fr] items-center gap-4">
         <div className="relative h-[130px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <RadialBarChart
-              innerRadius="70%"
-              outerRadius="100%"
-              data={radial}
-              startAngle={90}
-              endAngle={-270}
-            >
-              <RadialBar dataKey="value" background={{ fill: "#132238" }} cornerRadius={12} />
-            </RadialBarChart>
-          </ResponsiveContainer>
+          {isMounted ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <RadialBarChart
+                innerRadius="70%"
+                outerRadius="100%"
+                data={radial}
+                startAngle={90}
+                endAngle={-270}
+              >
+                <RadialBar dataKey="value" background={{ fill: "#132238" }} cornerRadius={12} />
+              </RadialBarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-slate-900/40 rounded-full" />
+          )}
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-3xl font-black text-white">{porcentaje}%</span>
             <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">asistencia</span>

@@ -13,6 +13,7 @@ export type ConfiguracionColegio = {
   telefono: string;
   correo: string;
   director: string;
+  canalPortalWebActivo?: boolean;
 };
 
 const CONFIGURACION_INICIAL: ConfiguracionColegio =
@@ -24,6 +25,7 @@ const CONFIGURACION_INICIAL: ConfiguracionColegio =
     telefono: "",
     correo: "",
     director: "",
+    canalPortalWebActivo: false,
   };
 
 export function useConfiguracionColegio() {

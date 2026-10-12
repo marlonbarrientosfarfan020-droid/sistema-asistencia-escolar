@@ -15,6 +15,7 @@ export async function GET() {
         telefono: true,
         correo: true,
         director: true,
+        canalPortalWebActivo: true,
       },
     });
 
@@ -39,6 +40,9 @@ export async function GET() {
 
         director:
           configuracion?.director?.trim() || "",
+
+        canalPortalWebActivo:
+          Boolean(configuracion?.canalPortalWebActivo),
       },
       {
         headers: {

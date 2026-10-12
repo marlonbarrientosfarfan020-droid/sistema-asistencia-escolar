@@ -12,22 +12,37 @@ export default function PortalPadresLoginPage() {
   const [codigoFamiliar, setCodigoFamiliar] = useState("");
   const [cargando, setCargando] = useState(false);
   const [comprobando, setComprobando] = useState(true);
+  const [enMantenimiento, setEnMantenimiento] = useState(false);
   const [error, setError] = useState("");
   const [transicionLogin, setTransicionLogin] = useState<LoginTransition3DProps | null>(null);
 
-  // Verificar si ya tiene sesión activa
+  // Verificar sesión y disponibilidad del portal
   useEffect(() => {
-    async function verificarSesion() {
+    async function verificarEstado() {
       try {
-        const res = await fetch("/api/portal-padres/datos");
-        if (res.ok) {
+        const [resSesion, resConfig] = await Promise.all([
+          fetch("/api/portal-padres/datos").catch(() => null),
+          fetch("/api/configuracion/publica").catch(() => null),
+        ]);
+
+        if (resSesion && resSesion.ok) {
           router.replace("/portal-padres/dashboard");
           return;
         }
-      } catch {}
-      setComprobando(false);
+
+        if (resConfig && resConfig.ok) {
+          const configData = await resConfig.json().catch(() => null);
+          if (configData && configData.canalPortalWebActivo === false) {
+            setEnMantenimiento(true);
+          }
+        }
+      } catch (err) {
+        console.warn("Error verificando estado del portal:", err);
+      } finally {
+        setComprobando(false);
+      }
     }
-    verificarSesion();
+    verificarEstado();
   }, [router]);
 
   async function handleLogin(e: React.FormEvent) {
@@ -145,7 +160,43 @@ export default function PortalPadresLoginPage() {
           </p>
         </div>
 
-        {/* Formulario */}
+        {/* Vista en Mantenimiento Preventivo Institucional */}
+        {enMantenimiento ? (
+          <div className="p-8 space-y-6">
+            <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 space-y-3">
+              <div className="flex items-center gap-2.5 text-amber-800 font-black text-sm">
+                <span className="text-xl">📢</span>
+                <span>COMUNICADO INSTITUCIONAL</span>
+              </div>
+              <p className="text-xs leading-relaxed text-amber-900 font-medium">
+                Estimadas familias santarritinas: El <strong>Portal Web de Consulta Familiar</strong> se encuentra temporalmente en <strong>período de mantenimiento preventivo y actualización de datos</strong> por disposición de la Dirección Escolar.
+              </p>
+              <div className="text-[11px] text-amber-800 bg-amber-100/60 p-3 rounded-xl border border-amber-200/60 space-y-1">
+                <p>📍 <strong>Atención presencial:</strong> En la secretaría de la institución en horario regular.</p>
+                <p>📞 <strong>Consultas y justificaciones:</strong> Mediante los canales oficiales y coordinación de tutores.</p>
+              </div>
+            </div>
+
+            <div className="text-center space-y-3">
+              <button
+                type="button"
+                disabled
+                className="w-full py-4 rounded-2xl font-black text-xs text-slate-400 bg-slate-100 border border-slate-200 cursor-not-allowed uppercase tracking-wider flex items-center justify-center gap-2"
+              >
+                <span>🔒</span>
+                <span>Consultas temporalmente suspendidas por mantenimiento</span>
+              </button>
+
+              <Link
+                href="/"
+                className="text-xs font-bold text-slate-500 hover:text-slate-800 transition inline-flex items-center gap-1"
+              >
+                <span>←</span>
+                <span>Regresar al portal institucional</span>
+              </Link>
+            </div>
+          </div>
+        ) : (
         <form onSubmit={handleLogin} className="p-8 space-y-5">
           {error && (
             <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-start gap-2 animate-in fade-in">
@@ -238,6 +289,7 @@ export default function PortalPadresLoginPage() {
             </Link>
           </div>
         </form>
+        )}
 
         {/* Nota al pie */}
         <div className="bg-slate-50 p-4 border-t border-slate-100 text-center text-[11px] text-slate-500">

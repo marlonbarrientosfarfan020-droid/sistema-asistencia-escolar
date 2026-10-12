@@ -653,10 +653,14 @@ export default function SuperMotorDashboardPage() {
               🌅 Próxima Apertura
             </p>
             <p className="mt-2 text-lg font-black text-emerald-700">
-              {estado.evaluacionJornada?.proximaApertura || estado.horaAperturaJornada || "06:30"}
+              {estado.modoOperacion === "AUTOMATICO"
+                ? (estado.evaluacionJornada?.proximaApertura || estado.horaAperturaJornada || "06:30")
+                : "Control Manual"}
             </p>
             <p className="text-[11px] text-slate-500 mt-1">
-              Apertura anticipada de preparación
+              {estado.modoOperacion === "AUTOMATICO"
+                ? "Apertura anticipada de preparación"
+                : "La dirección decide la apertura"}
             </p>
           </div>
 
@@ -665,10 +669,14 @@ export default function SuperMotorDashboardPage() {
               🌙 Próximo Cierre
             </p>
             <p className="mt-2 text-lg font-black text-rose-700">
-              {estado.evaluacionJornada?.proximoCierre || estado.horaCierreJornada || "14:30"}
+              {estado.modoOperacion === "AUTOMATICO"
+                ? (estado.evaluacionJornada?.proximoCierre || estado.horaCierreJornada || "14:30")
+                : "Control Manual"}
             </p>
             <p className="text-[11px] text-slate-500 mt-1">
-              Cierre automático post-salida
+              {estado.modoOperacion === "AUTOMATICO"
+                ? "Cierre automático post-salida"
+                : "La dirección decide el cierre"}
             </p>
           </div>
 
@@ -868,6 +876,32 @@ export default function SuperMotorDashboardPage() {
         </div>
       </section>
 
+      {/* GUÍA OPERATIVA INSTITUCIONAL */}
+      <section className="rounded-2xl border border-blue-200 bg-blue-50/60 p-4 sm:p-5 text-blue-950 shadow-sm">
+        <h4 className="font-black text-xs uppercase tracking-wider text-blue-900 flex items-center gap-2">
+          <span>ℹ️</span>
+          <span>ARQUITECTURA OPERATIVA DEL COLEGIO: DIFERENCIA DE INDICADORES</span>
+        </h4>
+        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div className="bg-white/80 rounded-xl p-3 border border-blue-100">
+            <p className="font-black text-slate-900">1. Servicio Central</p>
+            <p className="text-slate-600 mt-1">Indica si el motor y los daemons de sincronización están encendidos en el servidor.</p>
+          </div>
+          <div className="bg-white/80 rounded-xl p-3 border border-blue-100">
+            <p className="font-black text-slate-900">2. Jornada Escolar</p>
+            <p className="text-slate-600 mt-1">Indica si la ventana de registro de asistencia está actualmente <strong>ABIERTA</strong> o <strong>CERRADA</strong>.</p>
+          </div>
+          <div className="bg-white/80 rounded-xl p-3 border border-blue-100">
+            <p className="font-black text-slate-900">3. Modo de Operación</p>
+            <p className="text-slate-600 mt-1">En <strong>MANUAL</strong>, la Dirección abre y cierra la jornada. En <strong>AUTOMÁTICO</strong>, el sistema sigue el calendario y turnos.</p>
+          </div>
+          <div className="bg-white/80 rounded-xl p-3 border border-blue-100">
+            <p className="font-black text-slate-900">4. Cron Jobs Independientes</p>
+            <p className="text-slate-600 mt-1">Ejecutan barridos de asistencia sin salida e informes. En modo manual, no alteran el interruptor del motor.</p>
+          </div>
+        </div>
+      </section>
+
       {/* 2. CONTROL DE MÓDULOS INDEPENDIENTES */}
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -913,15 +947,22 @@ export default function SuperMotorDashboardPage() {
                         {modulo.icono}
                       </span>
 
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-black tracking-wider transition ${
-                          estaActivo
-                            ? "bg-emerald-600 text-white shadow-sm"
-                            : "bg-slate-200 text-slate-600"
-                        }`}
-                      >
-                        {estaActivo ? "ON" : "OFF"}
-                      </span>
+                      {modulo.id === "portalActivo" && configuracion?.canalPortalWebActivo === false ? (
+                        <span className="rounded-full px-2.5 py-1 text-[10px] font-black tracking-wider bg-amber-500 text-white shadow-sm flex items-center gap-1">
+                          <span>🟡</span>
+                          <span>MANTENIMIENTO</span>
+                        </span>
+                      ) : (
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-black tracking-wider transition ${
+                            estaActivo
+                              ? "bg-emerald-600 text-white shadow-sm"
+                              : "bg-slate-200 text-slate-600"
+                          }`}
+                        >
+                          {estaActivo ? "ON" : "OFF"}
+                        </span>
+                      )}
                     </div>
 
                     {/* TÍTULO Y DESCRIPCIÓN */}
@@ -932,6 +973,12 @@ export default function SuperMotorDashboardPage() {
                     <p className="mt-1 text-xs leading-relaxed text-slate-600 min-h-[38px]">
                       {modulo.descripcion}
                     </p>
+
+                    {modulo.id === "portalActivo" && configuracion?.canalPortalWebActivo === false && (
+                      <div className="mt-2 rounded-xl bg-amber-50 border border-amber-200/80 p-2 text-[10px] text-amber-900 font-semibold leading-tight">
+                        ⚠️ <strong>Acceso web en mantenimiento:</strong> El subsistema está habilitado en el motor, pero la disponibilidad pública web para familias está cerrada por mantenimiento institucional de seguridad (<code className="font-mono text-[9px] bg-amber-100 px-1 py-0.5 rounded">canalPortalWebActivo = false</code>).
+                      </div>
+                    )}
                   </div>
 
                   {/* INTERRUPTOR */}
