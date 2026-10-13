@@ -1104,8 +1104,12 @@ export default function MarcarPage() {
           const estado = scanner.getState();
           // Estado 2 = SCANNING, Estado 3 = PAUSED
           if (estado === 2 || estado === 3) {
+            // Captura aislada de rechazo tardío para evitar unhandled rejection si scanner.stop() rechaza tras el timeout
+            const stopPromise = scanner.stop().catch((e) => {
+              console.warn("[CAMARA V3] scanner.stop() tardío o error ignorado tras timeout:", e);
+            });
             await Promise.race([
-              scanner.stop(),
+              stopPromise,
               new Promise((r) => setTimeout(r, 1200)),
             ]);
           }
@@ -1307,15 +1311,39 @@ export default function MarcarPage() {
             () => {}
           );
 
+          // Si una nueva sesión fue solicitada mientras lector.start() esperaba, abortar de inmediato esta instancia
+          if (tokenSesion !== sesionCamaraIdRef.current || desmontadoRef.current) {
+            console.log(`[CAMARA V3] Sesión ${tokenSesion} quedó obsoleta durante start() frente a ${sesionCamaraIdRef.current}. Descartando...`);
+            try {
+              if (lector.getState() === 2) {
+                await lector.stop().catch(() => {});
+              }
+              lector.clear();
+            } catch {}
+            break;
+          }
+
           // Verificar que el elemento de video realmente esté renderizando fotogramas activos
           const videoEl = obtenerVideoElementActivo(lector);
           let videoListo = false;
           for (let intentoVideo = 0; intentoVideo < 8; intentoVideo++) {
+            if (tokenSesion !== sesionCamaraIdRef.current || desmontadoRef.current) break;
             if (videoEl && videoEl.videoWidth > 0 && videoEl.videoHeight > 0 && videoEl.readyState >= 2) {
               videoListo = true;
               break;
             }
             await esperar(100);
+          }
+
+          if (tokenSesion !== sesionCamaraIdRef.current || desmontadoRef.current) {
+            console.log(`[CAMARA V3] Sesión ${tokenSesion} descartada por nueva sesión durante verificación de fotogramas.`);
+            try {
+              if (lector.getState() === 2) {
+                await lector.stop().catch(() => {});
+              }
+              lector.clear();
+            } catch {}
+            break;
           }
 
           if (videoListo || (videoEl && videoEl.readyState >= 1)) {
