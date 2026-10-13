@@ -55,6 +55,7 @@ import {
   TerminalConfig,
   TipoDispositivoTerminal,
   CamaraDispositivo,
+  PerfilCalidadCamara,
 } from "@/types/terminal";
 
 
@@ -144,6 +145,331 @@ export async function obtenerResolucionRealVideo(
   }
 
   return { width, height, fps: fps > 0 ? fps : 30 };
+}
+
+/**
+ * Control unificado de estados del ciclo de vida de la cámara (FSM V3)
+ */
+export type EstadoSesionCamara =
+  | "IDLE"
+  | "SOLICITANDO_PERMISO"
+  | "INICIANDO"
+  | "ACTIVA"
+  | "PAUSANDO"
+  | "DETENIENDO"
+  | "RECUPERANDO"
+  | "ERROR";
+
+export interface NivelEscaleraCamara {
+  nombre: string;
+  perfil: PerfilCalidadCamara;
+  videoConstraints: MediaTrackConstraints;
+  decoderFps: number;
+}
+
+/**
+ * Genera la escalera adaptativa de restricciones de hardware según el perfil seleccionado.
+ * Prioriza la apertura estable sobre la máxima resolución y elimina valores 'min'/'exact' rígidos.
+ */
+export function generarEscaleraConstraints({
+  perfil,
+  esLaptop,
+}: {
+  perfil: PerfilCalidadCamara;
+  esLaptop: boolean;
+}): NivelEscaleraCamara[] {
+  const fpsDecodificador = esLaptop ? 20 : 18;
+
+  // 1. Perfil COMPATIBLE: Para celulares y laptops modestos o con fallos previos
+  if (perfil === "COMPATIBLE") {
+    return [
+      {
+        nombre: "SD 480p Universal (Bajo consumo)",
+        perfil: "COMPATIBLE",
+        videoConstraints: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 24 },
+        },
+        decoderFps: 15,
+      },
+      {
+        nombre: "Resolución Nativa del Sensor",
+        perfil: "COMPATIBLE",
+        videoConstraints: {
+          frameRate: { ideal: 24 },
+        },
+        decoderFps: 15,
+      },
+      {
+        nombre: "Universal de Emergencia (Sin restricciones)",
+        perfil: "COMPATIBLE",
+        videoConstraints: {},
+        decoderFps: 15,
+      },
+    ];
+  }
+
+  // 2. Perfil NATIVA: Sin forzar dimensiones arbitrarias
+  if (perfil === "NATIVA") {
+    return [
+      {
+        nombre: "Resolución Nativa del Sensor",
+        perfil: "NATIVA",
+        videoConstraints: {
+          frameRate: { ideal: 30 },
+        },
+        decoderFps: fpsDecodificador,
+      },
+      {
+        nombre: "Universal de Emergencia (Sin restricciones)",
+        perfil: "NATIVA",
+        videoConstraints: {},
+        decoderFps: 15,
+      },
+    ];
+  }
+
+  // 3. Perfil HD: 720p preferente
+  if (perfil === "HD") {
+    return [
+      {
+        nombre: "HD 720p Estándar",
+        perfil: "HD",
+        videoConstraints: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          aspectRatio: { ideal: 16 / 9 },
+          frameRate: { ideal: 30 },
+        },
+        decoderFps: fpsDecodificador,
+      },
+      {
+        nombre: "SD 480p Universal",
+        perfil: "HD",
+        videoConstraints: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 30 },
+        },
+        decoderFps: fpsDecodificador,
+      },
+      {
+        nombre: "Resolución Nativa del Sensor",
+        perfil: "HD",
+        videoConstraints: {
+          frameRate: { ideal: 30 },
+        },
+        decoderFps: fpsDecodificador,
+      },
+      {
+        nombre: "Universal de Emergencia (Sin restricciones)",
+        perfil: "HD",
+        videoConstraints: {},
+        decoderFps: 15,
+      },
+    ];
+  }
+
+  // 4. Perfil FULL_HD: 1080p preferente
+  if (perfil === "FULL_HD") {
+    return [
+      {
+        nombre: "Full HD 1080p (Preferente)",
+        perfil: "FULL_HD",
+        videoConstraints: {
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          aspectRatio: { ideal: 16 / 9 },
+          frameRate: { ideal: 30 },
+        },
+        decoderFps: fpsDecodificador,
+      },
+      {
+        nombre: "HD 720p Estándar",
+        perfil: "FULL_HD",
+        videoConstraints: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          aspectRatio: { ideal: 16 / 9 },
+          frameRate: { ideal: 30 },
+        },
+        decoderFps: fpsDecodificador,
+      },
+      {
+        nombre: "SD 480p Universal",
+        perfil: "FULL_HD",
+        videoConstraints: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 30 },
+        },
+        decoderFps: fpsDecodificador,
+      },
+      {
+        nombre: "Resolución Nativa del Sensor",
+        perfil: "FULL_HD",
+        videoConstraints: {
+          frameRate: { ideal: 30 },
+        },
+        decoderFps: fpsDecodificador,
+      },
+      {
+        nombre: "Universal de Emergencia (Sin restricciones)",
+        perfil: "FULL_HD",
+        videoConstraints: {},
+        decoderFps: 15,
+      },
+    ];
+  }
+
+  // 5. Perfil AUTO (Por defecto): Adaptativo inteligente
+  const primerNivel = esLaptop
+    ? {
+        nombre: "HD 720p Estándar (Laptop)",
+        videoConstraints: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          aspectRatio: { ideal: 16 / 9 },
+          frameRate: { ideal: 30 },
+        },
+      }
+    : {
+        nombre: "HD 720p Adaptativo (Móvil)",
+        videoConstraints: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30 },
+        },
+      };
+
+  return [
+    {
+      ...primerNivel,
+      perfil: "AUTO",
+      decoderFps: fpsDecodificador,
+    },
+    {
+      nombre: "SD 480p Universal",
+      perfil: "AUTO",
+      videoConstraints: {
+        width: { ideal: 640 },
+        height: { ideal: 480 },
+        frameRate: { ideal: 30 },
+      },
+      decoderFps: fpsDecodificador,
+    },
+    {
+      nombre: "Resolución Nativa del Sensor",
+      perfil: "AUTO",
+      videoConstraints: {
+        frameRate: { ideal: 30 },
+      },
+      decoderFps: fpsDecodificador,
+    },
+    {
+      nombre: "Universal de Emergencia (Sin restricciones)",
+      perfil: "AUTO",
+      videoConstraints: {},
+      decoderFps: 15,
+    },
+  ];
+}
+
+/**
+ * Clasifica y sanitiza los errores de hardware de video de forma técnica y sin exponer PII.
+ */
+export function clasificarErrorCamara(error: any): {
+  titulo: string;
+  mensaje: string;
+  etapa: string;
+  esPermiso: boolean;
+  esOcupada: boolean;
+  accionRecomendada: string;
+} {
+  const errName = error?.name || "";
+  const errMsg = (error?.message || "").toLowerCase();
+
+  if (
+    errName === "NotAllowedError" ||
+    errName === "PermissionDeniedError" ||
+    errMsg.includes("permission") ||
+    errMsg.includes("denied")
+  ) {
+    return {
+      titulo: "Permiso de cámara denegado",
+      mensaje: "El navegador o el sistema operativo no tienen permiso para usar la cámara en este sitio.",
+      etapa: "Permisos / getUserMedia",
+      esPermiso: true,
+      esOcupada: false,
+      accionRecomendada: "Presiona el ícono del candado (o ajustes del sitio) en la barra del navegador y cambia Cámara a 'Permitir'.",
+    };
+  }
+
+  if (
+    errName === "NotReadableError" ||
+    errName === "TrackStartError" ||
+    errMsg.includes("could not start video source") ||
+    errMsg.includes("notreadable") ||
+    errMsg.includes("concurrent") ||
+    errMsg.includes("busy")
+  ) {
+    return {
+      titulo: "Cámara ocupada por otra aplicación",
+      mensaje: "El dispositivo de video está en uso por otra pestaña, app (WhatsApp, Zoom, Meet) o retenido por el sistema.",
+      etapa: "Hardware Lock / DirectShow / AVFoundation",
+      esPermiso: false,
+      esOcupada: true,
+      accionRecomendada: "Cierra otras pestañas o aplicaciones que puedan usar la cámara y presiona 'Reintentar Conexión'.",
+    };
+  }
+
+  if (
+    errName === "NotFoundError" ||
+    errName === "DevicesNotFoundError" ||
+    errMsg.includes("not found") ||
+    errMsg.includes("device not found")
+  ) {
+    return {
+      titulo: "Cámara no detectada",
+      mensaje: "No se encontró ningún sensor o dispositivo de captura de video disponible.",
+      etapa: "enumerateDevices / getUserMedia",
+      esPermiso: false,
+      esOcupada: false,
+      accionRecomendada: "Verifica que la cámara web USB esté conectada o que la cámara integrada esté habilitada en el equipo.",
+    };
+  }
+
+  if (errName === "OverconstrainedError" || errMsg.includes("overconstrained")) {
+    return {
+      titulo: "Restricciones incompatibles con el hardware",
+      mensaje: "El sensor no soporta los parámetros de resolución o FPS solicitados.",
+      etapa: "applyConstraints / Escalera de compatibilidad",
+      esPermiso: false,
+      esOcupada: false,
+      accionRecomendada: "Selecciona el perfil 'Calidad Compatible' en la configuración de la terminal.",
+    };
+  }
+
+  if (errName === "AbortError" || errMsg.includes("aborted")) {
+    return {
+      titulo: "Operación de cámara reiniciada",
+      mensaje: "La conexión previa fue cancelada para atender una solicitud más reciente.",
+      etapa: "Reconexión / Cola concurrente",
+      esPermiso: false,
+      esOcupada: false,
+      accionRecomendada: "Presiona 'Activar Cámara' para reconectar.",
+    };
+  }
+
+  return {
+    titulo: "Aviso de conexión de cámara",
+    mensaje: error?.message ? `Fallo técnico: ${error.message}` : "No se pudo iniciar la transmisión de video con el sensor.",
+    etapa: "scanner.start / renderSurface",
+    esPermiso: false,
+    esOcupada: false,
+    accionRecomendada: "Presiona 'Reintentar Conexión' o cambia a 'Calidad Compatible'.",
+  };
 }
 
 type EstadoVisual =
@@ -247,7 +573,35 @@ export default function MarcarPage() {
     setModoOperativo(nuevoModo);
   };
 
-  // Estados de cámara permanente y control
+  // Estados de cámara permanente y control con FSM unificada V3
+  const [estadoSesionCamara, setEstadoSesionCamara] = useState<EstadoSesionCamara>("IDLE");
+  const estadoSesionCamaraRef = useRef<EstadoSesionCamara>("IDLE");
+  const sesionCamaraIdRef = useRef<number>(0);
+  const [perfilCalidad, setPerfilCalidad] = useState<PerfilCalidadCamara>(() => {
+    if (typeof window !== "undefined") {
+      const g = localStorage.getItem("perfil_calidad_camara_v3");
+      if (g && ["AUTO", "COMPATIBLE", "HD", "FULL_HD", "NATIVA"].includes(g)) {
+        return g as PerfilCalidadCamara;
+      }
+    }
+    return configTerminal.perfilCalidad || "AUTO";
+  });
+  const perfilCalidadRef = useRef<PerfilCalidadCamara>(configTerminal.perfilCalidad || "AUTO");
+
+  const actualizarEstadoSesionCamara = (nuevo: EstadoSesionCamara) => {
+    estadoSesionCamaraRef.current = nuevo;
+    setEstadoSesionCamara(nuevo);
+  };
+
+  const cambiarPerfilCalidad = (nuevo: PerfilCalidadCamara) => {
+    perfilCalidadRef.current = nuevo;
+    setPerfilCalidad(nuevo);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("perfil_calidad_camara_v3", nuevo);
+    }
+    guardarConfiguracionTerminal({ perfilCalidad: nuevo });
+  };
+
   const [camaraActiva, setCamaraActiva] = useState(false);
   const [camaraManualApagada, setCamaraManualApagada] = useState(false);
   const [camaraError, setCamaraError] = useState("");
@@ -279,13 +633,16 @@ export default function MarcarPage() {
   const [diagnosticoAbierto, setDiagnosticoAbierto] = useState(false);
   const [panelConfigAbierto, setPanelConfigAbierto] = useState(false);
 
-  // Métricas de Diagnóstico en Vivo
+  // Métricas de Diagnóstico en Vivo (V3: información real, sin valores inventados cuando está apagada)
   const [diagnostico, setDiagnostico] = useState<{
     resolucion: string;
+    resolucionSolicitada: string;
     fps: number;
+    fpsDecodificador: number;
     camaraLabel: string;
     tipoCamara: string;
     estado: string;
+    estadoSesion: EstadoSesionCamara;
     ultimaLectura: string;
     tiempoLecturaMs: number;
     tiempoLecturaSegundos: string;
@@ -297,16 +654,22 @@ export default function MarcarPage() {
     contextoSeguro?: boolean;
     soporteMediaDevices?: boolean;
     permisoCamara?: string;
+    perfilUtilizado?: string;
+    tiempoConexionMs?: number;
+    intentosReconexion?: number;
   }>({
-    resolucion: "1920x1080",
-    fps: 20,
+    resolucion: "--",
+    resolucionSolicitada: "Pendiente",
+    fps: 0,
+    fpsDecodificador: 18,
     camaraLabel: "Cámara en espera",
-    tipoCamara: "Cámara HD",
-    estado: "Iniciando",
+    tipoCamara: "Sin asignar",
+    estado: "Inactiva",
+    estadoSesion: "IDLE",
     ultimaLectura: "Ninguna aún",
     tiempoLecturaMs: 0,
     tiempoLecturaSegundos: "0.0s",
-    focusMode: "Continuo",
+    focusMode: "Estándar",
     zoomSoportado: false,
     zoomActual: 1,
     errorTecnico: "",
@@ -314,6 +677,9 @@ export default function MarcarPage() {
     contextoSeguro: true,
     soporteMediaDevices: true,
     permisoCamara: "verificando",
+    perfilUtilizado: "AUTO",
+    tiempoConexionMs: 0,
+    intentosReconexion: 0,
   });
 
   // Capacidades de Enfoque, Linterna y Zoom por hardware
@@ -418,7 +784,8 @@ export default function MarcarPage() {
     };
 
     const onDeviceChange = () => {
-      void actualizarListaDispositivos();
+      console.warn("[CAMARA V3] Dispositivo de video conectado o desconectado.");
+      void actualizarListaDispositivos(false, true);
     };
 
     // FASE 4: Recuperación inteligente al volver a la pestaña (Android Chrome, iOS Safari, etc.)
@@ -437,18 +804,52 @@ export default function MarcarPage() {
             const streamDetenido = !track || track.readyState !== "live" || track.muted;
             const videoPausado = !videoEl || videoEl.paused || videoEl.ended;
 
-            if (streamDetenido || videoPausado) {
-              console.warn("[TERMINAL V2] Pestaña reactivada tras suspensión/background. Restaurando cámara permanente...");
-              void activarCamaraPermanente();
+            if (streamDetenido || videoPausado || estadoSesionCamaraRef.current !== "ACTIVA") {
+              console.warn("[CAMARA V3] Pestaña reactivada tras suspensión/background. Restaurando cámara permanente...");
+              void activarCamaraPermanente(undefined, undefined, undefined, true);
             }
           }, 350);
         }
+      } else {
+        if (estadoSesionCamaraRef.current === "ACTIVA") {
+          actualizarEstadoSesionCamara("PAUSANDO");
+        }
+      }
+    };
+
+    // Soporte para Safari iOS y móviles con bfcache (pagehide / pageshow)
+    const onPageShow = () => {
+      if (!desmontadoRef.current && !camaraManualApagada && autoInicioEjecutadoRef.current) {
+        if (reconexionTimerRef.current) {
+          clearTimeout(reconexionTimerRef.current);
+        }
+        reconexionTimerRef.current = setTimeout(() => {
+          if (desmontadoRef.current || camaraManualApagada) return;
+          const videoEl = obtenerVideoElementActivo(scannerRef.current);
+          const stream = videoEl?.srcObject as MediaStream | null;
+          const track = stream?.getVideoTracks()?.[0];
+          const streamDetenido = !track || track.readyState !== "live" || track.muted;
+          const videoPausado = !videoEl || videoEl.paused || videoEl.ended;
+
+          if (streamDetenido || videoPausado || estadoSesionCamaraRef.current !== "ACTIVA") {
+            console.warn("[CAMARA V3] Retorno vía pageshow (bfcache o app switch). Restaurando cámara...");
+            void activarCamaraPermanente(undefined, undefined, undefined, true);
+          }
+        }, 350);
+      }
+    };
+
+    const onPageHide = () => {
+      if (estadoSesionCamaraRef.current === "ACTIVA") {
+        actualizarEstadoSesionCamara("PAUSANDO");
       }
     };
 
     window.addEventListener("popstate", bloquearAtras);
     navigator.mediaDevices?.addEventListener("devicechange", onDeviceChange);
     document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pageshow", onPageShow);
+    window.addEventListener("pagehide", onPageHide);
 
     const onFullscreenChange = () => {
       setEsPantallaCompleta(Boolean(document.fullscreenElement));
@@ -464,6 +865,8 @@ export default function MarcarPage() {
       window.removeEventListener("popstate", bloquearAtras);
       navigator.mediaDevices?.removeEventListener("devicechange", onDeviceChange);
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pageshow", onPageShow);
+      window.removeEventListener("pagehide", onPageHide);
       document.removeEventListener("fullscreenchange", onFullscreenChange);
       detenerCamaraFoto();
       void liberarRecursosCamara();
@@ -577,7 +980,7 @@ export default function MarcarPage() {
     return listaCandidatas[0]?.deviceId || "";
   }
 
-  async function actualizarListaDispositivos(iniciarCamaraTrasEnum = false) {
+  async function actualizarListaDispositivos(iniciarCamaraTrasEnum = false, esCambioDinamico = false) {
     if (!navigator.mediaDevices?.enumerateDevices) return;
     setCargandoCamaras(true);
 
@@ -609,6 +1012,20 @@ export default function MarcarPage() {
         guardarConfiguracionTerminal({ camaraSeleccionada: "" });
       }
 
+      // V3: Si una cámara activa se desconectó físicamente (ej. webcam USB desconectada), conmutar a predeterminada
+      const camaraDesconectada =
+        esCambioDinamico &&
+        camaraQrSeleccionada &&
+        !camarasEncontradas.some((c) => c.deviceId === camaraQrSeleccionada);
+
+      if (camaraDesconectada) {
+        console.warn(
+          `[CAMARA V3] La cámara activa (${camaraQrSeleccionada}) fue desconectada físicamente. Conmutando a predeterminada...`
+        );
+        preferidaQr = "";
+        guardarConfiguracionTerminal({ camaraSeleccionada: "" });
+      }
+
       const seleccionQr = elegirCamaraPredeterminada({
         dispositivos: camarasEncontradas,
         preferencia: preferidaQr,
@@ -626,7 +1043,10 @@ export default function MarcarPage() {
       setCamaraQrSeleccionada(seleccionQr);
       setCamaraFacialSeleccionada(seleccionFacial);
 
-      if (iniciarCamaraTrasEnum && seleccionQr && !camaraManualApagada && !autoInicioEjecutadoRef.current) {
+      if (camaraDesconectada && camaraActiva && !camaraManualApagada) {
+        console.warn("[CAMARA V3] Reconectando sesión activa con cámara disponible tras desconexión...");
+        void activarCamaraPermanente(seleccionQr || undefined);
+      } else if (iniciarCamaraTrasEnum && seleccionQr && !camaraManualApagada && !autoInicioEjecutadoRef.current) {
         autoInicioEjecutadoRef.current = true;
         void activarCamaraPermanente(seleccionQr);
       }
@@ -665,38 +1085,43 @@ export default function MarcarPage() {
     await new Promise<void>((resolve) => window.setTimeout(resolve, ms));
   }
 
-  // Liberación total y garantizada de recursos de cámara (Anti-NotReadableError)
+  // Liberación total y garantizada de recursos de cámara (Anti-NotReadableError y Anti-Zombies)
   async function liberarRecursosCamara() {
     if (reconexionTimerRef.current) {
       clearTimeout(reconexionTimerRef.current);
       reconexionTimerRef.current = null;
     }
 
+    if (!desmontadoRef.current) {
+      actualizarEstadoSesionCamara("DETENIENDO");
+    }
+
     try {
-      // 1. FASE 3: Intentar detener ordenadamente la instancia activa de Html5Qrcode
+      // 1. Intentar detener ordenadamente la instancia activa de Html5Qrcode con timeout de seguridad (1200ms)
       const scanner = scannerRef.current;
       if (scanner) {
         try {
           const estado = scanner.getState();
           // Estado 2 = SCANNING, Estado 3 = PAUSED
           if (estado === 2 || estado === 3) {
-            await scanner.stop();
+            await Promise.race([
+              scanner.stop(),
+              new Promise((r) => setTimeout(r, 1200)),
+            ]);
           }
           scanner.clear();
         } catch (error) {
-          console.warn("[CAMARA] scanner.stop() o scanner.clear() falló (procediendo a detención forzada de pistas):", error);
+          console.warn("[CAMARA V3] scanner.stop() o scanner.clear() falló (procediendo a detención forzada de pistas):", error);
         } finally {
           scannerRef.current = null;
         }
       }
     } finally {
       // 2. GARANTÍA ABSOLUTA: Detener exclusivamente los MediaStream y elementos de video propiedad de Terminal V2
-      // Se ejecuta indefectiblemente aunque scanner.stop() o scanner.clear() hayan arrojado excepciones
       try {
         const videosTerminal: HTMLVideoElement[] = [];
 
         if (typeof document !== "undefined") {
-          // Elementos de video internos renderizados dentro del contenedor del lector QR
           const contenedor = document.getElementById("lector-qr");
           if (contenedor) {
             contenedor.querySelectorAll("video").forEach((v) => {
@@ -705,7 +1130,6 @@ export default function MarcarPage() {
           }
         }
 
-        // Elemento de video referenciado directamente por Terminal V2
         if (videoRef.current && !videosTerminal.includes(videoRef.current)) {
           videosTerminal.push(videoRef.current);
         }
@@ -718,27 +1142,30 @@ export default function MarcarPage() {
                 try {
                   track.stop();
                 } catch (errTrack) {
-                  console.warn("[CAMARA] Error deteniendo pista individual:", errTrack);
+                  console.warn("[CAMARA V3] Error deteniendo pista individual:", errTrack);
                 }
               });
               videoEl.srcObject = null;
             }
             videoEl.pause();
           } catch (errVideo) {
-            console.warn("[CAMARA] Error limpiando elemento de video de Terminal V2:", errVideo);
+            console.warn("[CAMARA V3] Error limpiando elemento de video de Terminal V2:", errVideo);
           }
         });
       } catch (e) {
-        console.warn("[CAMARA] Error general en limpieza de MediaStreamTracks de Terminal V2:", e);
+        console.warn("[CAMARA V3] Error general en limpieza de MediaStreamTracks:", e);
       }
 
       setLinternaActiva(false);
       setCamaraActiva(false);
       procesandoQR.current = false;
+      if (!desmontadoRef.current && estadoSesionCamaraRef.current !== "ERROR") {
+        actualizarEstadoSesionCamara("IDLE");
+      }
     }
 
-    // Margen para que el subsistema de video del OS (DirectShow / MediaFoundation / AVFoundation / Android CameraService) libere el hardware lock
-    await esperar(200);
+    // Margen para que el subsistema de video del OS libere el hardware lock
+    await esperar(150);
   }
 
   function detenerCamaraFoto() {
@@ -754,34 +1181,48 @@ export default function MarcarPage() {
     }
   }
 
-  // 3. Iniciar cámara permanente V2 con Serializador Mutex y Escalera Progresiva de Compatibilidad
+  // 3. Iniciar cámara permanente V3 con FSM, Mutex y Escalera Adaptativa por Perfil
   async function activarCamaraPermanente(
     dispositivoIdCustom?: string,
-    modoFacingCustom?: "environment" | "user"
+    modoFacingCustom?: "environment" | "user",
+    forzarPerfil?: PerfilCalidadCamara,
+    esReconexionAuto = false
   ) {
-    return encolarOperacionCamara("activarCamaraPermanente", async () => {
-      if (desmontadoRef.current) return;
-      setIniciandoCamara(true);
-      setCamaraError("");
+    const tokenSesion = ++sesionCamaraIdRef.current;
+    actualizarEstadoSesionCamara(esReconexionAuto ? "RECUPERANDO" : "INICIANDO");
+    setIniciandoCamara(true);
+    setCamaraError("");
 
+    return encolarOperacionCamara("activarCamaraPermanente", async () => {
+      if (tokenSesion !== sesionCamaraIdRef.current || desmontadoRef.current) return;
+
+      const tInicioConexion = performance.now();
       await liberarRecursosCamara();
       detenerCamaraFoto();
+
+      // Consultar estado de permisos de forma no intrusiva si el navegador lo permite
+      if (typeof navigator !== "undefined" && navigator.permissions?.query) {
+        try {
+          const permisoStatus = await navigator.permissions.query({ name: "camera" as any });
+          if (permisoStatus.state === "prompt") {
+            actualizarEstadoSesionCamara("SOLICITANDO_PERMISO");
+          }
+          setDiagnostico((prev) => ({ ...prev, permisoCamara: permisoStatus.state }));
+        } catch {}
+      }
 
       const cfg = obtenerConfiguracionTerminal();
       const esLaptop = cfg.tipoDispositivo === "LAPTOP_PC";
 
-      // Si es laptop o PC, siempre usar "user"; en celular/tablet usar preferencia o "environment"
       let facingMode: "environment" | "user" =
         modoFacingCustom ?? (esLaptop ? "user" : cfg.modoCamaraPreferido || "environment");
       if (esLaptop) {
         facingMode = "user";
       }
 
-      // Resolver ID de dispositivo
       let targetDeviceId: string | undefined =
         dispositivoIdCustom ?? camaraQrSeleccionada ?? cfg.camaraSeleccionada;
 
-      // FASE 1: Si el deviceId seleccionado corresponde a una cámara virtual o ya no existe, descartarlo
       if (targetDeviceId) {
         const camEncontrada = camaras.find((c) => c.deviceId === targetDeviceId);
         if ((camEncontrada && esCamaraVirtual(camEncontrada.label)) || (camaras.length > 0 && !camEncontrada)) {
@@ -789,59 +1230,26 @@ export default function MarcarPage() {
         }
       }
 
-      // Separación técnica: FPS de decodificación QR (ZXing) vs FPS del MediaStream
-      // Laptop: 20 FPS decodificación zxing. Celulares: 18 FPS para evitar sobrecalentamiento y mantener fluidez.
-      const decoderFps = esLaptop ? 20 : 18;
-
-      // FASE 2: Escalera de compatibilidad progresiva Full HD -> HD 720p -> SD 480p -> Universal Nativa
-      // Se eliminan mínimos obligatorios como { min: 15 } para evitar OverconstrainedError en hardware modesto
-      const nivelesConstraints: Array<{
-        nombre: string;
-        videoConstraints: MediaTrackConstraints;
-      }> = [
-        {
-          nombre: "Full HD 1080p (Preferente)",
-          videoConstraints: {
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            aspectRatio: { ideal: 16 / 9 },
-            frameRate: { ideal: 30 },
-          },
-        },
-        {
-          nombre: "HD 720p Estándar",
-          videoConstraints: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            aspectRatio: { ideal: 16 / 9 },
-            frameRate: { ideal: 30 },
-          },
-        },
-        {
-          nombre: "SD 480p Universal",
-          videoConstraints: {
-            width: { ideal: 640 },
-            height: { ideal: 480 },
-            frameRate: { ideal: 30 },
-          },
-        },
-        {
-          nombre: "Resolución Nativa del Sensor",
-          videoConstraints: {
-            frameRate: { ideal: 30 },
-          },
-        },
-      ];
+      const perfilElegido = forzarPerfil || perfilCalidadRef.current || "AUTO";
+      const nivelesConstraints = generarEscaleraConstraints({
+        perfil: perfilElegido,
+        esLaptop,
+      });
 
       let lectorIniciadoConExito = false;
       let ultimoErrorCapturado: any = null;
+      let nivelExitoso: NivelEscaleraCamara | null = null;
 
-      // Intentar niveles progresivos de constraints
       for (const nivel of nivelesConstraints) {
-        if (desmontadoRef.current) break;
+        if (tokenSesion !== sesionCamaraIdRef.current || desmontadoRef.current) break;
 
         try {
-          console.log(`[TERMINAL V2] Intentando inicializar cámara (${nivel.nombre})...`);
+          console.log(`[CAMARA V3] Probando nivel de hardware: ${nivel.nombre} (Perfil: ${nivel.perfil})...`);
+          setDiagnostico((prev) => ({
+            ...prev,
+            resolucionSolicitada: nivel.nombre,
+            fpsDecodificador: nivel.decoderFps,
+          }));
 
           const lector = new Html5Qrcode("lector-qr", {
             formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
@@ -849,21 +1257,18 @@ export default function MarcarPage() {
           });
           scannerRef.current = lector;
 
-          // FASE 1: Html5Qrcode 2.3.8 usa internalConfig.videoConstraints si está definido,
-          // ignorando cameraTarget al llamar a getUserMedia. Inyectamos deviceId / facingMode en finalConstraints:
+          // Inyección adaptativa sin restricciones exactas forzadas
           const finalConstraints: MediaTrackConstraints = { ...nivel.videoConstraints };
           let cameraTarget: any = {};
 
           if (targetDeviceId) {
             cameraTarget = { deviceId: { exact: targetDeviceId } };
-            // Inyección directa de preferencia flexible con fallback seguro
             finalConstraints.deviceId = { ideal: targetDeviceId };
           } else {
             cameraTarget = { facingMode };
             finalConstraints.facingMode = { ideal: facingMode };
           }
 
-          // Solicitar foco continuo en advanced solo si el navegador soporta la constraint
           try {
             const supported = navigator.mediaDevices?.getSupportedConstraints?.();
             if (supported && (supported as any).focusMode) {
@@ -871,11 +1276,10 @@ export default function MarcarPage() {
             }
           } catch {}
 
-          // Iniciar escáner: SIN 'qrbox' para escaneo completo sobre 100% del fotograma
           await lector.start(
             cameraTarget,
             {
-              fps: decoderFps,
+              fps: nivel.decoderFps,
               videoConstraints: finalConstraints,
             },
             async (codigoLeido) => {
@@ -883,8 +1287,7 @@ export default function MarcarPage() {
               const ahora = Date.now();
               const modoActual = modoOperativoRef.current;
 
-              // FASE 6: Prevención inteligente de duplicados: 3.5s cooldown para el MISMO carnet Y MISMO modo
-              // Si el operador cambia expresamente entre ENTRADA y SALIDA, no bloqueamos la intención legítima
+              // Cooldown de 3.5s para el MISMO carnet y MISMO modo
               if (
                 ultimoCodigoLeidoRef.current.codigo === codigoSanitizado &&
                 ultimoCodigoLeidoRef.current.modo === modoActual &&
@@ -893,7 +1296,6 @@ export default function MarcarPage() {
                 return;
               }
 
-              // Si hay una transacción de red en curso, no procesar lecturas concurrentes
               if (procesandoQR.current) {
                 return;
               }
@@ -905,89 +1307,83 @@ export default function MarcarPage() {
             () => {}
           );
 
-          // Inicialización exitosa
-          lectorIniciadoConExito = true;
-          setCamaraActiva(true);
-          setCamaraManualApagada(false);
-          setCamaraError("");
-          reintentosFallidosRef.current = 0;
+          // Verificar que el elemento de video realmente esté renderizando fotogramas activos
+          const videoEl = obtenerVideoElementActivo(lector);
+          let videoListo = false;
+          for (let intentoVideo = 0; intentoVideo < 8; intentoVideo++) {
+            if (videoEl && videoEl.videoWidth > 0 && videoEl.videoHeight > 0 && videoEl.readyState >= 2) {
+              videoListo = true;
+              break;
+            }
+            await esperar(100);
+          }
 
-          await aplicarOptimizacionesHardwareTrack(lector);
-          void actualizarListaDispositivos();
+          if (videoListo || (videoEl && videoEl.readyState >= 1)) {
+            lectorIniciadoConExito = true;
+            nivelExitoso = nivel;
+            actualizarEstadoSesionCamara("ACTIVA");
+            setCamaraActiva(true);
+            setCamaraManualApagada(false);
+            setCamaraError("");
+            reintentosFallidosRef.current = 0;
 
-          console.log(`[TERMINAL V2] Cámara activa exitosamente con perfil: ${nivel.nombre}`);
-          break;
+            const duracionMs = Math.round(performance.now() - tInicioConexion);
+            await aplicarOptimizacionesHardwareTrack(lector, nivel.perfil, duracionMs, nivel.nombre);
+            void actualizarListaDispositivos();
+
+            console.log(`[CAMARA V3] Conexión establecida con éxito en ${duracionMs}ms (${nivel.nombre})`);
+            break;
+          } else {
+            console.warn(`[CAMARA V3] El video no alcanzó fotogramas válidos en ${nivel.nombre}. Probando siguiente nivel...`);
+            await liberarRecursosCamara();
+          }
         } catch (err: any) {
           ultimoErrorCapturado = err;
-          console.warn(`[TERMINAL V2] Falló inicialización con ${nivel.nombre}:`, err?.name || err?.message || err);
+          console.warn(`[CAMARA V3] Falló nivel ${nivel.nombre}:`, err?.name || err?.message || err);
           await liberarRecursosCamara();
-          await esperar(200);
+          await esperar(150);
 
-          // FASE 1: Si falló usando un ID específico (ej. cámara desconectada), reintentar sin ID en niveles siguientes
           if (targetDeviceId && (nivel === nivelesConstraints[0] || nivel === nivelesConstraints[1])) {
-            console.log("[TERMINAL V2] Descartando targetDeviceId para probar fallback nativo...");
+            console.log("[CAMARA V3] Descartando targetDeviceId tras fallo para probar sensor principal...");
             targetDeviceId = undefined;
           }
         }
       }
 
-      if (!lectorIniciadoConExito && !desmontadoRef.current) {
+      if (!lectorIniciadoConExito && !desmontadoRef.current && tokenSesion === sesionCamaraIdRef.current) {
         scannerRef.current = null;
+        actualizarEstadoSesionCamara("ERROR");
         setCamaraActiva(false);
 
-        const errName = ultimoErrorCapturado?.name || "";
-        const errMsg = (ultimoErrorCapturado?.message || "").toLowerCase();
+        const diagnosticoError = clasificarErrorCamara(ultimoErrorCapturado);
         const errTecnicoStr = ultimoErrorCapturado
           ? `${ultimoErrorCapturado.name || "Error"}: ${ultimoErrorCapturado.message || "Desconocido"}`
-          : "Fallo desconocido al inicializar cámara";
+          : "Fallo al inicializar hardware de cámara";
 
-        // FASE 5: Diagnóstico local seguro sin datos personales
         setDiagnostico((prev) => ({
           ...prev,
-          estado: "Fallo de conexión",
+          estado: diagnosticoError.titulo,
+          estadoSesion: "ERROR",
           errorTecnico: errTecnicoStr,
-          etapaFallo: "getUserMedia / scanner.start",
+          etapaFallo: diagnosticoError.etapa,
         }));
 
-        if (
-          errName === "NotReadableError" ||
-          errMsg.includes("could not start video source") ||
-          errMsg.includes("notreadable") ||
-          errMsg.includes("concurrent")
-        ) {
-          setCamaraError(
-            "Cámara ocupada o en uso por otra aplicación (o bloqueada por el sistema). Cierra otras pestañas o aplicaciones e intenta nuevamente."
-          );
-        } else if (
-          errName === "NotAllowedError" ||
-          errName === "PermissionDeniedError" ||
-          errMsg.includes("permission") ||
-          errMsg.includes("denied")
-        ) {
-          setCamaraError(
-            "Permiso de cámara denegado. Active el acceso a la cámara en el navegador para registrar asistencia."
-          );
-        } else if (
-          errName === "NotFoundError" ||
-          errName === "DevicesNotFoundError" ||
-          errMsg.includes("not found")
-        ) {
-          setCamaraError("No se detectó ninguna cámara disponible en el dispositivo.");
-        } else if (errName === "OverconstrainedError" || errMsg.includes("overconstrained")) {
-          setCamaraError("Restricciones incompatibles con el hardware de video. Selecciona otra cámara en Configuración.");
-        } else {
-          setCamaraError("Cámara desconectada o no disponible. Revisa la conexión e intenta nuevamente.");
-        }
+        setCamaraError(`${diagnosticoError.titulo}: ${diagnosticoError.mensaje}`);
       }
 
       setIniciandoCamara(false);
     });
   }
 
-  // 3.1 Inspección y optimización de hardware segura: AutoFocus, Zoom, Linterna y Diagnóstico Real
-  async function aplicarOptimizacionesHardwareTrack(lectorInstancia?: Html5Qrcode | null) {
+  // 3.1 Inspección y optimización de hardware segura: AutoFocus, Zoom, Linterna y Medición Real de FPS
+  async function aplicarOptimizacionesHardwareTrack(
+    lectorInstancia?: Html5Qrcode | null,
+    perfilActivo: PerfilCalidadCamara = "AUTO",
+    tiempoConexionMs: number = 0,
+    nivelNombre: string = ""
+  ) {
     try {
-      await esperar(300);
+      await esperar(250);
       const videoEl = obtenerVideoElementActivo(lectorInstancia || scannerRef.current);
       const stream = videoEl?.srcObject as MediaStream | null;
       const track = stream?.getVideoTracks()?.[0];
@@ -1000,12 +1396,13 @@ export default function MarcarPage() {
       let zoomActual = 1;
 
       if (track) {
-        // Watchdog protegido contra bucles infinitos (máximo 2 intentos automáticos)
+        // Watchdog de desconexión imprevista protegido contra bucles infinitos
         track.onended = () => {
           if (desmontadoRef.current || camaraManualApagada) return;
 
           if (reintentosFallidosRef.current >= MAX_REINTENTOS_AUTOMATICOS) {
-            console.warn("[TERMINAL V2] Límite de reconexiones automáticas alcanzado.");
+            console.warn("[CAMARA V3] Límite de reconexiones automáticas alcanzado.");
+            actualizarEstadoSesionCamara("ERROR");
             setCamaraError(
               "La señal de la cámara se interrumpió. Presiona 'Reintentar Conexión' o selecciona otra cámara."
             );
@@ -1014,24 +1411,23 @@ export default function MarcarPage() {
           }
 
           reintentosFallidosRef.current += 1;
-          console.warn(`[TERMINAL V2] Reconexión automática (${reintentosFallidosRef.current}/${MAX_REINTENTOS_AUTOMATICOS})...`);
+          const delayEspera = Math.min(reintentosFallidosRef.current * 1000, 3000);
+          console.warn(`[CAMARA V3] Reconexión automática (${reintentosFallidosRef.current}/${MAX_REINTENTOS_AUTOMATICOS}) en ${delayEspera}ms...`);
 
           if (reconexionTimerRef.current) clearTimeout(reconexionTimerRef.current);
           reconexionTimerRef.current = setTimeout(() => {
-            void activarCamaraPermanente();
-          }, 2000);
+            void activarCamaraPermanente(undefined, undefined, undefined, true);
+          }, delayEspera);
         };
 
         const capabilities: any = track.getCapabilities ? track.getCapabilities() : {};
 
-        // Linterna (Torch API de hardware)
         if ("torch" in capabilities) {
           setSoportaLinterna(true);
         } else {
           setSoportaLinterna(false);
         }
 
-        // AutoFocus continuo SOLO si el hardware lo soporta
         const advanced: any = {};
         if (capabilities.focusMode && Array.isArray(capabilities.focusMode)) {
           if (capabilities.focusMode.includes("continuous")) {
@@ -1043,7 +1439,6 @@ export default function MarcarPage() {
           }
         }
 
-        // Zoom por hardware SOLO si el hardware lo soporta
         if (capabilities.zoom) {
           soportaZ = true;
           zMin = capabilities.zoom.min || 1;
@@ -1062,12 +1457,12 @@ export default function MarcarPage() {
           try {
             await track.applyConstraints({ advanced: [advanced] });
           } catch (eAdv) {
-            console.warn("[CAMARA] applyConstraints avanzado ignorado por driver:", eAdv);
+            console.warn("[CAMARA V3] applyConstraints avanzado ignorado por driver:", eAdv);
           }
         }
       }
 
-      // Obtener resolución y FPS REALES negociados por el sensor de hardware
+      // Obtener dimensiones reales del video
       const { width: realWidth, height: realHeight, fps: realFps } =
         await obtenerResolucionRealVideo(videoEl, track);
 
@@ -1098,21 +1493,25 @@ export default function MarcarPage() {
 
       setDiagnostico((prev) => ({
         ...prev,
-        resolucion: realWidth > 0 && realHeight > 0 ? `${realWidth}x${realHeight}` : "Negociando...",
+        resolucion: realWidth > 0 && realHeight > 0 ? `${realWidth}x${realHeight}` : "Nativa",
+        resolucionSolicitada: nivelNombre || prev.resolucionSolicitada,
         fps: realFps > 0 ? realFps : 30,
         camaraLabel: camLabel,
         tipoCamara: tipoCam,
         estado: estadoResolucion,
+        estadoSesion: "ACTIVA",
         focusMode: focusModeDetectado,
         zoomSoportado: soportaZ,
         zoomActual,
         errorTecnico: "",
         etapaFallo: "",
+        perfilUtilizado: perfilActivo,
+        tiempoConexionMs: tiempoConexionMs || prev.tiempoConexionMs,
         contextoSeguro: typeof window !== "undefined" ? window.isSecureContext : true,
         soporteMediaDevices: Boolean(typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia),
       }));
     } catch (err) {
-      console.warn("[CAMARA] No se pudo leer diagnóstico detallado:", err);
+      console.warn("[CAMARA V3] No se pudo leer diagnóstico detallado:", err);
     }
   }
 
@@ -1960,19 +2359,42 @@ export default function MarcarPage() {
             ONLINE
           </span>
 
+          {/* Badge Unificado de Estado de Cámara V3 */}
           <span
             className={`hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
-              camaraActiva
-                ? "bg-blue-950/90 border-blue-500/40 text-blue-300"
-                : "bg-red-950/90 border-red-500/40 text-red-300"
+              estadoSesionCamara === "ACTIVA"
+                ? "bg-emerald-950/90 border-emerald-500/40 text-emerald-300"
+                : estadoSesionCamara === "INICIANDO" || estadoSesionCamara === "RECUPERANDO"
+                ? "bg-blue-950/90 border-blue-500/40 text-blue-300 animate-pulse"
+                : estadoSesionCamara === "SOLICITANDO_PERMISO"
+                ? "bg-amber-950/90 border-amber-500/40 text-amber-300 animate-pulse"
+                : estadoSesionCamara === "ERROR"
+                ? "bg-red-950/90 border-red-500/40 text-red-300"
+                : "bg-slate-900/90 border-slate-700/40 text-slate-400"
             }`}
           >
-            {camaraActiva ? (
-              <LuCamera className="w-3.5 h-3.5 text-blue-300" />
+            {estadoSesionCamara === "ACTIVA" ? (
+              <LuCamera className="w-3.5 h-3.5 text-emerald-300" />
+            ) : estadoSesionCamara === "INICIANDO" || estadoSesionCamara === "RECUPERANDO" ? (
+              <LuRefreshCw className="w-3.5 h-3.5 text-blue-300 animate-spin" />
+            ) : estadoSesionCamara === "SOLICITANDO_PERMISO" ? (
+              <LuLock className="w-3.5 h-3.5 text-amber-300" />
             ) : (
               <LuCameraOff className="w-3.5 h-3.5 text-red-300" />
             )}
-            <span>{camaraActiva ? `${diagnostico.resolucion} @ ${diagnostico.fps}fps` : "Apagada"}</span>
+            <span>
+              {estadoSesionCamara === "ACTIVA"
+                ? `${diagnostico.resolucion} @ ${diagnostico.fps}fps`
+                : estadoSesionCamara === "RECUPERANDO"
+                ? "Recuperando señal..."
+                : estadoSesionCamara === "INICIANDO"
+                ? "Iniciando hardware..."
+                : estadoSesionCamara === "SOLICITANDO_PERMISO"
+                ? "Solicitando permiso..."
+                : estadoSesionCamara === "ERROR"
+                ? "Error de Cámara"
+                : "Pausada"}
+            </span>
           </span>
 
           <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-950/90 border border-indigo-500/40 text-indigo-300 text-[11px] font-bold">
@@ -2300,8 +2722,43 @@ export default function MarcarPage() {
                 </div>
               )}
 
-              {/* Pantalla cuando la cámara está apagada manualmente */}
-              {!camaraActiva && !camaraError && (
+              {/* 1. Pantalla cuando se solicita permiso en el navegador */}
+              {!camaraActiva && !camaraError && estadoSesionCamara === "SOLICITANDO_PERMISO" && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-950/95 z-10 animate-in fade-in duration-200">
+                  <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border-2 border-amber-500/40 flex items-center justify-center mb-4 text-amber-300 animate-pulse">
+                    <LuLock className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-black text-white">
+                    Solicitando Acceso a la Cámara
+                  </h3>
+                  <p className="text-sm text-amber-200 mt-2 max-w-md font-medium">
+                    Por favor, presione <strong>&quot;Permitir&quot;</strong> en el aviso de su navegador para habilitar el escáner escolar.
+                  </p>
+                  <p className="text-xs text-slate-400 mt-4 max-w-sm">
+                    Si el permiso fue bloqueado previamente, haga clic en el icono del candado en la barra de direcciones para habilitarlo.
+                  </p>
+                </div>
+              )}
+
+              {/* 2. Pantalla de Conexión / Recuperación en curso */}
+              {!camaraActiva && !camaraError && (iniciandoCamara || estadoSesionCamara === "INICIANDO" || estadoSesionCamara === "RECUPERANDO") && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-950/95 z-10 animate-in fade-in duration-200">
+                  <LuRefreshCw className="w-14 h-14 mb-4 text-cyan-400 animate-spin" />
+                  <h3 className="text-xl sm:text-2xl font-black text-white">
+                    {estadoSesionCamara === "RECUPERANDO" ? "Recuperando Señal de Cámara..." : "Conectando Hardware de Cámara..."}
+                  </h3>
+                  <p className="text-sm text-cyan-300/80 mt-2 max-w-md font-medium">
+                    Negociando perfil adaptativo ({perfilCalidad}) y estabilizando flujo de video del sensor...
+                  </p>
+                  <div className="mt-5 flex items-center gap-2 text-xs font-semibold text-slate-400">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                    <span>Espere un momento...</span>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. Pantalla cuando la cámara está apagada o en pausa manual */}
+              {!camaraActiva && !camaraError && estadoSesionCamara !== "SOLICITANDO_PERMISO" && !iniciandoCamara && estadoSesionCamara !== "INICIANDO" && estadoSesionCamara !== "RECUPERANDO" && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-950/95 z-10">
                   <LuCameraOff className="w-16 h-16 mb-3 text-slate-500" />
                   <h3 className="text-2xl font-black text-slate-100">
@@ -2310,26 +2767,45 @@ export default function MarcarPage() {
                   <p className="text-sm text-slate-400 mt-1 max-w-sm">
                     La cámara está apagada. Presione el botón para activar el escaneo permanente.
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => void activarCamaraPermanente()}
-                    className="mt-6 inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 font-black text-white text-base shadow-xl shadow-emerald-950/50 transition transform hover:-translate-y-0.5 active:scale-95"
-                  >
-                    <LuPlay className="w-5 h-5 mr-1" /> Activar Cámara
-                  </button>
+                  <div className="mt-6 flex flex-wrap gap-3 justify-center">
+                    <button
+                      type="button"
+                      onClick={() => void activarCamaraPermanente()}
+                      className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 font-black text-white text-base shadow-xl shadow-emerald-950/50 transition transform hover:-translate-y-0.5 active:scale-95"
+                    >
+                      <LuPlay className="w-5 h-5 mr-1" /> Activar Cámara
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        cambiarPerfilCalidad("COMPATIBLE");
+                        void activarCamaraPermanente(undefined, undefined, "COMPATIBLE");
+                      }}
+                      className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-blue-950/80 hover:bg-blue-900 border border-blue-500/50 text-blue-200 font-bold text-sm transition active:scale-95"
+                      title="Inicia con resolución estándar 480p de bajo consumo recomendada para celulares antiguos"
+                    >
+                      <span>⚡</span> Modo Rápido (480p)
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {/* Pantalla de Error de Cámara Profesional */}
+              {/* 4. Pantalla de Error de Cámara Profesional con Diagnóstico y Modos de Recuperación */}
               {camaraError && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-950/95 border-2 border-red-500/40 z-10">
-                  <LuTriangleAlert className="w-16 h-16 mb-3 text-amber-400" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-950/95 border-2 border-red-500/40 z-10 overflow-y-auto">
+                  <LuTriangleAlert className="w-16 h-16 mb-3 text-amber-400 shrink-0" />
                   <h3 className="text-2xl font-black text-white">
                     Aviso de Conexión de Cámara
                   </h3>
                   <p className="text-sm text-red-200 mt-2 max-w-lg font-medium leading-relaxed bg-red-950/60 p-4 rounded-2xl border border-red-800/60">
                     {camaraError}
                   </p>
+                  {diagnostico.errorTecnico && (
+                    <div className="mt-2 text-[11px] text-slate-400 font-mono">
+                      Detalle: {diagnostico.errorTecnico} {diagnostico.etapaFallo ? `(${diagnostico.etapaFallo})` : ""}
+                    </div>
+                  )}
                   <div className="mt-6 flex flex-wrap gap-3 justify-center">
                     <button
                       type="button"
@@ -2337,6 +2813,18 @@ export default function MarcarPage() {
                       className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm shadow-xl transition active:scale-95"
                     >
                       <LuRefreshCw className="w-4 h-4 mr-1.5" /> Reintentar Conexión
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        cambiarPerfilCalidad("COMPATIBLE");
+                        void activarCamaraPermanente(undefined, undefined, "COMPATIBLE");
+                      }}
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black text-sm shadow-xl transition active:scale-95"
+                      title="Forzar perfil compatible estándar de 480p sin restricciones complejas"
+                    >
+                      <span>⚡</span> Modo Compatible (480p)
                     </button>
 
                     <button
@@ -2412,23 +2900,50 @@ export default function MarcarPage() {
                 )}
               </div>
 
-              {/* Selector Rápido de Cámara */}
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <span className="text-xs font-bold text-slate-400 shrink-0">
-                  Cámara:
-                </span>
-                <select
-                  value={camaraQrSeleccionada}
-                  onChange={(e) => void cambiarCamaraEnVivo(e.target.value)}
-                  className="w-full sm:w-64 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs font-bold focus:border-blue-500 outline-none"
-                >
-                  <option value="">Predeterminada (HD Automática)</option>
-                  {camaras.map((c, i) => (
-                    <option key={c.deviceId || i} value={c.deviceId}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
+              {/* Controles de Dispositivo y Calidad */}
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* Selector Rápido de Calidad V3 */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-slate-400 shrink-0">
+                    Calidad:
+                  </span>
+                  <select
+                    value={perfilCalidad}
+                    onChange={(e) => {
+                      const nuevo = e.target.value as PerfilCalidadCamara;
+                      cambiarPerfilCalidad(nuevo);
+                      if (camaraActiva) {
+                        void activarCamaraPermanente(undefined, undefined, nuevo);
+                      }
+                    }}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs font-bold focus:border-cyan-500 outline-none"
+                  >
+                    <option value="AUTO">Automática (Adaptativa)</option>
+                    <option value="COMPATIBLE">Compatible (480p / Rápida)</option>
+                    <option value="HD">HD Estándar (720p)</option>
+                    <option value="FULL_HD">Full HD (1080p)</option>
+                    <option value="NATIVA">Nativa del Sensor</option>
+                  </select>
+                </div>
+
+                {/* Selector Rápido de Cámara */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-slate-400 shrink-0">
+                    Cámara:
+                  </span>
+                  <select
+                    value={camaraQrSeleccionada}
+                    onChange={(e) => void cambiarCamaraEnVivo(e.target.value)}
+                    className="w-48 sm:w-60 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs font-bold focus:border-blue-500 outline-none"
+                  >
+                    <option value="">Predeterminada (HD Automática)</option>
+                    {camaras.map((c, i) => (
+                      <option key={c.deviceId || i} value={c.deviceId}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -2610,12 +3125,12 @@ export default function MarcarPage() {
       {/* MODAL DE DIAGNÓSTICO DE CÁMARA */}
       {diagnosticoAbierto && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg rounded-3xl border-2 border-cyan-500/40 bg-slate-900 p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-150">
+          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border-2 border-cyan-500/40 bg-slate-900 p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2.5 text-cyan-400">
                 <LuActivity className="w-6 h-6" />
                 <h3 className="text-lg font-black text-white">
-                  Diagnóstico de Cámara del Terminal V2
+                  Diagnóstico Técnico del Sensor V3
                 </h3>
               </div>
               <button
@@ -2627,87 +3142,143 @@ export default function MarcarPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
-                <span className="text-slate-400 font-bold block">Resolución del Sensor</span>
-                <span className="text-lg font-mono font-black text-emerald-400">
-                  {diagnostico.resolucion}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+              {/* Estado FSM */}
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                <span className="text-slate-400 font-bold block text-[10px]">Estado de Sesión</span>
+                <span className={`text-base font-black block mt-0.5 ${
+                  estadoSesionCamara === "ACTIVA"
+                    ? "text-emerald-400"
+                    : estadoSesionCamara === "ERROR"
+                    ? "text-red-400"
+                    : "text-amber-400"
+                }`}>
+                  {estadoSesionCamara}
                 </span>
-                <span className="text-[10px] text-slate-500 block mt-0.5">{diagnostico.estado}</span>
+                <span className="text-[10px] text-slate-500 block">{diagnostico.estado}</span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
-                <span className="text-slate-400 font-bold block">FPS de Video</span>
-                <span className="text-lg font-mono font-black text-cyan-400">
-                  {diagnostico.fps} FPS
+              {/* Perfil de Calidad */}
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                <span className="text-slate-400 font-bold block text-[10px]">Perfil de Calidad</span>
+                <span className="text-base font-black text-cyan-400 block mt-0.5">
+                  {diagnostico.perfilUtilizado || perfilCalidad}
                 </span>
-                <span className="text-[10px] text-slate-500 block mt-0.5">Fluidez de lectura</span>
+                <span className="text-[10px] text-slate-500 block">Adaptabilidad de hardware</span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 col-span-2">
-                <span className="text-slate-400 font-bold block">Cámara Usada</span>
-                <span className="text-sm font-bold text-white block truncate">
+              {/* Tiempo de Conexión */}
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                <span className="text-slate-400 font-bold block text-[10px]">Tiempo de Negociación</span>
+                <span className="text-base font-mono font-black text-white block mt-0.5">
+                  {diagnostico.tiempoConexionMs ? `${diagnostico.tiempoConexionMs} ms` : "--"}
+                </span>
+                <span className="text-[10px] text-slate-500 block">Arranque del driver</span>
+              </div>
+
+              {/* Resolución Efectiva vs Solicitada */}
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                <span className="text-slate-400 font-bold block text-[10px]">Resolución Efectiva</span>
+                <span className="text-base font-mono font-black text-emerald-400 block mt-0.5">
+                  {camaraActiva ? diagnostico.resolucion : "Inactiva"}
+                </span>
+                <span className="text-[10px] text-slate-500 block">
+                  Solicitada: {diagnostico.resolucionSolicitada || "Pendiente"}
+                </span>
+              </div>
+
+              {/* FPS Reales */}
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                <span className="text-slate-400 font-bold block text-[10px]">FPS del Sensor</span>
+                <span className="text-base font-mono font-black text-cyan-400 block mt-0.5">
+                  {camaraActiva ? `${diagnostico.fps} FPS` : "0 FPS"}
+                </span>
+                <span className="text-[10px] text-slate-500 block">
+                  Decodificador: {diagnostico.fpsDecodificador} FPS
+                </span>
+              </div>
+
+              {/* Reintentos */}
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                <span className="text-slate-400 font-bold block text-[10px]">Reintentos / Watchdog</span>
+                <span className="text-base font-mono font-black text-white block mt-0.5">
+                  {reintentosFallidosRef.current} / {MAX_REINTENTOS_AUTOMATICOS}
+                </span>
+                <span className="text-[10px] text-slate-500 block">Límite anti-bucle</span>
+              </div>
+
+              {/* Cámara Usada */}
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 col-span-2 sm:col-span-3">
+                <span className="text-slate-400 font-bold block text-[10px]">Cámara Activa</span>
+                <span className="text-xs font-bold text-white block truncate mt-0.5">
                   {diagnostico.camaraLabel}
                 </span>
-                <span className="text-xs text-blue-400 font-semibold mt-0.5 block">
-                  Tipo: {diagnostico.tipoCamara}
+                <span className="text-[11px] text-blue-400 font-semibold block mt-0.5">
+                  Orientación / Tipo: {diagnostico.tipoCamara}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
-                <span className="text-slate-400 font-bold block">Modo de Enfoque</span>
-                <span className="text-sm font-extrabold text-blue-400 block mt-0.5">
+              {/* Autofocus */}
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                <span className="text-slate-400 font-bold block text-[10px]">Modo de Enfoque</span>
+                <span className="text-xs font-bold text-blue-400 block mt-0.5">
                   {diagnostico.focusMode || "Continuo"}
                 </span>
-                <span className="text-[10px] text-slate-500 block mt-0.5">Hardware Autofocus</span>
+                <span className="text-[10px] text-slate-500 block">Hardware Autofocus</span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
-                <span className="text-slate-400 font-bold block">Linterna (Torch)</span>
-                <span className="text-sm font-extrabold text-amber-400 block mt-0.5">
+              {/* Linterna */}
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                <span className="text-slate-400 font-bold block text-[10px]">Linterna (Torch)</span>
+                <span className="text-xs font-bold text-amber-400 block mt-0.5">
                   {soportaLinterna ? (linternaActiva ? "Encendida" : "Disponible") : "No compatible"}
                 </span>
-                <span className="text-[10px] text-slate-500 block mt-0.5">Control de luz</span>
+                <span className="text-[10px] text-slate-500 block">Torch API</span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
-                <span className="text-slate-400 font-bold block">Contexto Seguro</span>
-                <span className="text-sm font-extrabold text-emerald-400 block mt-0.5">
-                  {diagnostico.contextoSeguro ? "HTTPS / Local" : "Inseguro (HTTP)"}
+              {/* Contexto Seguro y Permisos */}
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                <span className="text-slate-400 font-bold block text-[10px]">Contexto / Permiso</span>
+                <span className="text-xs font-bold text-emerald-400 block mt-0.5">
+                  {diagnostico.contextoSeguro ? "HTTPS / Local" : "Inseguro"}
                 </span>
-                <span className="text-[10px] text-slate-500 block mt-0.5">Criptoseguridad W3C</span>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
-                <span className="text-slate-400 font-bold block">API MediaDevices</span>
-                <span className="text-sm font-extrabold text-cyan-400 block mt-0.5">
-                  {diagnostico.soporteMediaDevices ? "Soportado" : "No disponible"}
+                <span className="text-[10px] text-slate-500 block">
+                  Permiso: {diagnostico.permisoCamara || "consultado"}
                 </span>
-                <span className="text-[10px] text-slate-500 block mt-0.5">Drivers de navegador</span>
               </div>
 
+              {/* Error Técnico si ocurrió */}
               {diagnostico.errorTecnico && (
-                <div className="p-3.5 rounded-2xl bg-red-950/70 border border-red-800/80 col-span-2">
-                  <span className="text-red-400 font-bold block">Diagnóstico de Incidente Técnico</span>
+                <div className="p-3.5 rounded-2xl bg-red-950/70 border border-red-800/80 col-span-2 sm:col-span-3">
+                  <span className="text-red-400 font-bold block text-[10px]">Incidente Técnico Sanitizado</span>
                   <span className="text-xs font-mono text-red-200 block mt-1 break-words">
                     {diagnostico.errorTecnico}
                   </span>
                   {diagnostico.etapaFallo && (
-                    <span className="text-[10px] text-red-400 block mt-0.5">
-                      Fase: {diagnostico.etapaFallo}
+                    <span className="text-[10px] text-red-400 block mt-1">
+                      Etapa de fallo: {diagnostico.etapaFallo}
                     </span>
                   )}
                 </div>
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={() => setDiagnosticoAbierto(false)}
-              className="w-full py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-xs font-black text-white transition shadow-lg"
-            >
-              Cerrar Diagnóstico
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => void activarCamaraPermanente()}
+                className="flex-1 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-xs font-black text-white transition shadow-lg"
+              >
+                Reintentar Conexión
+              </button>
+              <button
+                type="button"
+                onClick={() => setDiagnosticoAbierto(false)}
+                className="py-3 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -2715,7 +3286,7 @@ export default function MarcarPage() {
       {/* MODAL DE CONFIGURACIÓN DE TERMINAL */}
       {panelConfigAbierto && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg rounded-3xl border-2 border-slate-700 bg-slate-900 p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border-2 border-slate-700 bg-slate-900 p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2.5 text-blue-400">
                 <LuSettings className="w-6 h-6" />
@@ -2732,23 +3303,64 @@ export default function MarcarPage() {
               </button>
             </div>
 
-            {/* Selector de Cámaras Disponibles */}
+            {/* Selector de Perfil de Calidad Adaptativa */}
             <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                Perfil de Calidad de Video:
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {[
+                  { id: "AUTO", titulo: "Automática", desc: "Adaptativa inteligente según hardware" },
+                  { id: "COMPATIBLE", titulo: "Compatible (480p)", desc: "Bajo consumo para celulares antiguos" },
+                  { id: "HD", titulo: "HD (720p)", desc: "Alta definición estándar balanceada" },
+                  { id: "FULL_HD", titulo: "Full HD (1080p)", desc: "Máxima nitidez en equipos modernos" },
+                  { id: "NATIVA", titulo: "Nativa del Sensor", desc: "Sin restricciones de resolución" },
+                ].map((p) => {
+                  const seleccionado = perfilCalidad === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        cambiarPerfilCalidad(p.id as PerfilCalidadCamara);
+                        if (camaraActiva) {
+                          void activarCamaraPermanente(undefined, undefined, p.id as PerfilCalidadCamara);
+                        }
+                      }}
+                      className={`p-2.5 rounded-xl border text-left text-xs font-bold transition ${
+                        seleccionado
+                          ? "border-cyan-500 bg-cyan-500/15 text-white ring-1 ring-cyan-500"
+                          : "border-slate-800 bg-slate-950/60 text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-white">{p.titulo}</span>
+                        {seleccionado && <span className="text-cyan-400 text-[11px]">✓ Activo</span>}
+                      </div>
+                      <span className="text-[10px] text-slate-500 block mt-0.5">{p.desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Selector de Cámaras Disponibles */}
+            <div className="space-y-2 pt-2 border-t border-slate-800">
               <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
                 Cámaras detectadas en el equipo:
               </label>
-              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
                 <button
                   type="button"
                   onClick={() => void cambiarCamaraEnVivo("")}
-                  className={`w-full p-3 rounded-xl border text-left text-xs font-bold flex items-center justify-between transition ${
+                  className={`w-full p-2.5 rounded-xl border text-left text-xs font-bold flex items-center justify-between transition ${
                     !camaraQrSeleccionada
                       ? "border-blue-500 bg-blue-500/10 text-white"
                       : "border-slate-800 bg-slate-950/60 text-slate-400 hover:text-white"
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <LuCamera className="w-4 h-4 text-emerald-400" />
+                    <LuCamera className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span>Predeterminada del sistema (HD Automática)</span>
                   </div>
                   {!camaraQrSeleccionada && <span className="text-blue-400 shrink-0">✓ Activa</span>}
@@ -2762,7 +3374,7 @@ export default function MarcarPage() {
                       key={cam.deviceId || idx}
                       type="button"
                       onClick={() => void cambiarCamaraEnVivo(cam.deviceId)}
-                      className={`w-full p-3 rounded-xl border text-left text-xs font-bold flex items-center justify-between transition ${
+                      className={`w-full p-2.5 rounded-xl border text-left text-xs font-bold flex items-center justify-between transition ${
                         esSeleccionada
                           ? "border-blue-500 bg-blue-500/10 text-white"
                           : "border-slate-800 bg-slate-950/60 text-slate-400 hover:text-white"
@@ -2791,7 +3403,7 @@ export default function MarcarPage() {
             {/* Perfiles de Dispositivo */}
             <div className="space-y-2 pt-2 border-t border-slate-800">
               <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
-                Perfil del Dispositivo:
+                Tipo de Dispositivo Físico:
               </label>
               <div className="grid grid-cols-2 gap-2.5">
                 <button
@@ -2803,9 +3415,9 @@ export default function MarcarPage() {
                       : "border-slate-800 bg-slate-950 text-slate-400 hover:text-white"
                   }`}
                 >
-                  <span className="text-lg">??</span>
+                  <span className="text-lg">💻</span>
                   <span>Laptop / PC</span>
-                  <span className="text-[10px] opacity-80">Frontal HD (1280x720)</span>
+                  <span className="text-[10px] opacity-80">Frontal / Webcam USB</span>
                 </button>
 
                 <button
@@ -2817,7 +3429,7 @@ export default function MarcarPage() {
                       : "border-slate-800 bg-slate-950 text-slate-400 hover:text-white"
                   }`}
                 >
-                  <span className="text-lg">??</span>
+                  <span className="text-lg">📱</span>
                   <span>Celular / Tablet</span>
                   <span className="text-[10px] opacity-80">
                     {configTerminal.modoCamaraPreferido === "user" ? "Delantera" : "Trasera (Recomendada)"}

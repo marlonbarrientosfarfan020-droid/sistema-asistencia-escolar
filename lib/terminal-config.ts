@@ -26,6 +26,7 @@ export function obtenerConfiguracionDefaultPorDispositivo(): TerminalConfig {
     camaraSeleccionada: "",
     modoCamaraPreferido: esMovil ? "environment" : "user",
     resolucionPreferida: "auto",
+    perfilCalidad: "AUTO",
     estadoTerminal: "ONLINE",
     colegioId: "SANTA_RITA_001",
   };
@@ -38,6 +39,7 @@ export const CONFIGURACION_TERMINAL_DEFAULT: TerminalConfig = {
   camaraSeleccionada: "",
   modoCamaraPreferido: "user",
   resolucionPreferida: "auto",
+  perfilCalidad: "AUTO",
   estadoTerminal: "ONLINE",
   colegioId: "SANTA_RITA_001",
 };
