@@ -1,3 +1,4 @@
+import './preload_env.cjs';
 import { prisma } from '../lib/prisma';
 import bcrypt from 'bcryptjs';
 import {

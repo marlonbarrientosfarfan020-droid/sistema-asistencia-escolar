@@ -239,6 +239,13 @@ export default function MarcarPage() {
   const [mensaje, setMensaje] = useState("");
   const [resultado, setResultado] = useState<ResultadoAsistencia | null>(null);
   const [modoOperativo, setModoOperativo] = useState<"ENTRADA" | "SALIDA">("ENTRADA");
+  const modoOperativoRef = useRef<"ENTRADA" | "SALIDA">("ENTRADA");
+
+  // Sincronizador atómico: actualiza el estado de React (UI) y la referencia mutable (closures asíncronos)
+  const cambiarModoOperativo = (nuevoModo: "ENTRADA" | "SALIDA") => {
+    modoOperativoRef.current = nuevoModo;
+    setModoOperativo(nuevoModo);
+  };
 
   // Estados de cámara permanente y control
   const [camaraActiva, setCamaraActiva] = useState(false);
@@ -1262,7 +1269,7 @@ export default function MarcarPage() {
         new File([foto], `asistencia-${asistenciaId}-${Date.now()}.jpg`, { type: "image/jpeg" })
       );
       formData.append("asistenciaId", String(asistenciaId));
-      formData.append("tipo", tipo || modoOperativo || "ENTRADA");
+      formData.append("tipo", tipo || modoOperativoRef.current || "ENTRADA");
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 7000);
@@ -1346,9 +1353,10 @@ export default function MarcarPage() {
       const codigoLimpio = codigo.trim().replace(/^(CODIGO|DNI|ID)[:\s]+/i, "").trim();
       const esDniNumerico = /^\d{8}$/.test(codigoLimpio);
 
+      const modoActual = modoOperativoRef.current;
       const payload = esDniNumerico
-        ? { dni: codigoLimpio, codigo: codigoLimpio, metodo: "QR", intencionOperativa: modoOperativo }
-        : { codigo: codigoLimpio, metodo: "QR", intencionOperativa: modoOperativo };
+        ? { dni: codigoLimpio, codigo: codigoLimpio, metodo: "QR", intencionOperativa: modoActual }
+        : { codigo: codigoLimpio, metodo: "QR", intencionOperativa: modoActual };
 
       await ejecutarRegistroAsistencia(payload, fotoBlob);
 
@@ -1398,7 +1406,7 @@ export default function MarcarPage() {
         ? crypto.randomUUID()
         : `idemp_${Date.now()}_${Math.random().toString(36).substring(7)}`);
     const clientTimestamp = datos.clientTimestamp || Date.now();
-    const intencionOperativa = datos.intencionOperativa || modoOperativo || "ENTRADA";
+    const intencionOperativa = datos.intencionOperativa || modoOperativoRef.current || "ENTRADA";
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6000);
@@ -1578,7 +1586,10 @@ export default function MarcarPage() {
     }
 
     const foto = await capturarFotoDesdeVideoActual();
-    await ejecutarRegistroAsistencia({ dni: dni.trim(), metodo: "DNI" }, foto);
+    await ejecutarRegistroAsistencia(
+      { dni: dni.trim(), metodo: "DNI", intencionOperativa: modoOperativoRef.current },
+      foto
+    );
     setDni("");
   }
 
@@ -1624,7 +1635,7 @@ export default function MarcarPage() {
 
       setMensaje(`✓ ${data.estudiante.nombres} reconocido. Registrando asistencia...`);
       await ejecutarRegistroAsistencia(
-        { dni: data.estudiante.dni, metodo: "FACIAL" },
+        { dni: data.estudiante.dni, metodo: "FACIAL", intencionOperativa: modoOperativoRef.current },
         foto
       );
     } catch (error: any) {
@@ -1822,7 +1833,7 @@ export default function MarcarPage() {
           <button
             type="button"
             onClick={() => {
-              setModoOperativo("ENTRADA");
+              cambiarModoOperativo("ENTRADA");
               setMensaje("Modo ENTRADA activo. Escanee QR de ingreso.");
             }}
             className={`inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black transition-all ${
@@ -1837,7 +1848,7 @@ export default function MarcarPage() {
           <button
             type="button"
             onClick={() => {
-              setModoOperativo("SALIDA");
+              cambiarModoOperativo("SALIDA");
               setMensaje("Modo SALIDA activo. Escanee QR de salida.");
             }}
             className={`inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black transition-all ${
