@@ -660,14 +660,14 @@ export async function GET(request?: Request) {
     }
 
     /*
-     * Control Completo de Jornada Escolar:
+     * Control Completo de Jornada Escolar (Solo Lectura):
      * - Entradas: asistencias con horaEntrada
      * - Salidas Registradas / Jornada Completa: asistencias con horaSalida registrada
      * - Pendientes de Salida: con horaEntrada, sin horaSalida y el turno aún no finaliza
-     * - Sin Salida: con horaEntrada, sin horaSalida y ya venció el margen del turno
+     * - Sin Salida: con horaEntrada, sin horaSalida y ya venció el margen del turno (cálculo visual en memoria)
+     * P0-02: La petición GET es estrictamente de solo lectura. El cierre efectivo persistido
+     * pertenece exclusivamente al cron institucional (cierreJornadaService).
      */
-    const idsParaSinSalida: number[] = [];
-
     for (const asistencia of asistenciaPorEstudiante.values()) {
       const turnoId = asistencia.estudiante.turnoId;
       const turno = turnoId ? resumenTurnosMap.get(turnoId) : null;
@@ -722,27 +722,16 @@ export async function GET(request?: Request) {
       } else if (asistencia.horaEntrada) {
         const terminoMargen = finPermitidoTurno ? ahora > finPermitidoTurno : false;
         if (terminoMargen) {
+          // P0-02: Clasificación visual estrictamente en memoria sin escrituras a PostgreSQL
           resumenGeneral.sinSalida++;
           if (turno) turno.resumen.sinSalida++;
           if (seccion) seccion.resumen.sinSalida++;
-          if (asistencia.estadoJornada === "ABIERTA") {
-            idsParaSinSalida.push(asistencia.id);
-          }
         } else {
           resumenGeneral.pendientesSalida++;
           if (turno) turno.resumen.pendientesSalida++;
           if (seccion) seccion.resumen.pendientesSalida++;
         }
       }
-    }
-
-    if (idsParaSinSalida.length > 0) {
-      void prisma.asistencia
-        .updateMany({
-          where: { id: { in: idsParaSinSalida } },
-          data: { estadoJornada: "SIN_SALIDA" },
-        })
-        .catch((err) => console.error("Error auto-actualizando SIN_SALIDA:", err));
     }
 
     const resumenTurnos =

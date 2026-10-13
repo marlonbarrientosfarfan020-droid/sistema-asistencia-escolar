@@ -6,6 +6,7 @@ import {
   obtenerLimitesDiaPeru,
   esFinDeSemanaPeru,
   minutosDesdeMedianoche,
+  obtenerVentanaTurno,
 } from "@/lib/timezone";
 import {
   obtenerEstadoSuperMotor,
@@ -48,7 +49,7 @@ function minutosAHoraStr(minutosTotales: number): string {
  * FASE 7.5: Motor de Decisión de Jornada Escolar Inteligente.
  * Evalúa automáticamente la operación escolar utilizando:
  * - Calendario Escolar (feriados, suspensiones, días no lectivos).
- * - Turnos activos.
+ * - Turnos activos desde PostgreSQL con ventanas horarias reales.
  * - Hora de Perú (America/Lima).
  * - Configuración institucional del SuperMotor.
  */
@@ -61,7 +62,6 @@ export async function evaluarJornadaActual(opciones?: {
   const ahora = opciones?.fechaReferencia || new Date();
   const horaActualStr = horaPeru(ahora);
   const fechaActualStr = fechaPeru(ahora);
-  const minutosActuales = minutosDesdeMedianoche(horaActualStr);
 
   // 1. Consultar estado del SuperMotor
   const estadoMotor = await obtenerEstadoSuperMotor(colegioId);
@@ -134,52 +134,94 @@ export async function evaluarJornadaActual(opciones?: {
     });
   }
 
-  // REGLA D: Calcular ventanas horarias de turnos
-  // Anticipación por defecto: 60 minutos antes de la primera entrada
+  // REGLA D: Calcular ventanas horarias precisas para cada turno
   const minutosAnticipacion = (estadoMotor as any).minutosAnticipacionEntrada || 60;
-  // Cierre por defecto: 30 minutos después de la última salida
   const minutosCierreAuto = (estadoMotor as any).minutosCierreAutomatico || 30;
 
-  let globalMinApertura = Infinity;
-  let globalMinEntrada = Infinity;
-  let globalMaxSalida = -Infinity;
-  let globalMaxCierre = -Infinity;
-  let turnoCoincidente: any = null;
+  type TurnoEvaluado = {
+    turno: (typeof turnosActivos)[number];
+    ventana: ReturnType<typeof obtenerVentanaTurno>;
+    fase: EstadoJornadaDecision;
+  };
 
-  for (const turno of turnosActivos) {
-    const minEntrada = minutosDesdeMedianoche(turno.horaEntrada);
-    const minSalida = minutosDesdeMedianoche(turno.horaSalida);
-    const minApertura = minEntrada - Math.max(turno.margenEntradaAnticipadaMinutos || minutosAnticipacion, 0);
-    const minCierre = minSalida + Math.max(turno.margenSalidaMinutos || minutosCierreAuto, 0);
+  const turnosEvaluados: TurnoEvaluado[] = turnosActivos.map((turno) => {
+    const ventana = obtenerVentanaTurno({
+      horaEntrada: turno.horaEntrada,
+      horaSalida: turno.horaSalida,
+      margenEntradaAnticipadaMinutos: turno.margenEntradaAnticipadaMinutos || minutosAnticipacion,
+      margenSalidaAnticipadaMinutos: turno.margenSalidaAnticipadaMinutos || 0,
+      margenSalidaMinutos: turno.margenSalidaMinutos || minutosCierreAuto,
+      ahora,
+    });
 
-    if (minApertura < globalMinApertura) globalMinApertura = minApertura;
-    if (minEntrada < globalMinEntrada) globalMinEntrada = minEntrada;
-    if (minSalida > globalMaxSalida) globalMaxSalida = minSalida;
-    if (minCierre > globalMaxCierre) globalMaxCierre = minCierre;
-
-    // Verificar si el momento actual pertenece a este turno específico
-    if (minutosActuales >= minApertura && minutosActuales <= minCierre) {
-      turnoCoincidente = turno;
+    let fase: EstadoJornadaDecision = "CERRADO";
+    if (ahora >= ventana.horaSalidaTurno && ahora <= ventana.finPermitido) {
+      fase = "FINALIZANDO";
+    } else if (ahora >= ventana.horaEntradaTurno && ahora < ventana.horaSalidaTurno) {
+      fase = "OPERATIVO";
+    } else if (ahora >= ventana.inicioPermitido && ahora < ventana.horaEntradaTurno) {
+      fase = "PREPARANDO";
     }
-  }
 
-  const proximaAperturaStr = minutosAHoraStr(globalMinApertura);
-  const proximoCierreStr = minutosAHoraStr(globalMaxCierre);
+    return { turno, ventana, fase };
+  });
+
+  // Jerarquía operativa institucional entre turnos concurrentes/múltiples:
+  // 1. Si algún turno está OPERATIVO -> El colegio está OPERATIVO (clases y marcación activa).
+  // 2. Si no hay OPERATIVO pero al menos uno está FINALIZANDO -> FINALIZANDO (salidas de turno en curso).
+  // 3. Si no hay OPERATIVO ni FINALIZANDO pero hay PREPARANDO -> PREPARANDO (apertura previa).
+  // 4. Si ninguno está activo -> CERRADO.
+  const turnoOperativo = turnosEvaluados.find((t) => t.fase === "OPERATIVO");
+  const turnoFinalizando = turnosEvaluados.find((t) => t.fase === "FINALIZANDO");
+  const turnoPreparando = turnosEvaluados.find((t) => t.fase === "PREPARANDO");
 
   let estadoCalculado: EstadoJornadaDecision = "CERRADO";
   let motivo = "Fuera del horario de jornada escolar.";
+  let turnoCoincidente: (typeof turnosActivos)[number] | null = null;
 
-  if (minutosActuales >= globalMinApertura && minutosActuales < globalMinEntrada) {
-    estadoCalculado = "PREPARANDO";
-    motivo = `Preparando jornada escolar para el turno ${turnoCoincidente?.nombre || "activo"} (Apertura anticipada).`;
-  } else if (minutosActuales >= globalMinEntrada && minutosActuales <= globalMaxSalida) {
+  if (turnoOperativo) {
     estadoCalculado = "OPERATIVO";
-    motivo = `Turno ${turnoCoincidente?.nombre || "escolar"} activo y en operación regular.`;
-  } else if (minutosActuales > globalMaxSalida && minutosActuales <= globalMaxCierre) {
+    turnoCoincidente = turnoOperativo.turno;
+    motivo = `Turno ${turnoOperativo.turno.nombre} activo y en operación regular.`;
+  } else if (turnoFinalizando) {
     estadoCalculado = "FINALIZANDO";
-    motivo = `Jornada escolar en fase de cierre y salida para el turno ${turnoCoincidente?.nombre || "activo"}.`;
+    turnoCoincidente = turnoFinalizando.turno;
+    motivo = `Jornada escolar en fase de cierre y salida para el turno ${turnoFinalizando.turno.nombre}.`;
+  } else if (turnoPreparando) {
+    estadoCalculado = "PREPARANDO";
+    turnoCoincidente = turnoPreparando.turno;
+    motivo = `Preparando jornada escolar para el turno ${turnoPreparando.turno.nombre} (Apertura anticipada).`;
   } else {
     estadoCalculado = "CERRADO";
+    motivo = "Jornada escolar cerrada.";
+  }
+
+  // Calcular próxima apertura y próximo cierre
+  let proximaAperturaStr: string | undefined;
+  let proximoCierreStr: string | undefined;
+
+  const turnosEnCurso = turnosEvaluados.filter((t) => t.fase !== "CERRADO");
+  if (turnosEnCurso.length > 0) {
+    const finMax = new Date(Math.max(...turnosEnCurso.map((t) => t.ventana.finPermitido.getTime())));
+    proximoCierreStr = horaPeru(finMax);
+  }
+
+  const aperturasFuturas = turnosEvaluados
+    .map((t) => t.ventana.inicioPermitido)
+    .filter((d) => d > ahora);
+
+  if (aperturasFuturas.length > 0) {
+    const prox = new Date(Math.min(...aperturasFuturas.map((d) => d.getTime())));
+    proximaAperturaStr = horaPeru(prox);
+  } else {
+    const primerTurno = turnosActivos[0];
+    if (primerTurno) {
+      const minApertura = minutosDesdeMedianoche(primerTurno.horaEntrada) - Math.max(primerTurno.margenEntradaAnticipadaMinutos || minutosAnticipacion, 0);
+      proximaAperturaStr = minutosAHoraStr(minApertura);
+    }
+  }
+
+  if (estadoCalculado === "CERRADO" && proximaAperturaStr) {
     motivo = `Jornada escolar cerrada. Próxima apertura programada a las ${proximaAperturaStr}.`;
   }
 
@@ -220,7 +262,12 @@ async function procesarResultadoAutomatico({
   estadoMotor: any;
   colegioId: string;
 }): Promise<ResultadoEvaluacionJornada> {
-  const debeEstarActivo = estadoCalculado === "OPERATIVO" || estadoCalculado === "PREPARANDO";
+  // P0-01: El motor debe estar ACTIVO durante PREPARANDO, OPERATIVO y FINALIZANDO
+  // permitiendo que las estudiantes registren su salida en la Terminal V2 sin bloqueos.
+  const debeEstarActivo =
+    estadoCalculado === "OPERATIVO" ||
+    estadoCalculado === "PREPARANDO" ||
+    estadoCalculado === "FINALIZANDO";
   let cambioRealizado = false;
 
   // Evaluar si hubo cambio de estado en el SuperMotor
