@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import QRCode from "qrcode";
 import Card from "../ui/Card";
 import Modal from "../ui/Modal";
@@ -84,11 +84,42 @@ export function obtenerClaseNombreCarnet(nombreCompleto: string): string {
   return "";
 }
 
+/**
+ * Normaliza una cadena de texto eliminando acentos, tildes, diacriticos y pasando a minusculas
+ * para permitir busquedas flexibles e insensibles a mayusculas, minusculas y acentos.
+ */
+export function normalizarBusqueda(texto?: string | null): string {
+  return (texto || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+/**
+ * Evalua si un estudiante coincide con los terminos de busqueda (AND entre palabras)
+ * buscando indistintamente en sus campos reales de apellidos y nombres.
+ */
+export function coincideEstudianteConBusqueda(
+  apellidos: string | null | undefined,
+  nombres: string | null | undefined,
+  terminosQuery: string[]
+): boolean {
+  if (terminosQuery.length === 0) return true;
+
+  const apeNorm = normalizarBusqueda(apellidos);
+  const nomNorm = normalizarBusqueda(nombres);
+  const textoCompleto = `${apeNorm} ${nomNorm}`;
+
+  return terminosQuery.every((termino) => textoCompleto.includes(termino));
+}
+
 export default function EstudianteTable({ refresh }: { refresh: number }) {
   const { configuracion } = useConfiguracionColegio();
   const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [busquedaDni, setBusquedaDni] = useState("");
+  const [busquedaNombre, setBusquedaNombre] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [editando, setEditando] = useState<Estudiante | null>(null);
@@ -100,13 +131,37 @@ export default function EstudianteTable({ refresh }: { refresh: number }) {
 const [riesgoSeleccionado, setRiesgoSeleccionado] = useState<Estudiante | null>(null);
   const [estudiantesSeleccionados, setEstudiantesSeleccionados] = useState<number[]>([]);
 
-  const estudiantesFiltrados = estudiantes.filter((estudiante) => {
-    const coincideDni = estudiante.dni.includes(busquedaDni);
-    const coincideTurno =
-      turnoFiltro === "TODOS" ? true : estudiante.turno?.nombre === turnoFiltro;
+  const terminosBusquedaNombre = useMemo(() => {
+    return normalizarBusqueda(busquedaNombre)
+      .split(/\s+/)
+      .filter(Boolean);
+  }, [busquedaNombre]);
 
-    return coincideDni && coincideTurno;
-  });
+  const estudiantesFiltrados = useMemo(() => {
+    return estudiantes.filter((estudiante) => {
+      const coincideDni = !busquedaDni || estudiante.dni.includes(busquedaDni);
+      const coincideTurno =
+        turnoFiltro === "TODOS" ? true : estudiante.turno?.nombre === turnoFiltro;
+      const coincideNombre = coincideEstudianteConBusqueda(
+        estudiante.apellidos,
+        estudiante.nombres,
+        terminosBusquedaNombre
+      );
+
+      return coincideDni && coincideTurno && coincideNombre;
+    });
+  }, [estudiantes, busquedaDni, turnoFiltro, terminosBusquedaNombre]);
+
+  const idsVisiblesFiltrados = useMemo(
+    () => new Set(estudiantesFiltrados.map((e) => e.id)),
+    [estudiantesFiltrados]
+  );
+
+  const seleccionadosVisiblesCount = useMemo(() => {
+    return estudiantesSeleccionados.filter((id) => idsVisiblesFiltrados.has(id)).length;
+  }, [estudiantesSeleccionados, idsVisiblesFiltrados]);
+
+  const seleccionadosOcultosCount = estudiantesSeleccionados.length - seleccionadosVisiblesCount;
 
   const todosFiltradosSeleccionados =
     estudiantesFiltrados.length > 0 &&
@@ -875,6 +930,20 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
       return;
     }
 
+        if (seleccionadosOcultosCount > 0) {
+      const confirmar = confirm(
+        `Tiene ${estudiantesSeleccionados.length} estudiantes seleccionados en total:\n\n` +
+        `• ${seleccionadosVisiblesCount} visibles en el filtro actual.\n` +
+        `• ${seleccionadosOcultosCount} seleccionados previamente bajo otros filtros/turnos.\n\n` +
+        `¿Desea imprimir los carnets de todos los ${estudiantesSeleccionados.length} estudiantes seleccionados?\n` +
+        `(Presione Cancelar si prefiere revisar o descartar los estudiantes fuera del filtro actual)`
+      );
+
+      if (!confirmar) {
+        return;
+      }
+    }
+
     setMensaje("⏳ Preparando carnets para impresión...");
 
     try {
@@ -972,23 +1041,38 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
   return (
     <>
       <Card>
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <input
-              value={busquedaDni}
-              onChange={(e) =>
-                setBusquedaDni(
-                  e.target.value.replace(/\D/g, "").slice(0, 8)
-                )
-              }
-              placeholder="🔍 Buscar por DNI"
-              className="w-full rounded-xl border p-3 sm:w-72"
-            />
+        <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            {/* 1. Buscar por DNI */}
+            <div className="relative w-full sm:w-44 md:w-48">
+              <input
+                type="text"
+                value={busquedaDni}
+                onChange={(e) =>
+                  setBusquedaDni(
+                    e.target.value.replace(/\D/g, "").slice(0, 8)
+                  )
+                }
+                placeholder="🔍 Buscar por DNI"
+                className="w-full rounded-xl border border-slate-300 p-3 pr-8 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              {busquedaDni && (
+                <button
+                  type="button"
+                  onClick={() => setBusquedaDni("")}
+                  aria-label="Limpiar búsqueda por DNI"
+                  className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400 hover:text-slate-600 transition text-sm font-bold"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
 
+            {/* 2. Todos los turnos */}
             <select
               value={turnoFiltro}
               onChange={(e) => setTurnoFiltro(e.target.value)}
-              className="rounded-xl border p-3"
+              className="w-full rounded-xl border border-slate-300 p-3 text-sm font-medium sm:w-auto focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="TODOS">Todos los turnos</option>
               {turnos.map((turno) => (
@@ -997,28 +1081,76 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
                 </option>
               ))}
             </select>
+
+            {/* 3. Buscar por apellidos y nombres */}
+            <div className="relative w-full sm:w-64 md:w-72 lg:w-80">
+              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-sm">
+                🔍
+              </span>
+              <input
+                type="text"
+                value={busquedaNombre}
+                onChange={(e) => setBusquedaNombre(e.target.value)}
+                placeholder="Buscar por apellidos y nombres"
+                className="w-full rounded-xl border border-slate-300 py-3 pl-9 pr-9 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              {busquedaNombre && (
+                <button
+                  type="button"
+                  onClick={() => setBusquedaNombre("")}
+                  aria-label="Limpiar búsqueda por apellidos y nombres"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 transition text-sm font-bold"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center shrink-0">
+            {/* 4. Seleccionar visibles */}
             <button
               type="button"
               onClick={alternarSeleccionTodos}
               disabled={estudiantesFiltrados.length === 0}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-3 font-bold text-slate-700 disabled:opacity-50"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-3 font-bold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50 whitespace-nowrap text-sm"
             >
               {todosFiltradosSeleccionados
                 ? "☐ Quitar selección"
                 : "☑ Seleccionar visibles"}
             </button>
 
-            <button
-              type="button"
-              onClick={imprimirCarnetsSeleccionados}
-              disabled={estudiantesSeleccionados.length === 0}
-              className="rounded-xl bg-slate-900 px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              🖨 Imprimir carnets ({estudiantesSeleccionados.length})
-            </button>
+            {/* 5. Imprimir carnets */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <button
+                type="button"
+                onClick={imprimirCarnetsSeleccionados}
+                disabled={estudiantesSeleccionados.length === 0}
+                className="rounded-xl bg-slate-900 px-5 py-3 font-bold text-white hover:bg-slate-800 transition disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap text-sm"
+              >
+                🖨 Imprimir carnets ({estudiantesSeleccionados.length})
+              </button>
+
+              {seleccionadosOcultosCount > 0 && (
+                <div className="flex items-center gap-1.5 text-xs text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-2 rounded-xl">
+                  <span>
+                    <b>{estudiantesSeleccionados.length}</b> total ({seleccionadosVisiblesCount} visibles + <b>{seleccionadosOcultosCount} de otros filtros</b>)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEstudiantesSeleccionados((actuales) =>
+                        actuales.filter((id) => idsVisiblesFiltrados.has(id))
+                      )
+                    }
+                    title="Descartar de la selección a los estudiantes de otros filtros"
+                    className="font-bold text-amber-900 underline hover:text-amber-700 ml-1"
+                  >
+                    Descartar fuera de filtro
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1131,7 +1263,7 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
               {estudiantesFiltrados.length === 0 && (
                 <tr>
                   <td colSpan={12} className="py-6 text-center text-slate-500">
-                    No se encontraron estudiantes con ese DNI.
+                    No se encontraron estudiantes.
                   </td>
                 </tr>
               )}
