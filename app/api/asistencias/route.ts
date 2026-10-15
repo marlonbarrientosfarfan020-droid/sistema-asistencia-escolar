@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { enviarWhatsApp } from "@/services/whatsapp";
@@ -115,6 +115,71 @@ async function guardarEnCacheIdempotencia(
   }
 }
 
+function parsearGradoSeccion(input: string): { grado?: string; seccion?: string } {
+  const str = input.trim();
+  if (!str) return {};
+
+  const matchAmbos = str.match(/^([0-9]+)(?:°|to|ro|do|er)?\s*[-/\s]?\s*([a-zA-Z])$/i);
+  if (matchAmbos) {
+    return {
+      grado: matchAmbos[1],
+      seccion: matchAmbos[2].toUpperCase(),
+    };
+  }
+
+  const matchSoloGrado = str.match(/^([0-9]+)(?:°|to|ro|do|er)?$/i);
+  if (matchSoloGrado) {
+    return {
+      grado: matchSoloGrado[1],
+    };
+  }
+
+  const matchSoloSeccion = str.match(/^[a-zA-Z]$/);
+  if (matchSoloSeccion) {
+    return {
+      seccion: matchSoloSeccion[0].toUpperCase(),
+    };
+  }
+
+  if (str.includes("-") || str.includes(" ")) {
+    const partes = str.split(/[- ]+/).filter(Boolean);
+    if (partes.length >= 2) {
+      const g = partes[0].replace(/\D/g, "");
+      const s = partes[1].trim().toUpperCase();
+      if (g && s) {
+        return { grado: g, seccion: s };
+      }
+    }
+  }
+
+  return { grado: str };
+}
+
+function generarVariacionesAcentos(texto: string): string[] {
+  const t = texto.toLowerCase();
+  const sinAcentos = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const s = new Set<string>([texto, t, sinAcentos]);
+
+  const mapaAcentos: Record<string, string> = {
+    a: "á",
+    e: "é",
+    i: "í",
+    o: "ó",
+    u: "ú",
+  };
+
+  for (let i = 0; i < sinAcentos.length; i++) {
+    const ch = sinAcentos[i];
+    if (mapaAcentos[ch]) {
+      const conAcento =
+        sinAcentos.slice(0, i) + mapaAcentos[ch] + sinAcentos.slice(i + 1);
+      s.add(conAcento);
+    }
+  }
+
+  return Array.from(s);
+}
+
 export async function GET(request: Request) {
   const acceso = await exigirAdminDemoOPersonal(request);
 
@@ -135,6 +200,21 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const fecha = searchParams.get("fecha");
+    const turno = searchParams.get("turno");
+    const busqueda = searchParams.get("busqueda");
+    const gradoSeccionParam = searchParams.get("gradoSeccion");
+    const gradoParam = searchParams.get("grado");
+    const seccionParam = searchParams.get("seccion");
+    const exportar = searchParams.get("exportar") === "true";
+    const formatoPaginado =
+      searchParams.get("formato") === "paginado" ||
+      searchParams.has("page") ||
+      searchParams.has("limit");
+    const pageParam = parseInt(searchParams.get("page") || "1", 10);
+    const limitParam = parseInt(searchParams.get("limit") || "25", 10);
+    const page = Math.max(1, isNaN(pageParam) ? 1 : pageParam);
+    const limit = Math.min(200, Math.max(1, isNaN(limitParam) ? 25 : limitParam));
+    const skip = (page - 1) * limit;
 
     let inicioDia: Date | undefined;
     let finDia: Date | undefined;
@@ -156,6 +236,174 @@ export async function GET(request: Request) {
       };
     }
 
+    const condicionesAnd: any[] = [];
+
+    // 1. Filtro por Turno
+    if (turno && turno !== "TODOS") {
+      condicionesAnd.push({
+        OR: [
+          { turno: { nombre: { equals: turno, mode: "insensitive" } } },
+          { estudiante: { turno: { nombre: { equals: turno, mode: "insensitive" } } } },
+        ],
+      });
+    }
+
+    // 2. Filtro por Apellidos y Nombres (o DNI)
+    if (busqueda && busqueda.trim()) {
+      const tokens = busqueda.trim().split(/\s+/).filter(Boolean);
+      for (const tok of tokens) {
+        const variaciones = generarVariacionesAcentos(tok);
+        condicionesAnd.push({
+          OR: [
+            ...variaciones.map((v) => ({
+              estudiante: { nombres: { contains: v, mode: "insensitive" as const } },
+            })),
+            ...variaciones.map((v) => ({
+              estudiante: { apellidos: { contains: v, mode: "insensitive" as const } },
+            })),
+            {
+              estudiante: { dni: { contains: tok } },
+            },
+          ],
+        });
+      }
+    }
+
+    // 3. Filtro por Grado y Sección
+    let gradoObjetivo = gradoParam?.trim();
+    let seccionObjetivo = seccionParam?.trim();
+
+    if (gradoSeccionParam && gradoSeccionParam.trim()) {
+      const parsed = parsearGradoSeccion(gradoSeccionParam);
+      if (parsed.grado) gradoObjetivo = parsed.grado;
+      if (parsed.seccion) seccionObjetivo = parsed.seccion;
+    }
+
+    if (gradoObjetivo) {
+      condicionesAnd.push({
+        estudiante: {
+          grado: {
+            in: [
+              gradoObjetivo,
+              `${gradoObjetivo}°`,
+              `${gradoObjetivo}to`,
+              `${gradoObjetivo}do`,
+              `${gradoObjetivo}ro`,
+              `${gradoObjetivo}er`,
+            ],
+          },
+        },
+      });
+    }
+
+    if (seccionObjetivo) {
+      condicionesAnd.push({
+        estudiante: {
+          seccion: {
+            equals: seccionObjetivo,
+            mode: "insensitive",
+          },
+        },
+      });
+    }
+
+    if (condicionesAnd.length > 0) {
+      whereFiltro.AND = condicionesAnd;
+    }
+
+    // Obtener los grados y secciones reales del colegio para el autocompletado
+    const estudiantesColegio = await prisma.estudiante.findMany({
+      where: {
+        colegioId,
+        estado: true,
+      },
+      select: {
+        grado: true,
+        seccion: true,
+      },
+      distinct: ["grado", "seccion"],
+      orderBy: [
+        { grado: "asc" },
+        { seccion: "asc" },
+      ],
+    });
+
+    const gradosSecciones = estudiantesColegio
+      .map((e) => ({
+        grado: e.grado,
+        seccion: e.seccion,
+        etiqueta: `${e.grado} - ${e.seccion}`,
+      }))
+      .sort((a, b) => {
+        const compGrado = a.grado.localeCompare(b.grado, "es", { numeric: true });
+        if (compGrado !== 0) return compGrado;
+        return a.seccion.localeCompare(b.seccion, "es");
+      });
+
+    // Caso exportación completa sin paginar
+    if (exportar) {
+      const asistencias = await prisma.asistencia.findMany({
+        where: whereFiltro,
+        orderBy: {
+          fecha: "desc",
+        },
+        include: {
+          estudiante: {
+            include: {
+              turno: true,
+            },
+          },
+          turno: true,
+        },
+      });
+
+      if (formatoPaginado) {
+        return NextResponse.json({
+          asistencias,
+          total: asistencias.length,
+          pagina: 1,
+          limite: asistencias.length,
+          totalPaginas: 1,
+          gradosSecciones,
+        });
+      }
+
+      return NextResponse.json(asistencias);
+    }
+
+    // Caso paginado
+    if (formatoPaginado) {
+      const [total, asistencias] = await Promise.all([
+        prisma.asistencia.count({ where: whereFiltro }),
+        prisma.asistencia.findMany({
+          where: whereFiltro,
+          orderBy: {
+            fecha: "desc",
+          },
+          skip,
+          take: limit,
+          include: {
+            estudiante: {
+              include: {
+                turno: true,
+              },
+            },
+            turno: true,
+          },
+        }),
+      ]);
+
+      return NextResponse.json({
+        asistencias,
+        total,
+        pagina: page,
+        limite: limit,
+        totalPaginas: Math.max(1, Math.ceil(total / limit)),
+        gradosSecciones,
+      });
+    }
+
+    // Caso normal / retrocompatibilidad
     const asistencias = await prisma.asistencia.findMany({
       where: whereFiltro,
       orderBy: {
