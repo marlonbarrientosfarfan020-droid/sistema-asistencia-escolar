@@ -53,6 +53,37 @@ const CONFIG_QR_HD = {
   },
 };
 
+/**
+ * Formatea el nombre del estudiante para carnets oficiales: APELLIDOS NOMBRES.
+ * Respeta apellidos y nombres compuestos, tildes y caracteres especiales.
+ * Si algun estudiante solo cuenta con nombres o apellidos, se preserva sin alteracion arbitraria.
+ */
+export function formatearNombreEstudiante(
+  apellidos?: string | null,
+  nombres?: string | null
+): string {
+  const ape = (apellidos || "").trim();
+  const nom = (nombres || "").trim();
+
+  if (ape && nom) {
+    return `${ape} ${nom}`.toUpperCase();
+  }
+  if (ape) return ape.toUpperCase();
+  if (nom) return nom.toUpperCase();
+  return "ESTUDIANTE";
+}
+
+/**
+ * Determina la clase CSS adaptativa segun la longitud del nombre completo
+ * para garantizar ajuste optimo y evitar cualquier superposicion sobre DNI, grado, turno o QR.
+ */
+export function obtenerClaseNombreCarnet(nombreCompleto: string): string {
+  const longitud = (nombreCompleto || "").trim().length;
+  if (longitud > 36) return "nombre-muy-largo";
+  if (longitud > 25) return "nombre-largo";
+  return "";
+}
+
 export default function EstudianteTable({ refresh }: { refresh: number }) {
   const { configuracion } = useConfiguracionColegio();
   const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
@@ -353,6 +384,11 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
     logoParaImprimir: string,
     nombreColegio: string
   ): string {
+    const nombreCompleto = formatearNombreEstudiante(
+      estudiante.apellidos,
+      estudiante.nombres
+    );
+    const claseTamano = obtenerClaseNombreCarnet(nombreCompleto);
     return `
       <div class="espacio-corte">
         <div class="guia-corte corte-tl"></div>
@@ -379,8 +415,8 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
           </div>
 
           <div class="contenido">
-            <div class="nombre">
-              ${estudiante.nombres} ${estudiante.apellidos}
+            <div class="nombre ${claseTamano}">
+              ${nombreCompleto}
             </div>
 
             <div class="datos-grid">
@@ -647,13 +683,23 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
         color: #0f172a;
         text-transform: uppercase;
         text-align: center;
-        max-height: 5.4mm;
+        max-height: 5.6mm;
         overflow: hidden;
         display: -webkit-box;
         -webkit-box-orient: vertical;
         -webkit-line-clamp: 2;
         margin-bottom: 0.4mm;
         word-break: break-word;
+      }
+
+      .nombre.nombre-largo {
+        font-size: 2.05mm;
+        line-height: 2.45mm;
+      }
+
+      .nombre.nombre-muy-largo {
+        font-size: 1.8mm;
+        line-height: 2.15mm;
       }
 
       /* BLOQUE DE INFORMACIÓN COMPACTO - FICHA TÉCNICA */
@@ -785,7 +831,7 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
       <html lang="es">
         <head>
           <meta charset="UTF-8" />
-          <title>Carnet QR - ${estudianteQR.nombres} ${estudianteQR.apellidos}</title>
+          <title>Carnet QR - ${formatearNombreEstudiante(estudianteQR.apellidos, estudianteQR.nombres)}</title>
           <style>${obtenerEstilosImpresion()}</style>
         </head>
         <body>
@@ -1013,14 +1059,14 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
                       type="checkbox"
                       checked={estudiantesSeleccionados.includes(estudiante.id)}
                       onChange={() => alternarSeleccionEstudiante(estudiante.id)}
-                      aria-label={`Seleccionar a ${estudiante.nombres} ${estudiante.apellidos}`}
+                      aria-label={`Seleccionar a ${formatearNombreEstudiante(estudiante.apellidos, estudiante.nombres)}`}
                       className="h-4 w-4"
                     />
                   </td>
                   <td className="py-3">{estudiante.codigo}</td>
                   <td>{estudiante.dni}</td>
                   <td>
-                    {estudiante.nombres} {estudiante.apellidos}
+                    {formatearNombreEstudiante(estudiante.apellidos, estudiante.nombres)}
                   </td>
                   <td>{estudiante.grado}</td>
                   <td>{estudiante.seccion}</td>
@@ -1102,7 +1148,7 @@ async function convertirImagenADataUrl(url: string): Promise<string> {
         {estudianteQR && (
           <div className="text-center">
             <h3 className="text-xl font-bold">
-              {estudianteQR.nombres} {estudianteQR.apellidos}
+              {formatearNombreEstudiante(estudianteQR.apellidos, estudianteQR.nombres)}
             </h3>
 
             <p className="text-slate-600 mt-1">
