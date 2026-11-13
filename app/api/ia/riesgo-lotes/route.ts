@@ -5,13 +5,17 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { exigirAdminODirectivo } from "@/lib/auth";
 import { verificarModuloActivo } from "@/lib/supermotor-guard";
-import { resolverColegio } from "@/lib/tenant";
+import { obtenerColegioId, resolverColegio } from "@/lib/tenant";
+import {
+  fechaPeru,
+  obtenerLimitesDiaPeru,
+  sumarDiasFecha,
+} from "@/lib/timezone";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const ZONA_HORARIA = "America/Lima";
 const DIAS_ANALISIS = 30;
 const LIMITE_MAXIMO = 20;
 
@@ -25,12 +29,7 @@ type EventoCalendario = {
 };
 
 function fechaPeruString(fecha: Date) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: ZONA_HORARIA,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(fecha);
+  return fechaPeru(fecha);
 }
 
 function fechaBDString(fecha: Date) {
@@ -41,15 +40,12 @@ function fechaBDString(fecha: Date) {
 }
 
 function crearFechaPeru(fecha: string, finalDia = false) {
-  return new Date(
-    `${fecha}T${finalDia ? "23:59:59.999" : "00:00:00"}-05:00`
-  );
+  const { inicioDia, finDia } = obtenerLimitesDiaPeru(fecha);
+  return finalDia ? finDia : inicioDia;
 }
 
 function sumarDias(fecha: string, dias: number) {
-  const fechaBase = new Date(`${fecha}T12:00:00-05:00`);
-  fechaBase.setDate(fechaBase.getDate() + dias);
-  return fechaPeruString(fechaBase);
+  return sumarDiasFecha(fecha, dias);
 }
 
 function obtenerPeriodoAnalisis() {
@@ -222,7 +218,7 @@ export async function GET(request: Request) {
   if (!tenant.ok) {
     return NextResponse.json({ message: tenant.message }, { status: tenant.status });
   }
-  const colegioId = tenant.context.colegioId;
+  const colegioId = obtenerColegioId(acceso.sesion, request);
 
   const validacionIA = await verificarModuloActivo("ia", colegioId);
   if (!validacionIA.autorizado) {
@@ -239,6 +235,7 @@ export async function GET(request: Request) {
   try {
     const total = await prisma.estudiante.count({
       where: {
+        colegioId,
         estado: true,
       },
     });
@@ -315,6 +312,7 @@ export async function POST(request: Request) {
       await Promise.all([
         prisma.calendarioEscolar.findMany({
           where: {
+            colegioId,
             estado: true,
             fechaInicio: {
               lte: periodo.fin,
@@ -333,6 +331,7 @@ export async function POST(request: Request) {
 
         prisma.estudiante.findMany({
           where: {
+            colegioId,
             estado: true,
           },
           skip: offset,
@@ -341,6 +340,7 @@ export async function POST(request: Request) {
             turno: true,
             asistencias: {
               where: {
+                colegioId,
                 fecha: {
                   gte: periodo.inicio,
                   lte: periodo.fin,
@@ -363,6 +363,7 @@ export async function POST(request: Request) {
 
         prisma.estudiante.count({
           where: {
+            colegioId,
             estado: true,
           },
         }),
@@ -395,6 +396,8 @@ export async function POST(request: Request) {
     let altos = 0;
     let medios = 0;
     let bajos = 0;
+
+    const operacionesUpsert = [];
 
     for (const estudiante of estudiantes) {
       const fechaRegistro =
@@ -432,13 +435,13 @@ export async function POST(request: Request) {
         estudiante.asistencias.filter(
           (asistencia) =>
             conjuntoFechasLectivas.has(
-              fechaPeruString(asistencia.fecha)
+              asistencia.fechaDia || fechaPeruString(asistencia.fecha)
             )
         );
 
       const fechasConAsistencia = new Set(
         asistenciasLectivas.map((asistencia) =>
-          fechaPeruString(asistencia.fecha)
+          asistencia.fechaDia || fechaPeruString(asistencia.fecha)
         )
       );
 
@@ -484,24 +487,26 @@ export async function POST(request: Request) {
         sinSalida,
       });
 
-      await prisma.riesgoEstudianteIA.upsert({
-        where: {
-          estudianteId: estudiante.id,
-        },
-        update: {
-          nivel: riesgo.nivel,
-          porcentaje: riesgo.porcentaje,
-          resumen: textos.resumen,
-          recomendacion: textos.recomendacion,
-        },
-        create: {
-          estudianteId: estudiante.id,
-          nivel: riesgo.nivel,
-          porcentaje: riesgo.porcentaje,
-          resumen: textos.resumen,
-          recomendacion: textos.recomendacion,
-        },
-      });
+      operacionesUpsert.push(
+        prisma.riesgoEstudianteIA.upsert({
+          where: {
+            estudianteId: estudiante.id,
+          },
+          update: {
+            nivel: riesgo.nivel,
+            porcentaje: riesgo.porcentaje,
+            resumen: textos.resumen,
+            recomendacion: textos.recomendacion,
+          },
+          create: {
+            estudianteId: estudiante.id,
+            nivel: riesgo.nivel,
+            porcentaje: riesgo.porcentaje,
+            resumen: textos.resumen,
+            recomendacion: textos.recomendacion,
+          },
+        })
+      );
 
       if (riesgo.nivel === "ALTO") altos++;
       if (riesgo.nivel === "MEDIO") medios++;
@@ -518,6 +523,11 @@ export async function POST(request: Request) {
         tardanzas,
         sinSalida,
       });
+    }
+
+    // Ejecutar todos los upserts del lote en una única transacción batch
+    if (operacionesUpsert.length > 0) {
+      await prisma.$transaction(operacionesUpsert);
     }
 
     const siguienteOffset =

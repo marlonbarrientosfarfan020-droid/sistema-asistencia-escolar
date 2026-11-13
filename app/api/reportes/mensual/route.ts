@@ -1,21 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { exigirAdminDemoOPersonal } from "@/lib/auth";
+import { exigirAdminDemoOPersonal, obtenerColegioId } from "@/lib/auth";
 import {
   verificarModuloActivo,
   registrarAuditoriaBloqueo,
 } from "@/lib/supermotor-guard";
-import { crearFechaHoraPeru } from "@/lib/timezone";
-
-const ZONA_HORARIA = "America/Lima";
+import {
+  fechaPeru,
+  obtenerLimitesDiaPeru,
+  obtenerVentanaTurno,
+  sumarDiasFecha,
+} from "@/lib/timezone";
 
 function fechaPeruString(fecha: Date) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: ZONA_HORARIA,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(fecha);
+  return fechaPeru(fecha);
 }
 
 function fechaBDString(fecha: Date) {
@@ -27,16 +25,12 @@ function fechaBDString(fecha: Date) {
 }
 
 function crearFechaPeru(fecha: string, finalDia = false) {
-  return new Date(
-    `${fecha}T${finalDia ? "23:59:59.999" : "00:00:00"}-05:00`
-  );
+  const { inicioDia, finDia } = obtenerLimitesDiaPeru(fecha);
+  return finalDia ? finDia : inicioDia;
 }
 
 function sumarDias(fecha: string, dias: number) {
-  const base = crearFechaPeru(fecha);
-  base.setDate(base.getDate() + dias);
-
-  return fechaPeruString(base);
+  return sumarDiasFecha(fecha, dias);
 }
 
 function generarFechasMes(anio: number, mes: number) {
@@ -97,13 +91,16 @@ export async function GET(request: Request) {
     return acceso.respuesta;
   }
 
+  const colegioId = obtenerColegioId(acceso.sesion, request);
+
   // FASE 4.6: Validar reportesActivo en el SuperMotor
-  const validacionReportes = await verificarModuloActivo("reportes");
+  const validacionReportes = await verificarModuloActivo("reportes", colegioId);
   if (!validacionReportes.autorizado) {
     await registrarAuditoriaBloqueo({
       modulo: "REPORTES",
       motivo: validacionReportes.motivo || "MODULO_DESACTIVADO",
       usuario: acceso.sesion.usuario,
+      detalles: { colegioId },
     });
 
     return NextResponse.json(
@@ -157,6 +154,7 @@ const fechasMes = esMesActual
 
     const eventosCalendario = await prisma.calendarioEscolar.findMany({
       where: {
+        colegioId,
         estado: true,
         fechaInicio: {
           lte: finMes,
@@ -177,6 +175,7 @@ const fechasMes = esMesActual
 
     const estudiantes = await prisma.estudiante.findMany({
       where: {
+        colegioId,
         estado: true,
         ...(grado !== "TODOS" ? { grado } : {}),
         ...(seccion !== "TODOS" ? { seccion } : {}),
@@ -192,6 +191,7 @@ const fechasMes = esMesActual
         turno: true,
         asistencias: {
           where: {
+            colegioId,
             fecha: {
               gte: inicioMes,
               lte: finMes,
@@ -233,7 +233,7 @@ const fechasMes = esMesActual
             if (fecha === hoy) {
               const tieneAsistenciaHoy = estudiante.asistencias.some(
                 (asistencia) =>
-                  fechaPeruString(asistencia.fecha) === hoy
+                  (asistencia.fechaDia || fechaPeruString(asistencia.fecha)) === hoy
               );
 
               // 1. Si la estudiante ya marcó asistencia hoy, se computa como día asistido
@@ -247,11 +247,18 @@ const fechasMes = esMesActual
                 estudiante.turno.estado &&
                 estudiante.turno.horaSalida
               ) {
-                const horaSalidaTurno = crearFechaHoraPeru(
-                  hoy,
-                  estudiante.turno.horaSalida
-                );
-                return ahora >= horaSalidaTurno;
+                const ventanaTurno = obtenerVentanaTurno({
+                  horaEntrada: estudiante.turno.horaEntrada,
+                  horaSalida: estudiante.turno.horaSalida,
+                  margenEntradaAnticipadaMinutos:
+                    estudiante.turno.margenEntradaAnticipadaMinutos ?? 60,
+                  margenSalidaAnticipadaMinutos:
+                    estudiante.turno.margenSalidaAnticipadaMinutos ?? 0,
+                  margenSalidaMinutos:
+                    estudiante.turno.margenSalidaMinutos ?? 60,
+                  ahora,
+                });
+                return ahora >= ventanaTurno.horaSalida;
               }
 
               // Si el turno está inactivo o la jornada aún está en curso, no contabilizar hoy como ausencia
@@ -266,12 +273,14 @@ const fechasMes = esMesActual
 
       const asistenciasLectivas = estudiante.asistencias.filter(
         (asistencia) =>
-          conjuntoLectivo.has(fechaPeruString(asistencia.fecha))
+          conjuntoLectivo.has(
+            asistencia.fechaDia || fechaPeruString(asistencia.fecha)
+          )
       );
 
       const fechasConAsistencia = new Set(
         asistenciasLectivas.map((asistencia) =>
-          fechaPeruString(asistencia.fecha)
+          asistencia.fechaDia || fechaPeruString(asistencia.fecha)
         )
       );
 

@@ -2,6 +2,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { validarTerminalRequest } from "@/lib/terminal-auth";
 import { obtenerModulosPorRol } from "@/lib/modulos";
+export { obtenerColegioId, resolverColegio } from "@/lib/tenant";
 
 const COOKIE_NAME = "sesion_santa_rita";
 

@@ -80,6 +80,20 @@ export function resolverColegio(
 }
 
 /**
+ * Obtiene directamente el colegioId resuelto para una solicitud autenticada.
+ */
+export function obtenerColegioId(
+  sesion?: SesionUsuario | null,
+  request?: Request
+): string {
+  const resultado = resolverColegio(sesion, request);
+  if (resultado.ok) {
+    return resultado.context.colegioId;
+  }
+  return sesion?.colegioId || DEFAULT_COLEGIO_ID;
+}
+
+/**
  * Valida si una sesión tiene permiso para operar en el colegio especificado.
  */
 export function validarAccesoColegio(

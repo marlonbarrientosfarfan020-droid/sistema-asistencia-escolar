@@ -30,6 +30,14 @@ import { emitEvent } from "@/lib/events/eventBus";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const cacheGradosSecciones = new Map<
+  string,
+  {
+    datos: { grado: string; seccion: string; etiqueta: string }[];
+    expiraEn: number;
+  }
+>();
+
 // Almacén híbrido (L1 Memoria + L2 PostgreSQL) para Idempotencia Persistente entre instancias Vercel Serverless
 interface EntradaIdempotencia {
   status: number;
@@ -311,36 +319,8 @@ export async function GET(request: Request) {
       whereFiltro.AND = condicionesAnd;
     }
 
-    // Obtener los grados y secciones reales del colegio para el autocompletado
-    const estudiantesColegio = await prisma.estudiante.findMany({
-      where: {
-        colegioId,
-        estado: true,
-      },
-      select: {
-        grado: true,
-        seccion: true,
-      },
-      distinct: ["grado", "seccion"],
-      orderBy: [
-        { grado: "asc" },
-        { seccion: "asc" },
-      ],
-    });
-
-    const gradosSecciones = estudiantesColegio
-      .map((e) => ({
-        grado: e.grado,
-        seccion: e.seccion,
-        etiqueta: `${e.grado} - ${e.seccion}`,
-      }))
-      .sort((a, b) => {
-        const compGrado = a.grado.localeCompare(b.grado, "es", { numeric: true });
-        if (compGrado !== 0) return compGrado;
-        return a.seccion.localeCompare(b.seccion, "es");
-      });
-
     // Caso exportación completa sin paginar (orden cronológico ascendente de ingreso)
+    // No ejecuta la consulta distinct de gradosSecciones para no penalizar la exportación
     if (exportar) {
       const asistencias = await prisma.asistencia.findMany({
         where: whereFiltro,
@@ -365,15 +345,60 @@ export async function GET(request: Request) {
           pagina: 1,
           limite: asistencias.length,
           totalPaginas: 1,
-          gradosSecciones,
+          gradosSecciones: [],
         });
       }
 
       return NextResponse.json(asistencias);
     }
 
-    // Caso paginado
+    // Caso paginado: usa caché en memoria de 60s para el catálogo de grados y secciones
     if (formatoPaginado) {
+      const omitirCatalogo = searchParams.get("incluirCatalogo") === "false";
+      let gradosSecciones: { grado: string; seccion: string; etiqueta: string }[] = [];
+
+      if (!omitirCatalogo) {
+        const ahoraMs = Date.now();
+        const cacheActual = cacheGradosSecciones.get(colegioId);
+
+        if (cacheActual && ahoraMs < cacheActual.expiraEn) {
+          gradosSecciones = cacheActual.datos;
+        } else {
+          const estudiantesColegio = await prisma.estudiante.findMany({
+            where: {
+              colegioId,
+              estado: true,
+            },
+            select: {
+              grado: true,
+              seccion: true,
+            },
+            distinct: ["grado", "seccion"],
+            orderBy: [
+              { grado: "asc" },
+              { seccion: "asc" },
+            ],
+          });
+
+          gradosSecciones = estudiantesColegio
+            .map((e) => ({
+              grado: e.grado,
+              seccion: e.seccion,
+              etiqueta: `${e.grado} - ${e.seccion}`,
+            }))
+            .sort((a, b) => {
+              const compGrado = a.grado.localeCompare(b.grado, "es", { numeric: true });
+              if (compGrado !== 0) return compGrado;
+              return a.seccion.localeCompare(b.seccion, "es");
+            });
+
+          cacheGradosSecciones.set(colegioId, {
+            datos: gradosSecciones,
+            expiraEn: ahoraMs + 60_000,
+          });
+        }
+      }
+
       const [total, asistencias] = await Promise.all([
         prisma.asistencia.count({ where: whereFiltro }),
         prisma.asistencia.findMany({

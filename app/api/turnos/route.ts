@@ -4,15 +4,16 @@ import { prisma } from "@/lib/prisma";
 import {
   exigirAdminODirectivo,
   exigirAdminDirectivoDemoOPersonal,
+  obtenerColegioId,
 } from "@/lib/auth";
+import { minutosDesdeMedianoche } from "@/lib/timezone";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function horaValida(valor: unknown) {
-  return /^([01]\d|2[0-3]):[0-5]\d$/.test(
-    String(valor ?? "").trim()
-  );
+  const texto = String(valor ?? "").trim();
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(texto) && minutosDesdeMedianoche(texto) >= 0;
 }
 
 function obtenerEntero({
@@ -57,17 +58,22 @@ function obtenerBooleano(valor: unknown) {
    LISTAR TURNOS
 ===================================================== */
 
-export async function GET() {
+export async function GET(request: Request) {
   const acceso =
-    await exigirAdminDirectivoDemoOPersonal();
+    await exigirAdminDirectivoDemoOPersonal(request);
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
   }
 
   try {
+    const colegioId = obtenerColegioId(acceso.sesion, request);
+
     const turnos =
       await prisma.turno.findMany({
+        where: {
+          colegioId,
+        },
         orderBy: {
           id: "asc",
         },
@@ -100,13 +106,14 @@ export async function PUT(
   request: Request
 ) {
   const acceso =
-    await exigirAdminODirectivo();
+    await exigirAdminODirectivo(request);
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
   }
 
   try {
+    const colegioId = obtenerColegioId(acceso.sesion, request);
     const body =
       await request.json();
 
@@ -357,9 +364,10 @@ export async function PUT(
     }
 
     const turnoActual =
-      await prisma.turno.findUnique({
+      await prisma.turno.findFirst({
         where: {
           id,
+          colegioId,
         },
       });
 
@@ -378,6 +386,7 @@ export async function PUT(
     const turnoDuplicado =
       await prisma.turno.findFirst({
         where: {
+          colegioId,
           nombre: {
             equals: nombre,
             mode: "insensitive",
@@ -428,6 +437,7 @@ export async function PUT(
 
     await prisma.auditoria.create({
       data: {
+        colegioId,
         usuario:
           acceso.sesion.usuario,
 

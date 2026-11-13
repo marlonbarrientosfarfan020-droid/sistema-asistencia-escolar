@@ -1,26 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { exigirAdminDemoOPersonal } from "@/lib/auth";
+import { exigirAdminDemoOPersonal, obtenerColegioId } from "@/lib/auth";
+import {
+  crearFechaHoraPeru,
+  fechaPeru,
+  obtenerLimitesDiaPeru,
+  obtenerLimitePuntualidad,
+} from "@/lib/timezone";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function fechaInicioPeru(fecha: string) {
-  return new Date(`${fecha}T00:00:00-05:00`);
-}
-
-function fechaFinPeru(fecha: string) {
-  return new Date(`${fecha}T23:59:59.999-05:00`);
-}
-
-function obtenerFechaPeru(fecha: Date) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Lima",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(fecha);
-}
 
 function calcularMinutosTardanza(
   horaEntradaReal: Date | null,
@@ -29,20 +18,11 @@ function calcularMinutosTardanza(
 ) {
   if (!horaEntradaReal) return 0;
 
-  const fechaPeru = obtenerFechaPeru(horaEntradaReal);
-
-  const horaNormalizada =
-    /^\d{2}:\d{2}$/.test(horaProgramada)
-      ? horaProgramada
-      : "00:00";
-
-  const limitePuntualidad = new Date(
-    `${fechaPeru}T${horaNormalizada}:00-05:00`
-  );
-
-  limitePuntualidad.setMinutes(
-    limitePuntualidad.getMinutes() +
-      Math.max(margenAlertaMinutos, 0)
+  const fechaIngreso = fechaPeru(horaEntradaReal);
+  const horaBase = crearFechaHoraPeru(fechaIngreso, horaProgramada);
+  const limitePuntualidad = obtenerLimitePuntualidad(
+    horaBase,
+    margenAlertaMinutos
   );
 
   const diferencia =
@@ -56,43 +36,51 @@ function calcularMinutosTardanza(
 }
 
 export async function GET(request: Request) {
-  const acceso = await exigirAdminDemoOPersonal();
+  const acceso = await exigirAdminDemoOPersonal(request);
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
   }
 
   try {
+    const colegioId = obtenerColegioId(acceso.sesion, request);
     const { searchParams } = new URL(request.url);
 
     const fecha =
       searchParams.get("fecha") ||
-      new Intl.DateTimeFormat("en-CA", {
-        timeZone: "America/Lima",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(new Date());
+      fechaPeru();
 
     const dni = String(
       searchParams.get("dni") || ""
     ).trim();
 
+    const { inicioDia, finDia } = obtenerLimitesDiaPeru(fecha);
+
     const tardanzas =
       await prisma.asistencia.findMany({
         where: {
+          colegioId,
           estado: "TARDE",
-          fecha: {
-            gte: fechaInicioPeru(fecha),
-            lte: fechaFinPeru(fecha),
+          OR: [
+            { fechaDia: fecha },
+            {
+              fechaDia: "",
+              fecha: {
+                gte: inicioDia,
+                lte: finDia,
+              },
+            },
+          ],
+          estudiante: {
+            colegioId,
+            ...(dni
+              ? {
+                  dni: {
+                    contains: dni,
+                  },
+                }
+              : {}),
           },
-          estudiante: dni
-            ? {
-                dni: {
-                  contains: dni,
-                },
-              }
-            : undefined,
         },
         include: {
           estudiante: {

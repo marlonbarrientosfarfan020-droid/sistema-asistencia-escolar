@@ -4,7 +4,9 @@ import { registrarAuditoria } from "@/lib/auditoria";
 import {
   exigirAdminODirectivo,
   exigirAdminDirectivoDemoOPersonal,
+  obtenerColegioId,
 } from "@/lib/auth";
+import { ahoraPeru } from "@/lib/timezone";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -107,16 +109,21 @@ function validarDatosEstudiante(body: Record<string, unknown>) {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
  const acceso =
-  await exigirAdminDirectivoDemoOPersonal();
+  await exigirAdminDirectivoDemoOPersonal(request);
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
   }
 
   try {
+    const colegioId = obtenerColegioId(acceso.sesion, request);
+
     const estudiantes = await prisma.estudiante.findMany({
+      where: {
+        colegioId,
+      },
       orderBy: {
         createdAt: "desc",
       },
@@ -142,13 +149,14 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const acceso = await exigirAdminODirectivo();
+  const acceso = await exigirAdminODirectivo(request);
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
   }
 
   try {
+    const colegioId = obtenerColegioId(acceso.sesion, request);
     const body = await request.json();
 
     const validacion = validarDatosEstudiante(body);
@@ -201,9 +209,10 @@ export async function POST(request: Request) {
     }
 
     if (datos.turnoId !== null) {
-      const turno = await prisma.turno.findUnique({
+      const turno = await prisma.turno.findFirst({
         where: {
           id: datos.turnoId,
+          colegioId,
         },
       });
 
@@ -220,7 +229,11 @@ export async function POST(request: Request) {
     }
 
     const estudiante = await prisma.estudiante.create({
-      data: datos,
+      data: {
+        ...datos,
+        colegioId,
+        createdAt: ahoraPeru(),
+      },
       include: {
         turno: true,
         riesgoIA: true,
@@ -253,13 +266,14 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-const acceso = await exigirAdminODirectivo();
+const acceso = await exigirAdminODirectivo(request);
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
   }
 
   try {
+    const colegioId = obtenerColegioId(acceso.sesion, request);
     const body = await request.json();
 
     const id = numeroEnteroPositivo(body.id);
@@ -275,9 +289,10 @@ const acceso = await exigirAdminODirectivo();
       );
     }
 
-    const estudianteActual = await prisma.estudiante.findUnique({
+    const estudianteActual = await prisma.estudiante.findFirst({
       where: {
         id,
+        colegioId,
       },
     });
 
@@ -348,9 +363,10 @@ const acceso = await exigirAdminODirectivo();
     }
 
     if (datos.turnoId !== null) {
-      const turno = await prisma.turno.findUnique({
+      const turno = await prisma.turno.findFirst({
         where: {
           id: datos.turnoId,
+          colegioId,
         },
       });
 
@@ -401,13 +417,14 @@ const acceso = await exigirAdminODirectivo();
 }
 
 export async function DELETE(request: Request) {
-  const acceso = await exigirAdminODirectivo();
+  const acceso = await exigirAdminODirectivo(request);
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
   }
 
   try {
+    const colegioId = obtenerColegioId(acceso.sesion, request);
     const { searchParams } = new URL(request.url);
 
     const id = numeroEnteroPositivo(
@@ -425,9 +442,10 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const estudiante = await prisma.estudiante.findUnique({
+    const estudiante = await prisma.estudiante.findFirst({
       where: {
         id,
+        colegioId,
       },
     });
 

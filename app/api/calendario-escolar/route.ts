@@ -4,7 +4,9 @@ import { registrarAuditoria } from "@/lib/auditoria";
 import {
   exigirAdminODirectivo,
   exigirAdminDirectivoDemoOPersonal,
+  obtenerColegioId,
 } from "@/lib/auth";
+import { ZONA_HORARIA } from "@/lib/timezone";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,13 +48,14 @@ const TIPOS_VALIDOS = [
 
 export async function GET(request: Request) {
   const acceso =
-    await exigirAdminDirectivoDemoOPersonal();
+    await exigirAdminDirectivoDemoOPersonal(request);
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
   }
 
   try {
+    const colegioId = obtenerColegioId(acceso.sesion, request);
     const { searchParams } = new URL(request.url);
 
     const anio = Number(searchParams.get("anio"));
@@ -113,7 +116,10 @@ export async function GET(request: Request) {
 
     const calendario =
       await prisma.calendarioEscolar.findMany({
-        where: filtroFecha,
+        where: {
+          colegioId,
+          ...filtroFecha,
+        },
         include: {
           turno: true,
         },
@@ -147,13 +153,14 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
- const acceso = await exigirAdminODirectivo();
+ const acceso = await exigirAdminODirectivo(request);
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
   }
 
   try {
+    const colegioId = obtenerColegioId(acceso.sesion, request);
     const body = await request.json();
 
     const fechaInicio = convertirFecha(
@@ -249,9 +256,10 @@ export async function POST(request: Request) {
 
     if (turnoId) {
       const turnoExiste =
-        await prisma.turno.findUnique({
+        await prisma.turno.findFirst({
           where: {
             id: turnoId,
+            colegioId,
           },
         });
 
@@ -271,6 +279,7 @@ export async function POST(request: Request) {
     const evento =
       await prisma.calendarioEscolar.create({
         data: {
+          colegioId,
           fechaInicio,
           fechaFin,
           tipo,
@@ -291,8 +300,8 @@ export async function POST(request: Request) {
       modulo: "Calendario escolar",
       detalle:
         `Registró ${tipo}: ${descripcion}, desde ` +
-        `${fechaInicio.toLocaleDateString("es-PE")} hasta ` +
-        `${fechaFin.toLocaleDateString("es-PE")}`,
+        `${fechaInicio.toLocaleDateString("es-PE", { timeZone: ZONA_HORARIA })} hasta ` +
+        `${fechaFin.toLocaleDateString("es-PE", { timeZone: ZONA_HORARIA })}`,
     });
 
     return NextResponse.json(evento, {
@@ -317,13 +326,14 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
- const acceso = await exigirAdminODirectivo();
+ const acceso = await exigirAdminODirectivo(request);
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
   }
 
   try {
+    const colegioId = obtenerColegioId(acceso.sesion, request);
     const body = await request.json();
 
     const id = numeroEnteroPositivo(body.id);
@@ -432,9 +442,10 @@ export async function PUT(request: Request) {
     }
 
     const eventoExistente =
-      await prisma.calendarioEscolar.findUnique({
+      await prisma.calendarioEscolar.findFirst({
         where: {
           id,
+          colegioId,
         },
       });
 
@@ -452,9 +463,10 @@ export async function PUT(request: Request) {
 
     if (turnoId) {
       const turnoExiste =
-        await prisma.turno.findUnique({
+        await prisma.turno.findFirst({
           where: {
             id: turnoId,
+            colegioId,
           },
         });
 
@@ -522,13 +534,14 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const acceso = await exigirAdminODirectivo();
+  const acceso = await exigirAdminODirectivo(request);
 
   if (!acceso.autorizado) {
     return acceso.respuesta;
   }
 
   try {
+    const colegioId = obtenerColegioId(acceso.sesion, request);
     const { searchParams } = new URL(request.url);
 
     const id = numeroEnteroPositivo(
@@ -548,9 +561,10 @@ export async function DELETE(request: Request) {
     }
 
     const evento =
-      await prisma.calendarioEscolar.findUnique({
+      await prisma.calendarioEscolar.findFirst({
         where: {
           id,
+          colegioId,
         },
       });
 
