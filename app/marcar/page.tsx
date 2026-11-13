@@ -90,6 +90,23 @@ export function esCamaraVirtual(label: string): boolean {
 }
 
 /**
+ * Detecta si la terminal se está ejecutando en un teléfono o tablet (Android / iOS).
+ */
+export function detectarDispositivoMovil(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
+}
+
+/**
+ * Detecta si la etiqueta de una cámara trasera corresponde a un lente auxiliar
+ * (gran angular 0.5x, macro, sensor de profundidad o telefoto) que distorsiona o desenfoca el QR.
+ */
+export function esLenteAuxiliarMovil(label: string): boolean {
+  if (!label) return false;
+  return /wide|ultra|0\.5x|macro|depth|tele|fisheye|bokeh|mono/i.test(label);
+}
+
+/**
  * Obtiene el elemento HTMLVideoElement activo sin depender únicamente de selectores DOM frágiles.
  * Utiliza el método oficial getRenderedCameraOrFail().getSurface() de Html5Qrcode si está disponible.
  */
@@ -323,31 +340,32 @@ export function generarEscaleraConstraints({
     ];
   }
 
-  // 5. Perfil AUTO (Por defecto): Adaptativo inteligente
-  const primerNivel = esLaptop
+  // 5. Perfil AUTO (Por defecto): Adaptativo inteligente (ligero en móviles para proteger RAM y drivers básicos)
+  const esMovilUA = detectarDispositivoMovil();
+  const primerNivel = esLaptop && !esMovilUA
     ? {
         nombre: "HD 720p Estándar (Laptop)",
         videoConstraints: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
           aspectRatio: { ideal: 16 / 9 },
-          frameRate: { ideal: 30 },
+          frameRate: { ideal: 24 },
         },
+        decoderFps: 18,
       }
     : {
-        nombre: "HD 720p Adaptativo (Móvil)",
+        nombre: "SD 480p Ligero (Móvil)",
         videoConstraints: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 },
+          width: { ideal: 640 },
+          height: { ideal: 480 },
         },
+        decoderFps: 12,
       };
 
   return [
     {
       ...primerNivel,
       perfil: "AUTO",
-      decoderFps: fpsDecodificador,
     },
     {
       nombre: "SD 480p Universal",
@@ -355,23 +373,20 @@ export function generarEscaleraConstraints({
       videoConstraints: {
         width: { ideal: 640 },
         height: { ideal: 480 },
-        frameRate: { ideal: 30 },
       },
-      decoderFps: fpsDecodificador,
+      decoderFps: esMovilUA ? 12 : fpsDecodificador,
     },
     {
       nombre: "Resolución Nativa del Sensor",
       perfil: "AUTO",
-      videoConstraints: {
-        frameRate: { ideal: 30 },
-      },
-      decoderFps: fpsDecodificador,
+      videoConstraints: {},
+      decoderFps: esMovilUA ? 12 : 15,
     },
     {
       nombre: "Universal de Emergencia (Sin restricciones)",
       perfil: "AUTO",
       videoConstraints: {},
-      decoderFps: 15,
+      decoderFps: 12,
     },
   ];
 }
@@ -604,6 +619,8 @@ export default function MarcarPage() {
 
   const [camaraActiva, setCamaraActiva] = useState(false);
   const [camaraManualApagada, setCamaraManualApagada] = useState(false);
+  const camaraManualApagadaRef = useRef(false);
+  const wakeLockRef = useRef<any>(null);
   const [camaraError, setCamaraError] = useState("");
   const [iniciandoCamara, setIniciandoCamara] = useState(false);
 
@@ -759,6 +776,11 @@ export default function MarcarPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Sincronizar ref de cámara apagada manualmente para evitar re-ejecutar cleanup del useEffect principal
+  useEffect(() => {
+    camaraManualApagadaRef.current = camaraManualApagada;
+  }, [camaraManualApagada]);
+
   // 1. Autorización de terminal y configuración inicial
   useEffect(() => {
     desmontadoRef.current = false;
@@ -788,16 +810,42 @@ export default function MarcarPage() {
       void actualizarListaDispositivos(false, true);
     };
 
-    // FASE 4: Recuperación inteligente al volver a la pestaña (Android Chrome, iOS Safari, etc.)
-    // Con debounce de 350ms para esperar a que el OS libere el hardware lock de video
+    // Protección contra promesas huérfanas de Html5Qrcode / removeChild para que nunca disparen el Error Boundary global
+    const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const msg = String(event?.reason?.message || event?.reason || "");
+      const name = String(event?.reason?.name || "");
+      if (
+        msg.includes("removeChild") ||
+        msg.includes("Html5Qrcode") ||
+        msg.includes("transition") ||
+        msg.includes("play() request was interrupted") ||
+        name === "NotFoundError" ||
+        name === "AbortError"
+      ) {
+        console.warn("[CAMARA V3] Rechazo asíncrono interceptado de forma segura:", name, msg);
+        event.preventDefault();
+      }
+    };
+
+    // FASE 4: Bloqueo de pantalla activa (Wake Lock) y auto-recuperación al volver de WhatsApp / bloqueo
     const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        if (!desmontadoRef.current && !camaraManualApagada && autoInicioEjecutadoRef.current) {
+      if (document.visibilityState === "hidden") {
+        if (reconexionTimerRef.current) {
+          clearTimeout(reconexionTimerRef.current);
+          reconexionTimerRef.current = null;
+        }
+        void liberarWakeLock();
+        if (!desmontadoRef.current && !camaraManualApagadaRef.current) {
+          actualizarEstadoSesionCamara("PAUSANDO");
+          void liberarRecursosCamara();
+        }
+      } else if (document.visibilityState === "visible") {
+        if (!desmontadoRef.current && !camaraManualApagadaRef.current && autoInicioEjecutadoRef.current) {
           if (reconexionTimerRef.current) {
             clearTimeout(reconexionTimerRef.current);
           }
           reconexionTimerRef.current = setTimeout(() => {
-            if (desmontadoRef.current || camaraManualApagada) return;
+            if (desmontadoRef.current || camaraManualApagadaRef.current) return;
             const videoEl = obtenerVideoElementActivo(scannerRef.current);
             const stream = videoEl?.srcObject as MediaStream | null;
             const track = stream?.getVideoTracks()?.[0];
@@ -805,26 +853,24 @@ export default function MarcarPage() {
             const videoPausado = !videoEl || videoEl.paused || videoEl.ended;
 
             if (streamDetenido || videoPausado || estadoSesionCamaraRef.current !== "ACTIVA") {
-              console.warn("[CAMARA V3] Pestaña reactivada tras suspensión/background. Restaurando cámara permanente...");
+              console.warn("[CAMARA V3] Pestaña reactivada tras WhatsApp/suspensión. Reiniciando cámara tras 400ms...");
               void activarCamaraPermanente(undefined, undefined, undefined, true);
+            } else {
+              void solicitarWakeLock();
             }
-          }, 350);
-        }
-      } else {
-        if (estadoSesionCamaraRef.current === "ACTIVA") {
-          actualizarEstadoSesionCamara("PAUSANDO");
+          }, 400);
         }
       }
     };
 
     // Soporte para Safari iOS y móviles con bfcache (pagehide / pageshow)
     const onPageShow = () => {
-      if (!desmontadoRef.current && !camaraManualApagada && autoInicioEjecutadoRef.current) {
+      if (!desmontadoRef.current && !camaraManualApagadaRef.current && autoInicioEjecutadoRef.current) {
         if (reconexionTimerRef.current) {
           clearTimeout(reconexionTimerRef.current);
         }
         reconexionTimerRef.current = setTimeout(() => {
-          if (desmontadoRef.current || camaraManualApagada) return;
+          if (desmontadoRef.current || camaraManualApagadaRef.current) return;
           const videoEl = obtenerVideoElementActivo(scannerRef.current);
           const stream = videoEl?.srcObject as MediaStream | null;
           const track = stream?.getVideoTracks()?.[0];
@@ -834,18 +880,22 @@ export default function MarcarPage() {
           if (streamDetenido || videoPausado || estadoSesionCamaraRef.current !== "ACTIVA") {
             console.warn("[CAMARA V3] Retorno vía pageshow (bfcache o app switch). Restaurando cámara...");
             void activarCamaraPermanente(undefined, undefined, undefined, true);
+          } else {
+            void solicitarWakeLock();
           }
-        }, 350);
+        }, 400);
       }
     };
 
     const onPageHide = () => {
+      void liberarWakeLock();
       if (estadoSesionCamaraRef.current === "ACTIVA") {
         actualizarEstadoSesionCamara("PAUSANDO");
       }
     };
 
     window.addEventListener("popstate", bloquearAtras);
+    window.addEventListener("unhandledrejection", onUnhandledRejection);
     navigator.mediaDevices?.addEventListener("devicechange", onDeviceChange);
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("pageshow", onPageShow);
@@ -863,15 +913,17 @@ export default function MarcarPage() {
         reconexionTimerRef.current = null;
       }
       window.removeEventListener("popstate", bloquearAtras);
+      window.removeEventListener("unhandledrejection", onUnhandledRejection);
       navigator.mediaDevices?.removeEventListener("devicechange", onDeviceChange);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("pageshow", onPageShow);
       window.removeEventListener("pagehide", onPageHide);
       document.removeEventListener("fullscreenchange", onFullscreenChange);
       detenerCamaraFoto();
+      void liberarWakeLock();
       void liberarRecursosCamara();
     };
-  }, [router, camaraManualApagada]);
+  }, [router]);
 
   // 2. Auto-iniciar cámara permanente (1 sola vez protegida contra StrictMode)
   useEffect(() => {
@@ -1085,7 +1137,61 @@ export default function MarcarPage() {
     await new Promise<void>((resolve) => window.setTimeout(resolve, ms));
   }
 
-  // Liberación total y garantizada de recursos de cámara (Anti-NotReadableError y Anti-Zombies)
+  // Bloqueo de pantalla activa (Screen Wake Lock API) para que el celular no se apague en la fila de ingreso
+  async function solicitarWakeLock() {
+    try {
+      if (typeof navigator !== "undefined" && "wakeLock" in navigator && document.visibilityState === "visible") {
+        if (wakeLockRef.current) {
+          try {
+            await wakeLockRef.current.release();
+          } catch {}
+          wakeLockRef.current = null;
+        }
+        wakeLockRef.current = await (navigator as any).wakeLock.request("screen");
+        wakeLockRef.current?.addEventListener?.("release", () => {
+          wakeLockRef.current = null;
+        });
+      }
+    } catch {
+      // Ignorar silenciosamente si el navegador o nivel de batería no permite Wake Lock
+    }
+  }
+
+  async function liberarWakeLock() {
+    try {
+      if (wakeLockRef.current) {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      }
+    } catch {
+      wakeLockRef.current = null;
+    }
+  }
+
+  // Liberar todos los tracks de video activos en el DOM (Nivel 3 de recuperación)
+  function detenerTodosLosVideosDOM() {
+    try {
+      if (typeof document === "undefined") return;
+      document.querySelectorAll("video").forEach((videoEl) => {
+        try {
+          if (videoEl instanceof HTMLVideoElement) {
+            if (videoEl.srcObject instanceof MediaStream) {
+              videoEl.srcObject.getTracks().forEach((track) => {
+                track.onended = null;
+                try {
+                  track.stop();
+                } catch {}
+              });
+              videoEl.srcObject = null;
+            }
+            videoEl.pause();
+          }
+        } catch {}
+      });
+    } catch {}
+  }
+
+  // Liberación total y garantizada de recursos de cámara (Anti-NotReadableError y Anti-removeChild)
   async function liberarRecursosCamara() {
     if (reconexionTimerRef.current) {
       clearTimeout(reconexionTimerRef.current);
@@ -1097,31 +1203,51 @@ export default function MarcarPage() {
     }
 
     try {
-      // 1. Intentar detener ordenadamente la instancia activa de Html5Qrcode con timeout de seguridad (1200ms)
       const scanner = scannerRef.current;
+      scannerRef.current = null;
+
       if (scanner) {
         try {
-          const estado = scanner.getState();
+          let estado = 0;
+          try {
+            estado = scanner.getState();
+          } catch {}
+
           // Estado 2 = SCANNING, Estado 3 = PAUSED
           if (estado === 2 || estado === 3) {
-            // Captura aislada de rechazo tardío para evitar unhandled rejection si scanner.stop() rechaza tras el timeout
-            const stopPromise = scanner.stop().catch((e) => {
-              console.warn("[CAMARA V3] scanner.stop() tardío o error ignorado tras timeout:", e);
-            });
+            let stopCompletado = false;
+            const stopPromise = Promise.resolve()
+              .then(() => scanner.stop())
+              .then(() => {
+                stopCompletado = true;
+              })
+              .catch((e) => {
+                stopCompletado = true;
+                console.warn("[CAMARA V3] scanner.stop() ignorado de forma segura:", e);
+              });
+
             await Promise.race([
               stopPromise,
-              new Promise((r) => setTimeout(r, 1200)),
+              new Promise<void>((r) => setTimeout(r, 1400)),
             ]);
+
+            // Solo ejecutar clear() si stop() ya concluyó para jamás causar carrera con removeChild interno
+            if (stopCompletado) {
+              try {
+                scanner.clear();
+              } catch {}
+            }
+          } else {
+            try {
+              scanner.clear();
+            } catch {}
           }
-          scanner.clear();
         } catch (error) {
-          console.warn("[CAMARA V3] scanner.stop() o scanner.clear() falló (procediendo a detención forzada de pistas):", error);
-        } finally {
-          scannerRef.current = null;
+          console.warn("[CAMARA V3] Error controlado en scanner.stop()/clear():", error);
         }
       }
     } finally {
-      // 2. GARANTÍA ABSOLUTA: Detener exclusivamente los MediaStream y elementos de video propiedad de Terminal V2
+      // GARANTÍA ABSOLUTA: Detener todos los MediaStreamTracks asociados a #lector-qr y videoRef
       try {
         const videosTerminal: HTMLVideoElement[] = [];
 
@@ -1145,16 +1271,12 @@ export default function MarcarPage() {
                 track.onended = null;
                 try {
                   track.stop();
-                } catch (errTrack) {
-                  console.warn("[CAMARA V3] Error deteniendo pista individual:", errTrack);
-                }
+                } catch {}
               });
               videoEl.srcObject = null;
             }
             videoEl.pause();
-          } catch (errVideo) {
-            console.warn("[CAMARA V3] Error limpiando elemento de video de Terminal V2:", errVideo);
-          }
+          } catch {}
         });
       } catch (e) {
         console.warn("[CAMARA V3] Error general en limpieza de MediaStreamTracks:", e);
@@ -1173,19 +1295,25 @@ export default function MarcarPage() {
   }
 
   function detenerCamaraFoto() {
-    const stream = streamFotoRef.current;
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      streamFotoRef.current = null;
-    }
+    try {
+      const stream = streamFotoRef.current;
+      if (stream) {
+        stream.getTracks().forEach((track) => {
+          try {
+            track.stop();
+          } catch {}
+        });
+        streamFotoRef.current = null;
+      }
 
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.srcObject = null;
-    }
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.srcObject = null;
+      }
+    } catch {}
   }
 
-  // 3. Iniciar cámara permanente V3 con FSM, Mutex y Escalera Adaptativa por Perfil
+  // 3. Iniciar cámara permanente con Cascada Automática de 4 Niveles (Compatible con Android antiguos y modernos)
   async function activarCamaraPermanente(
     dispositivoIdCustom?: string,
     modoFacingCustom?: "environment" | "user",
@@ -1216,16 +1344,18 @@ export default function MarcarPage() {
       }
 
       const cfg = obtenerConfiguracionTerminal();
-      const esLaptop = cfg.tipoDispositivo === "LAPTOP_PC";
+      const esMovilReal = detectarDispositivoMovil();
+      const esLaptop = !esMovilReal && cfg.tipoDispositivo === "LAPTOP_PC";
+      const esModoMovil = esMovilReal || cfg.tipoDispositivo === "TABLET_CELULAR";
 
       let facingMode: "environment" | "user" =
         modoFacingCustom ?? (esLaptop ? "user" : cfg.modoCamaraPreferido || "environment");
-      if (esLaptop) {
+      if (esLaptop && !modoFacingCustom) {
         facingMode = "user";
       }
 
       let targetDeviceId: string | undefined =
-        dispositivoIdCustom ?? camaraQrSeleccionada ?? cfg.camaraSeleccionada;
+        dispositivoIdCustom ?? (esMovilReal ? undefined : camaraQrSeleccionada || cfg.camaraSeleccionada);
 
       if (targetDeviceId) {
         const camEncontrada = camaras.find((c) => c.deviceId === targetDeviceId);
@@ -1234,96 +1364,70 @@ export default function MarcarPage() {
         }
       }
 
-      const perfilElegido = forzarPerfil || perfilCalidadRef.current || "AUTO";
-      const nivelesConstraints = generarEscaleraConstraints({
-        perfil: perfilElegido,
-        esLaptop,
-      });
-
-      let lectorIniciadoConExito = false;
       let ultimoErrorCapturado: any = null;
-      let nivelExitoso: NivelEscaleraCamara | null = null;
 
-      for (const nivel of nivelesConstraints) {
-        if (tokenSesion !== sesionCamaraIdRef.current || desmontadoRef.current) break;
+      const callbackLecturaQr = async (codigoLeido: string) => {
+        const codigoSanitizado = codigoLeido.trim().replace(/^(CODIGO|DNI|ID)[:\s]+/i, "").trim();
+        const ahora = Date.now();
+        const modoActual = modoOperativoRef.current;
+
+        // Cooldown de 3.5s para el MISMO carnet y MISMO modo
+        if (
+          ultimoCodigoLeidoRef.current.codigo === codigoSanitizado &&
+          ultimoCodigoLeidoRef.current.modo === modoActual &&
+          ahora - ultimoCodigoLeidoRef.current.timestamp < 3500
+        ) {
+          return;
+        }
+
+        if (procesandoQR.current) {
+          return;
+        }
+
+        ultimoCodigoLeidoRef.current = { codigo: codigoSanitizado, modo: modoActual, timestamp: ahora };
+        procesandoQR.current = true;
+        await procesarLecturaQRContinuo(codigoSanitizado);
+      };
+
+      const intentarArranqueLector = async (
+        cameraTarget: any,
+        configStart: any,
+        nombreNivel: string,
+        perfilNivel: PerfilCalidadCamara,
+        fpsNivel: number
+      ): Promise<boolean> => {
+        if (tokenSesion !== sesionCamaraIdRef.current || desmontadoRef.current) return false;
 
         try {
-          console.log(`[CAMARA V3] Probando nivel de hardware: ${nivel.nombre} (Perfil: ${nivel.perfil})...`);
+          console.log(`[CAMARA V3] Probando ${nombreNivel}...`);
           setDiagnostico((prev) => ({
             ...prev,
-            resolucionSolicitada: nivel.nombre,
-            fpsDecodificador: nivel.decoderFps,
+            resolucionSolicitada: nombreNivel,
+            fpsDecodificador: fpsNivel,
           }));
 
+          // Aceleración nativa BarcodeDetector en Android para ahorrar CPU y RAM
           const lector = new Html5Qrcode("lector-qr", {
             formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+            useBarCodeDetectorIfSupported: true,
             verbose: false,
-          });
+          } as any);
           scannerRef.current = lector;
 
-          // Inyección adaptativa sin restricciones exactas forzadas
-          const finalConstraints: MediaTrackConstraints = { ...nivel.videoConstraints };
-          let cameraTarget: any = {};
+          await lector.start(cameraTarget, configStart, callbackLecturaQr, () => {});
 
-          if (targetDeviceId) {
-            cameraTarget = { deviceId: { exact: targetDeviceId } };
-            finalConstraints.deviceId = { ideal: targetDeviceId };
-          } else {
-            cameraTarget = { facingMode };
-            finalConstraints.facingMode = { ideal: facingMode };
-          }
-
-          try {
-            const supported = navigator.mediaDevices?.getSupportedConstraints?.();
-            if (supported && (supported as any).focusMode) {
-              finalConstraints.advanced = [{ focusMode: "continuous" } as any];
-            }
-          } catch {}
-
-          await lector.start(
-            cameraTarget,
-            {
-              fps: nivel.decoderFps,
-              videoConstraints: finalConstraints,
-            },
-            async (codigoLeido) => {
-              const codigoSanitizado = codigoLeido.trim().replace(/^(CODIGO|DNI|ID)[:\s]+/i, "").trim();
-              const ahora = Date.now();
-              const modoActual = modoOperativoRef.current;
-
-              // Cooldown de 3.5s para el MISMO carnet y MISMO modo
-              if (
-                ultimoCodigoLeidoRef.current.codigo === codigoSanitizado &&
-                ultimoCodigoLeidoRef.current.modo === modoActual &&
-                ahora - ultimoCodigoLeidoRef.current.timestamp < 3500
-              ) {
-                return;
-              }
-
-              if (procesandoQR.current) {
-                return;
-              }
-
-              ultimoCodigoLeidoRef.current = { codigo: codigoSanitizado, modo: modoActual, timestamp: ahora };
-              procesandoQR.current = true;
-              await procesarLecturaQRContinuo(codigoSanitizado);
-            },
-            () => {}
-          );
-
-          // Si una nueva sesión fue solicitada mientras lector.start() esperaba, abortar de inmediato esta instancia
+          // Si una nueva sesión fue solicitada mientras lector.start() esperaba, abortar de inmediato
           if (tokenSesion !== sesionCamaraIdRef.current || desmontadoRef.current) {
-            console.log(`[CAMARA V3] Sesión ${tokenSesion} quedó obsoleta durante start() frente a ${sesionCamaraIdRef.current}. Descartando...`);
             try {
               if (lector.getState() === 2) {
                 await lector.stop().catch(() => {});
               }
               lector.clear();
             } catch {}
-            break;
+            return false;
           }
 
-          // Verificar que el elemento de video realmente esté renderizando fotogramas activos
+          // Verificar que el elemento de video esté entregando fotogramas reales
           const videoEl = obtenerVideoElementActivo(lector);
           let videoListo = false;
           for (let intentoVideo = 0; intentoVideo < 8; intentoVideo++) {
@@ -1336,45 +1440,222 @@ export default function MarcarPage() {
           }
 
           if (tokenSesion !== sesionCamaraIdRef.current || desmontadoRef.current) {
-            console.log(`[CAMARA V3] Sesión ${tokenSesion} descartada por nueva sesión durante verificación de fotogramas.`);
             try {
               if (lector.getState() === 2) {
                 await lector.stop().catch(() => {});
               }
               lector.clear();
             } catch {}
-            break;
+            return false;
           }
 
           if (videoListo || (videoEl && videoEl.readyState >= 1)) {
-            lectorIniciadoConExito = true;
-            nivelExitoso = nivel;
             actualizarEstadoSesionCamara("ACTIVA");
             setCamaraActiva(true);
+            camaraManualApagadaRef.current = false;
             setCamaraManualApagada(false);
             setCamaraError("");
             reintentosFallidosRef.current = 0;
 
+            void solicitarWakeLock();
+
             const duracionMs = Math.round(performance.now() - tInicioConexion);
-            await aplicarOptimizacionesHardwareTrack(lector, nivel.perfil, duracionMs, nivel.nombre);
+            await aplicarOptimizacionesHardwareTrack(lector, perfilNivel, duracionMs, nombreNivel);
             void actualizarListaDispositivos();
 
-            console.log(`[CAMARA V3] Conexión establecida con éxito en ${duracionMs}ms (${nivel.nombre})`);
-            break;
-          } else {
-            console.warn(`[CAMARA V3] El video no alcanzó fotogramas válidos en ${nivel.nombre}. Probando siguiente nivel...`);
-            await liberarRecursosCamara();
+            console.log(`[CAMARA V3] Conexión establecida con éxito en ${duracionMs}ms (${nombreNivel})`);
+            return true;
           }
+
+          await liberarRecursosCamara();
+          return false;
         } catch (err: any) {
           ultimoErrorCapturado = err;
-          console.warn(`[CAMARA V3] Falló nivel ${nivel.nombre}:`, err?.name || err?.message || err);
+          console.warn(`[CAMARA V3] Falló ${nombreNivel}:`, err?.name || err?.message || err);
           await liberarRecursosCamara();
-          await esperar(150);
+          return false;
+        }
+      };
 
-          if (targetDeviceId && (nivel === nivelesConstraints[0] || nivel === nivelesConstraints[1])) {
-            console.log("[CAMARA V3] Descartando targetDeviceId tras fallo para probar sensor principal...");
+      let lectorIniciadoConExito = false;
+
+      if (esModoMovil) {
+        // =========================================================================
+        // CASCADA AUTOMÁTICA DE 4 NIVELES PARA CELULARES ANTIGUOS Y MODERNOS
+        // =========================================================================
+
+        // NIVEL 1: Configuración ligera móvil (640x480 ideal @ 12fps) o cámara elegida explícitamente
+        const targetNivel1 = dispositivoIdCustom
+          ? { deviceId: { exact: dispositivoIdCustom } }
+          : { facingMode: { ideal: facingMode } };
+        const constraintsNivel1: MediaTrackConstraints = dispositivoIdCustom
+          ? { deviceId: { ideal: dispositivoIdCustom }, width: { ideal: 640 }, height: { ideal: 480 } }
+          : { facingMode: { ideal: facingMode }, width: { ideal: 640 }, height: { ideal: 480 } };
+
+        lectorIniciadoConExito = await intentarArranqueLector(
+          targetNivel1,
+          { fps: 12, videoConstraints: constraintsNivel1 },
+          "Nivel 1 Móvil (640x480 @ 12fps)",
+          "AUTO",
+          12
+        );
+
+        // NIVEL 2: Fallback para celulares antiguos que rechazan resoluciones (OverconstrainedError / NotReadableError)
+        if (!lectorIniciadoConExito && !desmontadoRef.current && tokenSesion === sesionCamaraIdRef.current) {
+          try {
+            localStorage.removeItem("camara_qr_device_id");
+            guardarConfiguracionTerminal({ camaraSeleccionada: "" });
+            setCamaraQrSeleccionada("");
+          } catch {}
+
+          await esperar(300);
+
+          lectorIniciadoConExito = await intentarArranqueLector(
+            { facingMode },
+            { fps: 12 },
+            `Nivel 2 Nativo Sin Restricciones (${facingMode})`,
+            "COMPATIBLE",
+            12
+          );
+        }
+
+        // NIVEL 3: Fallback universal enumerando cámaras con Html5Qrcode.getCameras() (evitando wide/ultra/macro/depth)
+        if (!lectorIniciadoConExito && !desmontadoRef.current && tokenSesion === sesionCamaraIdRef.current) {
+          detenerTodosLosVideosDOM();
+          await esperar(400);
+
+          let camaraTraseraId = "";
+          let primeraCamaraDisponibleId = "";
+          try {
+            const listaHtml5 = await Html5Qrcode.getCameras();
+            if (Array.isArray(listaHtml5) && listaHtml5.length > 0) {
+              const fisicas = listaHtml5.filter((c) => !esCamaraVirtual(c.label || ""));
+              const candidatas = fisicas.length > 0 ? fisicas : listaHtml5;
+              primeraCamaraDisponibleId = candidatas[0]?.id || "";
+
+              // Filtrar lentes secundarios problemáticos (wide, ultra, macro, depth)
+              const sinAuxiliares = candidatas.filter((c) => !esLenteAuxiliarMovil(c.label || ""));
+              const poolTraseras = sinAuxiliares.length > 0 ? sinAuxiliares : candidatas;
+
+              const traseras = poolTraseras.filter(
+                (c) =>
+                  /back|rear|environment|trasera|posterior|0/i.test(c.label || "") &&
+                  !/front|user|selfie|frontal/i.test(c.label || "")
+              );
+
+              camaraTraseraId = traseras[0]?.id || poolTraseras[poolTraseras.length - 1]?.id || primeraCamaraDisponibleId;
+            }
+          } catch (errGetCam) {
+            console.warn("[CAMARA V3] Html5Qrcode.getCameras() falló en Nivel 3:", errGetCam);
+          }
+
+          const targetNivel3 = camaraTraseraId ? camaraTraseraId : { facingMode: "user" };
+          lectorIniciadoConExito = await intentarArranqueLector(
+            targetNivel3,
+            { fps: 12 },
+            "Nivel 3 Sensor Directo (getCameras)",
+            "COMPATIBLE",
+            12
+          );
+
+          // NIVEL 4: Último recurso universal (primera cámara disponible o cámara frontal básica)
+          if (!lectorIniciadoConExito && !desmontadoRef.current && tokenSesion === sesionCamaraIdRef.current) {
+            detenerTodosLosVideosDOM();
+            await esperar(350);
+
+            const targetNivel4 =
+              primeraCamaraDisponibleId && primeraCamaraDisponibleId !== camaraTraseraId
+                ? primeraCamaraDisponibleId
+                : { facingMode: "user" };
+
+            lectorIniciadoConExito = await intentarArranqueLector(
+              targetNivel4,
+              { fps: 10 },
+              "Nivel 4 Universal Fallback",
+              "COMPATIBLE",
+              10
+            );
+          }
+        }
+      } else {
+        // =========================================================================
+        // ESCALERA ADAPTATIVA PARA LAPTOP / PC + FALLBACK UNIVERSAL
+        // =========================================================================
+        const perfilElegido = forzarPerfil || perfilCalidadRef.current || "AUTO";
+        const nivelesConstraints = generarEscaleraConstraints({
+          perfil: perfilElegido,
+          esLaptop,
+        });
+
+        for (const nivel of nivelesConstraints) {
+          if (tokenSesion !== sesionCamaraIdRef.current || desmontadoRef.current) break;
+
+          const finalConstraints: MediaTrackConstraints = { ...nivel.videoConstraints };
+          let cameraTarget: any = {};
+
+          if (targetDeviceId) {
+            cameraTarget = { deviceId: { exact: targetDeviceId } };
+            finalConstraints.deviceId = { ideal: targetDeviceId };
+          } else {
+            cameraTarget = { facingMode };
+            finalConstraints.facingMode = { ideal: facingMode };
+          }
+
+          lectorIniciadoConExito = await intentarArranqueLector(
+            cameraTarget,
+            {
+              fps: nivel.decoderFps,
+              videoConstraints: finalConstraints,
+            },
+            nivel.nombre,
+            nivel.perfil,
+            nivel.decoderFps
+          );
+
+          if (lectorIniciadoConExito) break;
+
+          await esperar(200);
+          if (targetDeviceId) {
             targetDeviceId = undefined;
           }
+        }
+
+        // Si fallaron los niveles de escritorio, probar Nivel 2 y Nivel 3 sin restricciones
+        if (!lectorIniciadoConExito && !desmontadoRef.current && tokenSesion === sesionCamaraIdRef.current) {
+          try {
+            localStorage.removeItem("camara_qr_device_id");
+            guardarConfiguracionTerminal({ camaraSeleccionada: "" });
+            setCamaraQrSeleccionada("");
+          } catch {}
+
+          detenerTodosLosVideosDOM();
+          await esperar(300);
+
+          lectorIniciadoConExito = await intentarArranqueLector(
+            { facingMode: "user" },
+            { fps: 12 },
+            "Fallback PC Sin Restricciones",
+            "COMPATIBLE",
+            12
+          );
+        }
+
+        if (!lectorIniciadoConExito && !desmontadoRef.current && tokenSesion === sesionCamaraIdRef.current) {
+          detenerTodosLosVideosDOM();
+          await esperar(400);
+          try {
+            const listaHtml5 = await Html5Qrcode.getCameras();
+            const camFisica = listaHtml5?.find((c) => !esCamaraVirtual(c.label || "")) || listaHtml5?.[0];
+            if (camFisica?.id) {
+              lectorIniciadoConExito = await intentarArranqueLector(
+                camFisica.id,
+                { fps: 12 },
+                "Fallback PC Sensor Directo",
+                "COMPATIBLE",
+                12
+              );
+            }
+          } catch {}
         }
       }
 
@@ -1654,8 +1935,10 @@ export default function MarcarPage() {
   // 4. Control Manual: Apagar cámara
   async function apagarCamaraManual() {
     return encolarOperacionCamara("apagarCamaraManual", async () => {
-      await liberarRecursosCamara();
+      camaraManualApagadaRef.current = true;
       setCamaraManualApagada(true);
+      await liberarWakeLock();
+      await liberarRecursosCamara();
       setCamaraActiva(false);
       setMensaje("La cámara está desactivada");
       setEstadoVisual("normal");
@@ -1691,7 +1974,7 @@ export default function MarcarPage() {
     await activarCamaraPermanente(undefined, modo);
   }
 
-  // 7. Extracción de fotograma instantáneo desde el sensor mediante Canvas
+  // 7. Extracción de fotograma instantáneo desde el sensor mediante Canvas (Optimizado en RAM para móviles antiguos)
   async function capturarFotoDesdeVideoActual(): Promise<Blob | null> {
     try {
       const video = obtenerVideoElementActivo(scannerRef.current);
@@ -1716,9 +1999,11 @@ export default function MarcarPage() {
         return null;
       }
 
-      // 3. Crear canvas para captura nítida (máximo 720px de ancho conservando aspecto)
+      // 3. Crear canvas con ahorro de memoria RAM en celulares antiguos (480px @ 0.72 en móvil / 720px @ 0.80 en PC)
+      const esMovil = detectarDispositivoMovil() || configTerminal.tipoDispositivo === "TABLET_CELULAR";
       const canvas = document.createElement("canvas");
-      const anchoMax = 720;
+      const anchoMax = esMovil ? 480 : 720;
+      const calidadJpeg = esMovil ? 0.72 : 0.8;
       const escala = Math.min(1, anchoMax / video.videoWidth);
       const ancho = Math.round(video.videoWidth * escala);
       const alto = Math.round(video.videoHeight * escala);
@@ -1745,12 +2030,12 @@ export default function MarcarPage() {
         }
       } catch {}
 
-      // 5. Compresión JPEG con balance óptimo calidad/peso (calidad 0.80)
+      // 5. Compresión JPEG optimizada según dispositivo
       const blob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob((b) => resolve(b), "image/jpeg", 0.8);
+        canvas.toBlob((b) => resolve(b), "image/jpeg", calidadJpeg);
       });
 
-      // Liberar recursos de memoria del canvas
+      // Liberar recursos de memoria del canvas inmediatamente
       canvas.width = 0;
       canvas.height = 0;
 
@@ -2654,12 +2939,14 @@ export default function MarcarPage() {
                 }
               `}</style>
 
+              {/* Contenedor aislado del DOM para Html5Qrcode (React nunca muta #lector-qr ni sus hijos internos) */}
               <div
-                id="lector-qr"
-                className={`w-full h-full transition-opacity duration-300 ${
+                className={`absolute inset-0 w-full h-full overflow-hidden transition-opacity duration-300 ${
                   camaraActiva ? "opacity-100" : "opacity-0"
                 }`}
-              />
+              >
+                <div id="lector-qr" className="w-full h-full" />
+              </div>
 
               {/* Guía Holográfica Referencial V2 (Opcional, no restringe la lectura) */}
               {camaraActiva && !resultado && guiaVisual && (
