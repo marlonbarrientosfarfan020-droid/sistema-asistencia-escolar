@@ -35,6 +35,8 @@ export async function GET(request: Request) {
       sistemasControl,
       biometriasFaciales,
       rostrosFaciales,
+      salidasExcepcionales,
+      terminales,
       systemHealthLogs,
     ] = await Promise.all([
       prisma.estudiante.findMany({ orderBy: { id: "asc" } }),
@@ -65,6 +67,8 @@ export async function GET(request: Request) {
       prisma.sistemaControl.findMany({ orderBy: { id: "asc" } }),
       prisma.biometriaFacial.findMany({ orderBy: { id: "asc" } }),
       prisma.rostroFacial.findMany({ orderBy: { id: "asc" } }),
+      prisma.salidaExcepcional.findMany({ orderBy: { id: "asc" } }),
+      prisma.terminal.findMany({ orderBy: { id: "asc" } }),
       prisma.systemHealthLog.findMany({ orderBy: { id: "asc" } }),
     ]);
 
@@ -75,7 +79,7 @@ export async function GET(request: Request) {
         rol: acceso.sesion.rol,
       },
       sistema: "Sistema de Asistencia Escolar",
-      version: "1.1",
+      version: "1.2",
 
       // Tablas principales existentes
       estudiantes,
@@ -96,6 +100,11 @@ export async function GET(request: Request) {
       sistemaControl: sistemasControl,
       biometriaFacial: biometriasFaciales,
       rostroFacial: rostrosFaciales,
+      rostrosFaciales,
+      salidasExcepcionales,
+      salidaExcepcional: salidasExcepcionales,
+      terminales,
+      terminal: terminales,
       systemHealthLogs,
 
       // Nombres de modelos solicitados
@@ -104,6 +113,8 @@ export async function GET(request: Request) {
       SistemaControl: sistemasControl,
       BiometriaFacial: biometriasFaciales,
       RostroFacial: rostrosFaciales,
+      SalidaExcepcional: salidasExcepcionales,
+      Terminal: terminales,
       SystemHealthLog: systemHealthLogs,
     };
 

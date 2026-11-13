@@ -698,7 +698,7 @@ export default function MarcarPage() {
   const [pestanaSidebar, setPestanaSidebar] = useState<"dni" | "facial" | "historial">("dni");
   const [historialMarcas, setHistorialMarcas] = useState<MarcaReciente[]>([]);
 
-  // ?ltima lectura realizada en la terminal
+  // Última lectura realizada en la terminal
   const [ultimaLectura, setUltimaLectura] = useState<{
     estudiante: string;
     hora: string;
@@ -2132,9 +2132,20 @@ export default function MarcarPage() {
         new File([foto], `facial-${Date.now()}.jpg`, { type: "image/jpeg" })
       );
 
+      const terminalId = localStorage.getItem("terminal_id");
+      const terminalToken = localStorage.getItem("terminal_token");
+
       const respuesta = await fetch("/api/biometria/reconocer", {
         method: "POST",
         credentials: "include",
+        headers: {
+          ...(terminalId && terminalToken
+            ? {
+                "x-terminal-id": terminalId,
+                "x-terminal-token": terminalToken,
+              }
+            : {}),
+        },
         body: formData,
       });
 
@@ -2220,7 +2231,7 @@ export default function MarcarPage() {
     return (
       <main className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
         <div className="flex items-center gap-3 bg-slate-900 px-6 py-4 rounded-2xl border border-slate-800 shadow-2xl">
-          <span className="animate-spin text-xl">?</span>
+          <span className="animate-spin text-xl">⏳</span>
           <span className="font-bold text-sm">Verificando autorización de terminal...</span>
         </div>
       </main>
@@ -2234,17 +2245,18 @@ export default function MarcarPage() {
         <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-800">
           <div className="bg-slate-900 p-8 text-center border-b border-slate-800">
             <div className="w-20 h-20 mx-auto mb-4 bg-white rounded-2xl p-2 shadow-inner flex items-center justify-center">
-              <Image
+              <img
                 src={configuracion.logoUrl || "/img/logo-santa-rita.png"}
                 alt="Logo"
-                width={70}
-                height={70}
                 className="object-contain w-full h-full"
-                priority
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = "/img/logo-santa-rita.png";
+                }}
               />
             </div>
             <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-black uppercase tracking-widest border border-blue-400/40 mb-2">
-              <span>??</span> Terminal Protegido
+              <span>🔒</span> Terminal Protegido
             </div>
             <h1 className="text-xl font-black text-white">
               {configuracion.nombreColegio || "I.E. Santa Rita de Casia"}
@@ -2257,7 +2269,7 @@ export default function MarcarPage() {
           <form onSubmit={vincularTerminal} className="p-8 space-y-4">
             {errorTerminal && (
               <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-center gap-2">
-                <span>??</span> {errorTerminal}
+                <span>⚠️</span> {errorTerminal}
               </div>
             )}
 
@@ -2318,11 +2330,15 @@ export default function MarcarPage() {
         {/* Identidad y Colegio */}
         <div className="flex items-center gap-3 shrink-0">
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow">
-            {configuracion.logoUrl ? (
-              <img src={configuracion.logoUrl} alt="Logo" className="w-full h-full object-contain" />
-            ) : (
-              <Image src="/img/logo-santa-rita.png" alt="Logo" width={40} height={40} className="object-contain" />
-            )}
+            <img
+              src={configuracion.logoUrl || "/img/logo-santa-rita.png"}
+              alt="Logo"
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "/img/logo-santa-rita.png";
+              }}
+            />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -2594,7 +2610,7 @@ export default function MarcarPage() {
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/50 text-xs font-bold transition active:scale-95"
                     title="Calibrar resolución y enfoque"
                   >
-                    <span>??</span>
+                    <span>🎯</span>
                     <span>{mejorandoEnfoque ? "Calibrando..." : "Enfoque"}</span>
                   </button>
                 )}

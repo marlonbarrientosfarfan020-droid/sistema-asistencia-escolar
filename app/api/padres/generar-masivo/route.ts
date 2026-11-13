@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    // Buscar estudiantes activos sin c�digo familiar
+    // Buscar estudiantes activos sin código familiar
     const estudiantesSinCodigo = await prisma.estudiante.findMany({
       where: {
         estado: true,
@@ -38,23 +38,23 @@ export async function POST(request: Request) {
     if (estudiantesSinCodigo.length === 0) {
       return NextResponse.json({
         ok: true,
-        message: "No hay estudiantes pendientes de asignaci�n de c�digo familiar",
+        message: "No hay estudiantes pendientes de asignación de código familiar",
         familiasCreadas: 0,
         alumnasVinculadas: 0,
       });
     }
 
     // REGLA INSTITUCIONAL DE SEGURIDAD Y PRIVACIDAD ESTRICTA:
-    // NUNCA agrupar autom�ticamente a estudiantes por tel�fono gen�rico o nombres compartidos.
-    // Cada estudiante recibe su propio c�digo familiar �nico e individual.
-    // La vinculaci�n de hermanas debe ser confirmada expl�citamente por el personal del colegio.
+    // NUNCA agrupar automáticamente a estudiantes por teléfono genérico o nombres compartidos.
+    // Cada estudiante recibe su propio código familiar único e individual.
+    // La vinculación de hermanas debe ser confirmada explícitamente por el personal del colegio.
     const grupos = estudiantesSinCodigo.map((est) => ({
       tutor: est.nombreTutor || `Familia de ${est.nombres} ${est.apellidos}`,
       telefono: est.whatsapp || "",
       estudianteIds: [est.id],
     }));
 
-    // Obtener c�digos existentes para evitar colisiones
+    // Obtener códigos existentes para evitar colisiones
     const codigosExistentes = new Set(
       (await prisma.codigoFamiliar.findMany({ select: { codigo: true } })).map((c) => c.codigo)
     );
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     let familiasCreadasCount = 0;
     let alumnasVinculadasCount = 0;
 
-    // Procesar en lotes dentro de una transacci�n
+    // Procesar en lotes dentro de una transacción
     await prisma.$transaction(async (tx) => {
       for (const grupo of grupos) {
         let nuevoCodigo = "";
@@ -103,19 +103,19 @@ export async function POST(request: Request) {
       rol: acceso.sesion.rol,
       accion: "GENERACION_MASIVA_CODIGOS_FAMILIARES",
       modulo: "PADRES",
-      detalle: `Generaci�n masiva individualizada completada: ${familiasCreadasCount} c�digos creados para ${alumnasVinculadasCount} alumnas`,
+      detalle: `Generación masiva individualizada completada: ${familiasCreadasCount} códigos creados para ${alumnasVinculadasCount} alumnas`,
     });
 
     return NextResponse.json({
       ok: true,
-      message: `Generaci�n masiva individualizada completada: ${familiasCreadasCount} familias creadas y ${alumnasVinculadasCount} alumnas vinculadas`,
+      message: `Generación masiva individualizada completada: ${familiasCreadasCount} familias creadas y ${alumnasVinculadasCount} alumnas vinculadas`,
       familiasCreadas: familiasCreadasCount,
       alumnasVinculadas: alumnasVinculadasCount,
     });
   } catch (error) {
-    console.error("Error en generaci�n masiva de c�digos familiares:", error);
+    console.error("Error en generación masiva de códigos familiares:", error);
     return NextResponse.json(
-      { ok: false, message: "Error interno al ejecutar la generaci�n masiva" },
+      { ok: false, message: "Error interno al ejecutar la generación masiva" },
       { status: 500 }
     );
   }

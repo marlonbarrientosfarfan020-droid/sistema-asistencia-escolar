@@ -1,8 +1,26 @@
 import { NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const LOGO_POR_DEFECTO = "/img/logo-santa-rita.png";
+
+function resolverLogoInstitucional(logoUrl?: string | null): string {
+  const limpio = String(logoUrl || "").trim();
+  if (!limpio) return LOGO_POR_DEFECTO;
+
+  if (limpio.startsWith("/")) {
+    const rutaFisica = path.join(process.cwd(), "public", limpio.replace(/^\/+/, ""));
+    if (!fs.existsSync(rutaFisica)) {
+      return LOGO_POR_DEFECTO;
+    }
+  }
+
+  return limpio;
+}
 
 export async function GET() {
   try {
@@ -19,6 +37,7 @@ export async function GET() {
           data: {
             nombreColegio:
               "Santa Rita de Casia",
+            logoUrl: LOGO_POR_DEFECTO,
           },
         });
     }
@@ -27,8 +46,7 @@ export async function GET() {
       {
         nombreColegio:
           configuracion.nombreColegio,
-        logoUrl:
-          configuracion.logoUrl || "",
+        logoUrl: resolverLogoInstitucional(configuracion.logoUrl),
         direccion:
           configuracion.direccion || "",
         telefono:

@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/portal-padres/foto?asistenciaId=123&tipo=ENTRADA
- * Endpoint proxy seguro para entrega autorizada de evidencias fotogr�ficas.
- * Valida la identidad y relaci�n familiar en PostgreSQL antes de servir la imagen.
+ * Endpoint proxy seguro para entrega autorizada de evidencias fotográficas.
+ * Valida la identidad y relación familiar en PostgreSQL antes de servir la imagen.
  */
 export async function GET(request: Request) {
   const sesionPersonal = await obtenerSesion(request);
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     const asistenciaId = Number(asistenciaIdRaw);
     if (!asistenciaId || !Number.isInteger(asistenciaId) || asistenciaId <= 0) {
       return NextResponse.json(
-        { ok: false, message: "Par�metro asistenciaId inv�lido" },
+        { ok: false, message: "Parámetro asistenciaId inválido" },
         { status: 400 }
       );
     }
@@ -65,7 +65,7 @@ export async function GET(request: Request) {
       );
     }
 
-        // 2. VALIDACIÓN ESTRICTA EN POSTGRESQL
+    // 2. VALIDACIÓN ESTRICTA EN POSTGRESQL
     if (sesionPersonal) {
       // Personal / Admin: debe pertenecer a la misma institución o ser SUPER_ADMIN
       const colegioPersonal = sesionPersonal.colegioId || "SANTA_RITA_001";
@@ -140,12 +140,12 @@ export async function GET(request: Request) {
 
     if (!urlFoto) {
       return NextResponse.json(
-        { ok: false, message: "No existe evidencia fotogr�fica registrada para esta marcaci�n" },
+        { ok: false, message: "No existe evidencia fotográfica registrada para esta marcación" },
         { status: 404 }
       );
     }
 
-    // 5. Servir la imagen mediante proxy seguro sin exponer la URL p�blica en el cliente
+    // 5. Servir la imagen mediante proxy seguro sin exponer la URL pública en el cliente
     try {
       const imgRes = await fetch(urlFoto, { cache: "no-store" });
       if (!imgRes.ok) {
@@ -169,14 +169,14 @@ export async function GET(request: Request) {
     } catch (fetchErr) {
       console.error("[FOTO PROXY] Error al recuperar imagen externa:", fetchErr);
       return NextResponse.json(
-        { ok: false, message: "Error al recuperar la fotograf�a de evidencia" },
+        { ok: false, message: "Error al recuperar la fotografía de evidencia" },
         { status: 500 }
       );
     }
   } catch (error) {
     console.error("Error en proxy de foto segura:", error);
     return NextResponse.json(
-      { ok: false, message: "Error interno al procesar solicitud de fotograf�a" },
+      { ok: false, message: "Error interno al procesar solicitud de fotografía" },
       { status: 500 }
     );
   }

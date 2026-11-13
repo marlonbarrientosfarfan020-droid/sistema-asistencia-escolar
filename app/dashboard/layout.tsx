@@ -247,23 +247,16 @@ export default function DashboardLayout({
     return (
       <div className="flex min-h-full flex-col">
         <div className="text-center">
-          {configuracion.logoUrl ? (
-            <img
-              src={configuracion.logoUrl}
-              key={configuracion.logoUrl}
-              alt={`Logo de ${configuracion.nombreColegio}`}
-              className="mx-auto h-[78px] w-[78px] rounded-2xl bg-white object-contain p-2 shadow-lg"
-            />
-          ) : (
-            <Image
-              src="/img/logo-santa-rita.png"
-              alt="Logo institucional"
-              width={78}
-              height={78}
-              className="mx-auto rounded-2xl bg-white p-2 shadow-lg"
-              priority
-            />
-          )}
+          <img
+            src={configuracion.logoUrl || "/img/logo-santa-rita.png"}
+            key={configuracion.logoUrl || "/img/logo-santa-rita.png"}
+            alt={`Logo de ${configuracion.nombreColegio}`}
+            className="mx-auto h-[78px] w-[78px] rounded-2xl bg-white object-contain p-2 shadow-lg"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = "/img/logo-santa-rita.png";
+            }}
+          />
 
           <h1 className="mt-4 text-lg font-black leading-tight">
             {configuracion.nombreColegio}
@@ -299,7 +292,12 @@ export default function DashboardLayout({
               href: mod.ruta,
               icono: mod.icono,
               texto: mod.nombre,
-              visible: esAdmin || modulosPermitidos.includes(mod.id),
+              visible:
+                esAdmin ||
+                modulosPermitidos.includes(mod.id) ||
+                (mod.id === "ranking_vivo" &&
+                  (modulosPermitidos.includes("dashboard") ||
+                    modulosPermitidos.includes("asistencias"))),
             }));
 
             return (
@@ -432,21 +430,15 @@ export default function DashboardLayout({
           </button>
 
           <div className="flex min-w-0 items-center gap-2">
-            {configuracion.logoUrl ? (
-              <img
-                src={configuracion.logoUrl}
-                alt="Logo institucional"
-                className="h-10 w-10 shrink-0 rounded-xl bg-white object-contain p-1 shadow"
-              />
-            ) : (
-              <Image
-                src="/img/logo-santa-rita.png"
-                alt="Logo institucional"
-                width={40}
-                height={40}
-                className="shrink-0 rounded-xl bg-white p-1 shadow"
-              />
-            )}
+            <img
+              src={configuracion.logoUrl || "/img/logo-santa-rita.png"}
+              alt="Logo institucional"
+              className="h-10 w-10 shrink-0 rounded-xl bg-white object-contain p-1 shadow"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "/img/logo-santa-rita.png";
+              }}
+            />
 
             <div className="min-w-0 text-right">
               <p className="truncate text-sm font-black text-slate-900">

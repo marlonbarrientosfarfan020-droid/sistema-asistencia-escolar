@@ -130,27 +130,32 @@ export async function ejecutarCierreJornadasVencidas(
     });
 
     let sinSalidaCount = 0;
-    for (const asist of sinSalidaPendientes) {
-      await prisma.asistencia.update({
-        where: { id: asist.id },
+    if (sinSalidaPendientes.length > 0) {
+      const resultadoSinSalida = await prisma.asistencia.updateMany({
+        where: {
+          id: { in: sinSalidaPendientes.map((a) => a.id) },
+        },
         data: {
           estadoJornada: "SIN_SALIDA",
+          estadoSalida: "SIN_SALIDA",
           // Estricto: horaSalida permanece null, fotoSalida permanece null
         },
       });
 
-      sinSalidaCount++;
+      sinSalidaCount = resultadoSinSalida.count;
 
-      // Notificar en bus de eventos para actualización reactiva en vivo
-      try {
-        emitEvent("ASISTENCIA_REGISTRADA", {
-          asistenciaId: asist.id,
-          estudianteId: asist.estudianteId,
-          estadoJornada: "SIN_SALIDA",
-          colegioId,
-        });
-      } catch (errEvent) {
-        console.warn("[CIERRE JORNADA] Error emitiendo evento reactivo:", errEvent);
+      for (const asist of sinSalidaPendientes) {
+        // Notificar en bus de eventos para actualización reactiva en vivo
+        try {
+          emitEvent("ASISTENCIA_REGISTRADA", {
+            asistenciaId: asist.id,
+            estudianteId: asist.estudianteId,
+            estadoJornada: "SIN_SALIDA",
+            colegioId,
+          });
+        } catch (errEvent) {
+          console.warn("[CIERRE JORNADA] Error emitiendo evento reactivo:", errEvent);
+        }
       }
     }
 

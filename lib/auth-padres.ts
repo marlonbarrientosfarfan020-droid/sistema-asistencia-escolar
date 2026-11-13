@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export const COOKIE_PADRE_NAME = "sesion_padre_santa_rita";
-export const VERSION_SESION_ACTUAL = 2; // Invalida cualquier sesi�n previa a la correcci�n
+export const VERSION_SESION_ACTUAL = 2; // Invalida cualquier sesión previa a la corrección
 
 export type SesionPadre = {
   codigoFamiliarId: number;
@@ -55,7 +55,7 @@ export async function guardarSesionPadre(sesion: SesionPadre): Promise<void> {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 7 d�as
+    maxAge: 60 * 60 * 24 * 7, // 7 días
   });
 }
 
@@ -82,7 +82,7 @@ export async function obtenerSesionPadre(request?: Request): Promise<SesionPadre
         const cookieStore = await cookies();
         token = cookieStore.get(COOKIE_PADRE_NAME)?.value;
       } catch {
-        // En entornos fuera del contexto de petici�n nativo de Next.js
+        // En entornos fuera del contexto de petición nativo de Next.js
       }
     }
 
@@ -90,13 +90,13 @@ export async function obtenerSesionPadre(request?: Request): Promise<SesionPadre
 
     const { payload } = await jwtVerify(token, obtenerClaveSecreta());
 
-    // REGLA DE SEGURIDAD ESTRICTA: Invalidar cualquier sesi�n anterior que no tenga versionSesion === 2
-    // o que carezca de estudianteAutorizadoId v�lido
+    // REGLA DE SEGURIDAD ESTRICTA: Invalidar cualquier sesión anterior que no tenga versionSesion === 2
+    // o que carezca de estudianteAutorizadoId válido
     const versionSesion = Number(payload.versionSesion || 0);
     const estudianteAutorizadoId = Number(payload.estudianteAutorizadoId || 0);
 
     if (versionSesion < VERSION_SESION_ACTUAL || !estudianteAutorizadoId) {
-      return null; // Sesi�n previa revocada por seguridad
+      return null; // Sesión previa revocada por seguridad
     }
 
     const codigoFamiliarId = Number(payload.codigoFamiliarId);
@@ -143,7 +143,7 @@ export async function exigirSesionPadre(request?: Request) {
       respuesta: NextResponse.json(
         {
           ok: false,
-          message: "Sesi�n familiar expirada, desactualizada o revocada por seguridad. Inicie sesi�n nuevamente.",
+          message: "Sesión familiar expirada, desactualizada o revocada por seguridad. Inicie sesión nuevamente.",
         },
         { status: 401 }
       ),

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import * as XLSX from "xlsx";
@@ -55,6 +55,40 @@ function formatoHora(fecha: string | null) {
     minute: "2-digit",
     timeZone: "America/Lima",
   });
+}
+
+function formatoFechaDDMMYYYY(fechaIso: string | null, fechaFallback?: string): string {
+  if (fechaIso) {
+    try {
+      const d = new Date(fechaIso);
+      if (!Number.isNaN(d.getTime())) {
+        const partes = new Intl.DateTimeFormat("es-PE", {
+          timeZone: "America/Lima",
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }).formatToParts(d);
+        const dia = partes.find((p) => p.type === "day")?.value || "01";
+        const mes = partes.find((p) => p.type === "month")?.value || "01";
+        const anio = partes.find((p) => p.type === "year")?.value || "2026";
+        return `${dia}/${mes}/${anio}`;
+      }
+    } catch {
+      // Continuar con el fallback
+    }
+  }
+
+  if (fechaFallback && /^\d{4}-\d{2}-\d{2}$/.test(fechaFallback)) {
+    const [anio, mes, dia] = fechaFallback.split("-");
+    return `${dia}/${mes}/${anio}`;
+  }
+
+  return fechaFallback || "-";
+}
+
+function formatearEstadoLimpio(valor?: string | null, porDefecto = ""): string {
+  const texto = (valor || porDefecto).trim();
+  return texto.replace(/_/g, " ");
 }
 
 export default function AsistenciasPage() {
@@ -190,9 +224,18 @@ export default function AsistenciasPage() {
     if (!res.ok) throw new Error("Error obteniendo datos para exportar");
     const data = await res.json();
 
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data.asistencias)) return data.asistencias;
-    return [];
+    const lista: Asistencia[] = Array.isArray(data)
+      ? data
+      : Array.isArray(data.asistencias)
+        ? data.asistencias
+        : [];
+
+    // Ordenar de forma ASCENDENTE por fecha y hora de entrada (del primer al último ingreso)
+    return [...lista].sort((a, b) => {
+      const tiempoA = new Date(a.horaEntrada || a.fecha).getTime();
+      const tiempoB = new Date(b.horaEntrada || b.fecha).getTime();
+      return tiempoA - tiempoB;
+    });
   }
 
   async function exportarExcel() {
@@ -205,28 +248,49 @@ export default function AsistenciasPage() {
         return;
       }
 
-      const datos = datosCompletos.map((asistencia) => ({
-        Estudiante: `${asistencia.estudiante.nombres} ${asistencia.estudiante.apellidos}`,
-        DNI: asistencia.estudiante.dni,
-        Grado: `${asistencia.estudiante.grado} - ${asistencia.estudiante.seccion}`,
-        Turno: asistencia.estudiante.turno?.nombre || "Sin turno",
-        "Hora Entrada": formatoHora(asistencia.horaEntrada),
-        "Estado Entrada": asistencia.estado,
-        "Hora Salida": formatoHora(asistencia.horaSalida),
-        "Estado Salida":
+      const datos = datosCompletos.map((asistencia) => {
+        const estadoSalidaRaw =
           asistencia.estadoSalida ||
           (asistencia.horaSalida
             ? "REGISTRADA"
             : asistencia.estadoJornada === "SIN_SALIDA"
               ? "SIN_SALIDA"
-              : "PENDIENTE"),
-        "Estado Jornada":
+              : "PENDIENTE");
+
+        const estadoJornadaRaw =
           asistencia.estadoJornada ||
-          (asistencia.horaSalida ? "CERRADA" : "ABIERTA"),
-        Método: asistencia.metodo,
-      }));
+          (asistencia.horaSalida ? "CERRADA" : "ABIERTA");
+
+        return {
+          Estudiante: `${asistencia.estudiante.nombres} ${asistencia.estudiante.apellidos}`.trim(),
+          DNI: asistencia.estudiante.dni,
+          Grado: `${asistencia.estudiante.grado} - ${asistencia.estudiante.seccion}`,
+          Turno: asistencia.estudiante.turno?.nombre || "Sin turno",
+          "Hora Entrada": formatoHora(asistencia.horaEntrada),
+          "Estado Entrada": formatearEstadoLimpio(asistencia.estado),
+          "Hora Salida": formatoHora(asistencia.horaSalida),
+          "Estado Salida": formatearEstadoLimpio(estadoSalidaRaw),
+          "Estado Jornada": formatearEstadoLimpio(estadoJornadaRaw),
+          Método: asistencia.metodo,
+          Fecha: formatoFechaDDMMYYYY(asistencia.horaEntrada || asistencia.fecha, fecha),
+        };
+      });
 
       const hoja = XLSX.utils.json_to_sheet(datos);
+      hoja["!cols"] = [
+        { wch: 36 }, // Estudiante
+        { wch: 13 }, // DNI
+        { wch: 14 }, // Grado
+        { wch: 14 }, // Turno
+        { wch: 16 }, // Hora Entrada
+        { wch: 18 }, // Estado Entrada
+        { wch: 16 }, // Hora Salida
+        { wch: 22 }, // Estado Salida
+        { wch: 18 }, // Estado Jornada
+        { wch: 14 }, // Método
+        { wch: 14 }, // Fecha
+      ];
+
       const libro = XLSX.utils.book_new();
 
       XLSX.utils.book_append_sheet(libro, hoja, "Asistencias");
@@ -276,7 +340,7 @@ export default function AsistenciasPage() {
 
       doc.setFontSize(9.5);
       doc.setFont("helvetica", "normal");
-      doc.text(`Fecha: ${fecha}`, 14, 43);
+      doc.text(`Fecha: ${formatoFechaDDMMYYYY(null, fecha)}`, 14, 43);
       doc.text(`Turno: ${turnoFiltro}`, 14, 49);
 
       let lineaExtra = 49;
@@ -319,14 +383,16 @@ export default function AsistenciasPage() {
           `${asistencia.estudiante.grado} - ${asistencia.estudiante.seccion}`,
           asistencia.estudiante.turno?.nombre || "Sin turno",
           formatoHora(asistencia.horaEntrada),
-          asistencia.estado,
+          formatearEstadoLimpio(asistencia.estado),
           formatoHora(asistencia.horaSalida),
-          asistencia.estadoSalida ||
-            (asistencia.horaSalida
-              ? "REGISTRADA"
-              : asistencia.estadoJornada === "SIN_SALIDA"
-                ? "SIN_SALIDA"
-                : "PENDIENTE"),
+          formatearEstadoLimpio(
+            asistencia.estadoSalida ||
+              (asistencia.horaSalida
+                ? "REGISTRADA"
+                : asistencia.estadoJornada === "SIN_SALIDA"
+                  ? "SIN_SALIDA"
+                  : "PENDIENTE")
+          ),
           asistencia.metodo,
         ]),
         styles: {
@@ -641,12 +707,14 @@ export default function AsistenciasPage() {
                               : "bg-slate-100 text-slate-600 border border-slate-200"
                         }`}
                       >
-                        {asistencia.estadoSalida ||
-                          (salidaRegistrada
-                            ? "REGISTRADA"
-                            : asistencia.estadoJornada === "SIN_SALIDA"
-                              ? "SIN SALIDA"
-                              : "PENDIENTE")}
+                        {formatearEstadoLimpio(
+                          asistencia.estadoSalida ||
+                            (salidaRegistrada
+                              ? "REGISTRADA"
+                              : asistencia.estadoJornada === "SIN_SALIDA"
+                                ? "SIN SALIDA"
+                                : "PENDIENTE")
+                        )}
                       </span>
                     </td>
 

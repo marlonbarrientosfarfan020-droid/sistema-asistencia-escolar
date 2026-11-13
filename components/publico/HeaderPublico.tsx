@@ -22,13 +22,14 @@ export function HeaderPublico({
           {/* Logo e Identidad Institucional */}
           <Link href="/" className="flex items-center gap-2.5 sm:gap-3.5 group min-w-0 pr-2">
             <div className="relative w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white p-1 shadow-md ring-2 ring-amber-400/40 group-hover:ring-amber-400 transition shrink-0">
-              <Image
-                src={logoUrl}
+              <img
+                src={logoUrl || "/img/logo-santa-rita.png"}
                 alt="Escudo Santa Rita de Cassia"
-                width={48}
-                height={48}
                 className="object-contain w-full h-full"
-                priority
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = "/img/logo-santa-rita.png";
+                }}
               />
             </div>
             <div className="min-w-0 truncate">

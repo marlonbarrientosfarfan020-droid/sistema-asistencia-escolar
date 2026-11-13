@@ -263,22 +263,15 @@ setTransicionLogin({
       className="relative z-10 mx-auto w-full max-w-md rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-2xl backdrop-blur-xl sm:p-8"
       >
         <div className="text-center mb-6">
-          {configuracion.logoUrl ? (
-  <img
-    src={configuracion.logoUrl}
-    alt={`Logo de ${configuracion.nombreColegio}`}
-    className="mx-auto mb-4 h-[105px] w-[105px] rounded-2xl bg-white object-contain p-2 shadow"
-  />
-) : (
-  <Image
-    src="/img/logo-santa-rita.png"
-    alt="Logo institucional"
-    width={105}
-    height={105}
-    className="mx-auto mb-4 rounded-2xl bg-white p-2 shadow"
-    priority
-  />
-)}
+          <img
+            src={configuracion.logoUrl || "/img/logo-santa-rita.png"}
+            alt={`Logo de ${configuracion.nombreColegio}`}
+            className="mx-auto mb-4 h-[105px] w-[105px] rounded-2xl bg-white object-contain p-2 shadow"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = "/img/logo-santa-rita.png";
+            }}
+          />
 
           <h1 className="text-2xl font-extrabold leading-tight text-slate-900 sm:text-3xl">
             Sistema Inteligente de Asistencia Escolar

@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { enviarTelegram } from "@/lib/telegram";
+import { obtenerVentanaTurno } from "@/lib/timezone";
 
 import {
   ahoraPeru,
   fechaCalendarioBD,
-  fechaHoraTurno,
   fechaPeru,
   limitesDiaPeru,
   sumarMinutos,
@@ -48,67 +48,6 @@ async function obtenerConfiguracion() {
   return configuracion;
 }
 
-async function obtenerEventoNoLectivo(
-  turnoId: number | null
-) {
-  const fechaHoyBD = fechaCalendarioBD();
-
-  return prisma.calendarioEscolar.findFirst({
-    where: {
-      estado: true,
-
-      fechaInicio: {
-        lte: fechaHoyBD,
-      },
-
-      fechaFin: {
-        gte: fechaHoyBD,
-      },
-
-      OR: [
-        {
-          todosLosTurnos: true,
-        },
-        {
-          todosLosTurnos: false,
-          turnoId,
-        },
-      ],
-    },
-
-    select: {
-      id: true,
-      descripcion: true,
-      todosLosTurnos: true,
-      turnoId: true,
-    },
-  });
-}
-
-async function alertaYaRegistrada(
-  estudianteId: number,
-  fecha: string,
-  tipos: string[]
-) {
-  const alerta =
-    await prisma.alertaAsistencia.findFirst({
-      where: {
-        estudianteId,
-        fecha,
-
-        tipo: {
-          in: tipos,
-        },
-      },
-
-      select: {
-        id: true,
-      },
-    });
-
-  return Boolean(alerta);
-}
-
 async function enviarYGuardarAlerta({
   estudianteId,
   chatId,
@@ -116,6 +55,7 @@ async function enviarYGuardarAlerta({
   tipo,
   mensaje,
   tiposEquivalentes = [],
+  alertasRegistradasSet,
 }: {
   estudianteId: number;
   chatId: string;
@@ -123,13 +63,19 @@ async function enviarYGuardarAlerta({
   tipo: TipoAlerta;
   mensaje: string;
   tiposEquivalentes?: string[];
+  alertasRegistradasSet: Set<string>;
 }) {
-  const registrada =
-    await alertaYaRegistrada(
-      estudianteId,
-      fecha,
-      [tipo, ...tiposEquivalentes]
-    );
+  const tiposABuscar = [
+    tipo,
+    ...tiposEquivalentes,
+  ];
+
+  const registrada = tiposABuscar.some(
+    (t) =>
+      alertasRegistradasSet.has(
+        `${estudianteId}:${t}`
+      )
+  );
 
   if (registrada) {
     return {
@@ -157,6 +103,10 @@ async function enviarYGuardarAlerta({
       tipo,
     },
   });
+
+  alertasRegistradasSet.add(
+    `${estudianteId}:${tipo}`
+  );
 
   return {
     enviada: true,
@@ -233,14 +183,19 @@ export async function procesarAlertasAsistencia() {
 
   const hoy = fechaPeru();
   const ahora = ahoraPeru();
+  const fechaHoyBD = fechaCalendarioBD();
 
   const {
     inicioDia,
     finDia,
   } = limitesDiaPeru();
 
-  const estudiantes =
-    await prisma.estudiante.findMany({
+  const [
+    estudiantes,
+    eventosNoLectivosHoy,
+    alertasHoy,
+  ] = await Promise.all([
+    prisma.estudiante.findMany({
       where: {
         estado: true,
       },
@@ -250,10 +205,16 @@ export async function procesarAlertasAsistencia() {
 
         asistencias: {
           where: {
-            fecha: {
-              gte: inicioDia,
-              lte: finDia,
-            },
+            OR: [
+              { fechaDia: hoy },
+              {
+                fechaDia: "",
+                fecha: {
+                  gte: inicioDia,
+                  lte: finDia,
+                },
+              },
+            ],
           },
 
           select: {
@@ -274,7 +235,40 @@ export async function procesarAlertasAsistencia() {
           nombres: "asc",
         },
       ],
-    });
+    }),
+    prisma.calendarioEscolar.findMany({
+      where: {
+        estado: true,
+        fechaInicio: {
+          lte: fechaHoyBD,
+        },
+        fechaFin: {
+          gte: fechaHoyBD,
+        },
+      },
+      select: {
+        id: true,
+        descripcion: true,
+        todosLosTurnos: true,
+        turnoId: true,
+      },
+    }),
+    prisma.alertaAsistencia.findMany({
+      where: {
+        fecha: hoy,
+      },
+      select: {
+        estudianteId: true,
+        tipo: true,
+      },
+    }),
+  ]);
+
+  const alertasRegistradasSet = new Set(
+    alertasHoy.map(
+      (a) => `${a.estudianteId}:${a.tipo}`
+    )
+  );
 
   let alertasInicialesEnviadas = 0;
   let alertasTardanzaEnviadas = 0;
@@ -322,11 +316,15 @@ export async function procesarAlertasAsistencia() {
     }
 
     /*
-     * DÍA NO LECTIVO
+     * DÍA NO LECTIVO (precargado en memoria)
      */
     const eventoNoLectivo =
-      await obtenerEventoNoLectivo(
-        estudiante.turnoId
+      eventosNoLectivosHoy.find(
+        (evento) =>
+          evento.todosLosTurnos ||
+          (!evento.todosLosTurnos &&
+            evento.turnoId ===
+              estudiante.turnoId)
       );
 
     if (eventoNoLectivo) {
@@ -414,17 +412,29 @@ export async function procesarAlertasAsistencia() {
     }
 
     /*
-     * HORARIOS DEL TURNO
+     * HORARIOS DEL TURNO (respetando los 3 turnos y cruce de medianoche)
      */
+    const ventanaTurno =
+      obtenerVentanaTurno({
+        horaEntrada: turno.horaEntrada,
+        horaSalida: turno.horaSalida,
+        margenEntradaAnticipadaMinutos:
+          turno.margenEntradaAnticipadaMinutos ??
+          60,
+        margenSalidaAnticipadaMinutos:
+          turno.margenSalidaAnticipadaMinutos ??
+          0,
+        margenSalidaMinutos:
+          turno.margenSalidaMinutos ??
+          60,
+        ahora,
+      });
+
     const horaEntrada =
-      fechaHoraTurno(
-        turno.horaEntrada
-      );
+      ventanaTurno.horaEntrada;
 
     const horaSalida =
-      fechaHoraTurno(
-        turno.horaSalida
-      );
+      ventanaTurno.horaSalida;
 
     /*
      * ALERTA 1:
@@ -564,6 +574,7 @@ export async function procesarAlertasAsistencia() {
         tipo,
         mensaje,
         tiposEquivalentes,
+        alertasRegistradasSet,
       });
 
     if (

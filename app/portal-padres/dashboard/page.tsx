@@ -225,12 +225,14 @@ export default function PortalPadresDashboardPage() {
             <div className="flex items-center gap-3.5">
               <Link href="/" className="shrink-0 group">
                 <div className="w-12 h-12 rounded-2xl bg-white p-1 shadow-md ring-2 ring-amber-400/30 group-hover:ring-amber-400 transition">
-                  <Image
+                  <img
                     src={datos.infoColegio.logoUrl || "/img/logo-santa-rita.png"}
                     alt="Escudo Santa Rita"
-                    width={48}
-                    height={48}
                     className="object-contain w-full h-full"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = "/img/logo-santa-rita.png";
+                    }}
                   />
                 </div>
               </Link>

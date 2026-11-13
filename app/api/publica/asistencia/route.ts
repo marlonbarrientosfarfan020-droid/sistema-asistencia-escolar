@@ -402,62 +402,76 @@ export async function GET(request: Request) {
 
     const capacidadBase = totalOperativas > 0 ? totalOperativas : totalMatriculadas;
 
-    const evolucionSemanal = await Promise.all(
-      semanasFechas.map(async ({ num, diasAtrasInicio, diasAtrasFin }) => {
-        const fechaDesde = new Date(baseDate);
-        fechaDesde.setDate(fechaDesde.getDate() - diasAtrasInicio);
-        fechaDesde.setHours(0, 0, 0, 0);
+    const rangosSemanas = semanasFechas.map(({ num, diasAtrasInicio, diasAtrasFin }) => {
+      const fechaDesde = new Date(baseDate);
+      fechaDesde.setDate(fechaDesde.getDate() - diasAtrasInicio);
+      fechaDesde.setHours(0, 0, 0, 0);
 
-        const fechaHasta = new Date(baseDate);
-        fechaHasta.setDate(fechaHasta.getDate() - diasAtrasFin);
-        fechaHasta.setHours(23, 59, 59, 999);
+      const fechaHasta = new Date(baseDate);
+      fechaHasta.setDate(fechaHasta.getDate() - diasAtrasFin);
+      fechaHasta.setHours(23, 59, 59, 999);
 
-        const asistenciasSemana = await prisma.asistencia
-          .findMany({
-            where: {
-              colegioId,
-              fecha: {
-                gte: fechaDesde,
-                lte: fechaHasta,
-              },
-            },
-            select: {
-              estado: true,
-              estudianteId: true,
-            },
-          })
-          .catch(() => []);
+      return { num, fechaDesde, fechaHasta };
+    });
 
-        const totalMarcadas = asistenciasSemana.length;
-        if (totalMarcadas === 0 || capacidadBase === 0) {
-          return {
-            semana: `Semana ${num}`,
-            asistencia: 0,
-            puntualidad: 0,
-          };
-        }
+    const inicio28Dias = rangosSemanas[0].fechaDesde;
+    const fin28Dias = rangosSemanas[rangosSemanas.length - 1].fechaHasta;
 
-        const puntualesSem = asistenciasSemana.filter(
-          (a) => (a.estado || "").toUpperCase() === "PUNTUAL"
-        ).length;
+    const asistencias28Dias = await prisma.asistencia
+      .findMany({
+        where: {
+          colegioId,
+          fecha: {
+            gte: inicio28Dias,
+            lte: fin28Dias,
+          },
+        },
+        select: {
+          fecha: true,
+          estado: true,
+          estudianteId: true,
+        },
+      })
+      .catch(() => []);
 
-        const capacidadSemanal = capacidadBase * 5;
-        const pctAsist = Math.min(
-          100,
-          Math.round((totalMarcadas / capacidadSemanal) * 100)
-        );
-        const pctPunt = Math.min(
-          100,
-          Math.round((puntualesSem / totalMarcadas) * 100)
-        );
+    const evolucionSemanal = rangosSemanas.map(({ num, fechaDesde, fechaHasta }) => {
+      const desdeMs = fechaDesde.getTime();
+      const hastaMs = fechaHasta.getTime();
 
+      const asistenciasSemana = asistencias28Dias.filter((a) => {
+        const t = new Date(a.fecha).getTime();
+        return t >= desdeMs && t <= hastaMs;
+      });
+
+      const totalMarcadas = asistenciasSemana.length;
+      if (totalMarcadas === 0 || capacidadBase === 0) {
         return {
           semana: `Semana ${num}`,
-          asistencia: pctAsist,
-          puntualidad: pctPunt,
+          asistencia: 0,
+          puntualidad: 0,
         };
-      })
-    );
+      }
+
+      const puntualesSem = asistenciasSemana.filter(
+        (a) => (a.estado || "").toUpperCase() === "PUNTUAL"
+      ).length;
+
+      const capacidadSemanal = capacidadBase * 5;
+      const pctAsist = Math.min(
+        100,
+        Math.round((totalMarcadas / capacidadSemanal) * 100)
+      );
+      const pctPunt = Math.min(
+        100,
+        Math.round((puntualesSem / totalMarcadas) * 100)
+      );
+
+      return {
+        semana: `Semana ${num}`,
+        asistencia: pctAsist,
+        puntualidad: pctPunt,
+      };
+    });
 
     // 11. Distribución por Grado Real
     const barrasPorGrado = Array.from(mapaGrados.entries())

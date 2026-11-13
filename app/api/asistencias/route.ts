@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { enviarWhatsApp } from "@/services/whatsapp";
@@ -340,13 +340,14 @@ export async function GET(request: Request) {
         return a.seccion.localeCompare(b.seccion, "es");
       });
 
-    // Caso exportación completa sin paginar
+    // Caso exportación completa sin paginar (orden cronológico ascendente de ingreso)
     if (exportar) {
       const asistencias = await prisma.asistencia.findMany({
         where: whereFiltro,
-        orderBy: {
-          fecha: "desc",
-        },
+        orderBy: [
+          { horaEntrada: "asc" },
+          { fecha: "asc" },
+        ],
         include: {
           estudiante: {
             include: {

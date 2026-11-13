@@ -4,7 +4,7 @@ import { exigirSesionPadre } from "@/lib/auth-padres";
 import {
   fechaPeru,
   ahoraPeru,
-  crearFechaHoraPeru,
+  obtenerVentanaTurno,
 } from "@/lib/timezone";
 
 export const runtime = "nodejs";
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   const { sesion } = acceso;
 
   try {
-    // 1. Verificar si el portal de consultas web est� habilitado en configuraci�n global (Mantenimiento manual)
+    // 1. Verificar si el portal de consultas web está habilitado en configuración global (Mantenimiento manual)
     const config = await prisma.configuracion.findFirst({
       select: {
         nombreColegio: true,
@@ -35,14 +35,14 @@ export async function GET(request: Request) {
         {
           ok: false,
           estado: "bloqueado",
-          message: "El portal web de consultas para familias se encuentra temporalmente en mantenimiento por direcci�n escolar.",
-          mensaje: "El portal web de consultas para familias se encuentra temporalmente en mantenimiento por direcci�n escolar.",
+          message: "El portal web de consultas para familias se encuentra temporalmente en mantenimiento por dirección escolar.",
+          mensaje: "El portal web de consultas para familias se encuentra temporalmente en mantenimiento por dirección escolar.",
         },
         { status: 403 }
       );
     }
 
-    // 2. Extraer par�metros y validar autorizaci�n contra la sesi�n
+    // 2. Extraer parámetros y validar autorización contra la sesión
     const estudianteAutorizadoId = Number(sesion.estudianteAutorizadoId || 0);
     const estudiantesPermitidosIds = Array.isArray(sesion.estudiantesPermitidosIds)
       ? sesion.estudiantesPermitidosIds.map(Number)
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          message: "Sesi�n familiar incompleta o desactualizada. Por favor inicie sesi�n nuevamente.",
+          message: "Sesión familiar incompleta o desactualizada. Por favor inicie sesión nuevamente.",
         },
         { status: 401 }
       );
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
 
     if (!estudiantesPermitidosIds.includes(estudianteIdSolicitado)) {
       console.warn(
-        `[PORTAL SEGURIDAD] Intento de acceso no autorizado bloqueado: Familia ${sesion.codigoFamiliar} intent� consultar estudianteId=${estudianteIdSolicitado}`
+        `[PORTAL SEGURIDAD] Intento de acceso no autorizado bloqueado: Familia ${sesion.codigoFamiliar} intentó consultar estudianteId=${estudianteIdSolicitado}`
       );
       return NextResponse.json(
         {
@@ -75,8 +75,8 @@ export async function GET(request: Request) {
       );
     }
 
-    // 3. VALIDACI�N EN POSTGRESQL EN CADA SOLICITUD:
-    // Comprobar que la estudiante exista, est� activa y mantenga relaci�n vigente con la familia en PostgreSQL
+    // 3. VALIDACIÓN EN POSTGRESQL EN CADA SOLICITUD:
+    // Comprobar que la estudiante exista, esté activa y mantenga relación vigente con la familia en PostgreSQL
     const colegioId = sesion.colegioId || "SANTA_RITA_001";
 
     const [estudianteActiva, hermanosConfirmados, familiaInfo] = await Promise.all([
@@ -97,6 +97,9 @@ export async function GET(request: Request) {
               estado: true,
               minutosAlertaInicial: true,
               margenAlertaMinutos: true,
+              margenEntradaAnticipadaMinutos: true,
+              margenSalidaAnticipadaMinutos: true,
+              margenSalidaMinutos: true,
             },
           },
         },
@@ -143,7 +146,7 @@ export async function GET(request: Request) {
     // Si la familia fue suspendida en PostgreSQL
     if (!familiaInfo || !familiaInfo.estado) {
       return NextResponse.json(
-        { ok: false, message: "El acceso familiar ha sido suspendido por direcci�n escolar." },
+        { ok: false, message: "El acceso familiar ha sido suspendido por dirección escolar." },
         { status: 403 }
       );
     }
@@ -151,12 +154,12 @@ export async function GET(request: Request) {
     // Si la estudiante fue desvinculada o retirada en PostgreSQL
     if (!estudianteActiva) {
       return NextResponse.json(
-        { ok: false, message: "La estudiante autorizada no fue encontrada o su asignaci�n familiar fue revocada." },
+        { ok: false, message: "La estudiante autorizada no fue encontrada o su asignación familiar fue revocada." },
         { status: 403 }
       );
     }
 
-    // 4. Obtener asistencias EXCLUSIVAS de la estudiante activa (�ltimos 60 registros)
+    // 4. Obtener asistencias EXCLUSIVAS de la estudiante activa (últimos 60 registros)
     const asistencias = await prisma.asistencia.findMany({
       where: {
         estudianteId: estudianteActiva.id,
@@ -230,8 +233,21 @@ export async function GET(request: Request) {
     let horaSalidaSuperada = false;
 
     if (turno?.horaSalida) {
-      const horaSalidaTurno = crearFechaHoraPeru(hoyStr, turno.horaSalida);
-      horaSalidaSuperada = ahora >= horaSalidaTurno;
+      const ventanaTurno = obtenerVentanaTurno({
+        horaEntrada: turno.horaEntrada,
+        horaSalida: turno.horaSalida,
+        margenEntradaAnticipadaMinutos:
+          turno.margenEntradaAnticipadaMinutos ?? 60,
+        margenSalidaAnticipadaMinutos:
+          turno.margenSalidaAnticipadaMinutos ?? 0,
+        margenSalidaMinutos:
+          turno.margenSalidaMinutos ?? 60,
+        ahora,
+      });
+
+      horaSalidaSuperada =
+        ventanaTurno.fechaBase === hoyStr &&
+        ahora >= ventanaTurno.horaSalida;
     }
 
     const esAusenciaVirtualHoy =
@@ -240,7 +256,7 @@ export async function GET(request: Request) {
       !esDiaNoLectivo &&
       horaSalidaSuperada;
 
-    // 6. M�tricas de puntualidad
+    // 6. Métricas de puntualidad
     const faltasHistoricas = asistencias.filter(
       (a) => a.estado === "AUSENTE" || a.estado === "FALTA"
     ).length;
@@ -270,8 +286,8 @@ export async function GET(request: Request) {
       distribucionDona.push({ name: "Faltas / Ausencias", valor: faltas, color: "#EF4444" });
     }
 
-    // 7. OFUSCACI�N SEGURA DE FOTOGRAF�AS: En lugar de exponer URLs p�blicas de Blob,
-    // devolver la ruta proxy segura que exige sesi�n y relaci�n activa en PostgreSQL
+    // 7. OFUSCACIÓN SEGURA DE FOTOGRAFÍAS: En lugar de exponer URLs públicas de Blob,
+    // devolver la ruta proxy segura que exige sesión y relación activa en PostgreSQL
     const asistenciasSeguras = asistencias.map((a: any) => {
       const evEntrada = a.evidenciasFotograficas?.find((e: any) => e.tipo === "ENTRADA");
       const evSalida = a.evidenciasFotograficas?.find((e: any) => e.tipo === "SALIDA");
@@ -322,7 +338,7 @@ export async function GET(request: Request) {
         ]
       : asistenciasSeguras;
 
-    // Gr�fico mensual
+    // Gráfico mensual
     const mapaMeses = new Map<string, { mes: string; puntuales: number; tardanzas: number }>();
     const nombresMeses = [
       "Ene", "Feb", "Mar", "Abr", "May", "Jun",

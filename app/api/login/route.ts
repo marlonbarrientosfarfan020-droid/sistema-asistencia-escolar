@@ -150,6 +150,7 @@ export async function POST(request: Request) {
       usuarioId: usuarioEncontrado.id,
       usuario: usuarioEncontrado.usuario,
       rol,
+      colegioId: usuarioEncontrado.colegioId || undefined,
       modulos,
     });
 

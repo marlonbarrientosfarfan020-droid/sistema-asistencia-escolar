@@ -1,9 +1,27 @@
 import { NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
 import { prisma } from "@/lib/prisma";
 import {
   exigirAdminODirectivo,
   exigirAdminDirectivoODemo,
 } from "@/lib/auth";
+
+const LOGO_POR_DEFECTO = "/img/logo-santa-rita.png";
+
+function resolverLogoInstitucional(logoUrl?: string | null): string {
+  const limpio = String(logoUrl || "").trim();
+  if (!limpio) return LOGO_POR_DEFECTO;
+
+  if (limpio.startsWith("/")) {
+    const rutaFisica = path.join(process.cwd(), "public", limpio.replace(/^\/+/, ""));
+    if (!fs.existsSync(rutaFisica)) {
+      return LOGO_POR_DEFECTO;
+    }
+  }
+
+  return limpio;
+}
 function horaValida(valor: unknown) {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(
     String(valor || "")
@@ -53,11 +71,15 @@ export async function GET() {
           data: {
             nombreColegio:
               "Santa Rita de Casia",
+            logoUrl: LOGO_POR_DEFECTO,
           },
         });
     }
 
-    return NextResponse.json(configuracion);
+    return NextResponse.json({
+      ...configuracion,
+      logoUrl: resolverLogoInstitucional(configuracion.logoUrl),
+    });
   } catch (error) {
     console.error(
       "Error obteniendo configuración:",

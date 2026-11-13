@@ -122,12 +122,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const turnos = await prisma.turno.findMany({
-      select: {
-        id: true,
-        nombre: true,
-      },
-    });
+    const [turnos, estudiantesExistentes] = await Promise.all([
+      prisma.turno.findMany({
+        select: {
+          id: true,
+          nombre: true,
+        },
+      }),
+      prisma.estudiante.findMany({
+        select: {
+          codigo: true,
+          dni: true,
+        },
+      }),
+    ]);
 
     const mapaTurnos = new Map(
       turnos.map((turno) => [
@@ -136,8 +144,27 @@ export async function POST(request: Request) {
       ])
     );
 
+    const codigosExistentes = new Set(
+      estudiantesExistentes.map((e) => e.codigo.trim())
+    );
+    const dnisExistentes = new Set(
+      estudiantesExistentes.map((e) => e.dni.trim())
+    );
+
     let importados = 0;
     const errores: string[] = [];
+    const nuevosEstudiantes: Array<{
+      codigo: string;
+      dni: string;
+      nombres: string;
+      apellidos: string;
+      grado: string;
+      seccion: string;
+      nombreTutor: string;
+      whatsapp: string;
+      telegramChatId: string;
+      turnoId: number;
+    }> = [];
 
     for (let indice = 0; indice < filas.length; indice++) {
       const fila = filas[indice];
@@ -185,45 +212,40 @@ export async function POST(request: Request) {
         continue;
       }
 
-      const existe = await prisma.estudiante.findFirst({
-        where: {
-          OR: [
-            {
-              codigo,
-            },
-            {
-              dni,
-            },
-          ],
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      if (existe) {
+      if (
+        codigosExistentes.has(codigo) ||
+        dnisExistentes.has(dni)
+      ) {
         errores.push(
           `Fila ${numeroFila}: ya existe el código ${codigo} o DNI ${dni}`
         );
         continue;
       }
 
-      await prisma.estudiante.create({
-        data: {
-          codigo,
-          dni,
-          nombres,
-          apellidos,
-          grado,
-          seccion,
-          nombreTutor,
-          whatsapp,
-          telegramChatId,
-          turnoId,
-        },
-      });
+      codigosExistentes.add(codigo);
+      dnisExistentes.add(dni);
 
-      importados++;
+      nuevosEstudiantes.push({
+        codigo,
+        dni,
+        nombres,
+        apellidos,
+        grado,
+        seccion,
+        nombreTutor,
+        whatsapp,
+        telegramChatId,
+        turnoId,
+      });
+    }
+
+    if (nuevosEstudiantes.length > 0) {
+      const resultadoCreacion =
+        await prisma.estudiante.createMany({
+          data: nuevosEstudiantes,
+          skipDuplicates: true,
+        });
+      importados = resultadoCreacion.count;
     }
 
     return NextResponse.json({

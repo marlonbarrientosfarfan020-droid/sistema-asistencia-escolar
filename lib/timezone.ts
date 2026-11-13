@@ -148,6 +148,8 @@ export function obtenerVentanaTurno({
     inicioPermitido,
     horaEntradaTurno,
     horaSalidaTurno,
+    horaEntrada: horaEntradaTurno,
+    horaSalida: horaSalidaTurno,
     inicioSalidaPermitido,
     finPermitido,
   };

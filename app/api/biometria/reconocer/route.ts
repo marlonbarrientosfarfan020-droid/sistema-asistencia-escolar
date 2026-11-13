@@ -21,7 +21,7 @@ export async function POST(
   request: Request
 ) {
   const acceso =
-    await exigirAdminOPersonal();
+    await exigirAdminOPersonal(request);
 
   if (!acceso.autorizado) {
     return acceso.respuesta;

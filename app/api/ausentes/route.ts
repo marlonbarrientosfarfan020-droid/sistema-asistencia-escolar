@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { exigirAdminDemoOPersonal } from "@/lib/auth";
+import { obtenerVentanaTurno } from "@/lib/timezone";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,22 +36,6 @@ function fechaCalendarioBD(fecha: string) {
    */
   return new Date(
     `${fecha}T00:00:00.000Z`
-  );
-}
-
-function fechaHoraTurno(
-  fecha: string,
-  hora: string
-) {
-  const horaNormalizada =
-    /^([01]\d|2[0-3]):[0-5]\d$/.test(
-      hora
-    )
-      ? hora
-      : "00:00";
-
-  return new Date(
-    `${fecha}T${horaNormalizada}:00-05:00`
   );
 }
 
@@ -262,10 +247,16 @@ export async function GET(
 
             asistencias: {
               where: {
-                fecha: {
-                  gte: inicioDia,
-                  lte: finDia,
-                },
+                OR: [
+                  { fechaDia: fecha },
+                  {
+                    fechaDia: "",
+                    fecha: {
+                      gte: inicioDia,
+                      lte: finDia,
+                    },
+                  },
+                ],
               },
 
               select: {
@@ -366,38 +357,61 @@ export async function GET(
             }
 
             /*
-             * Fechas futuras nunca pueden
-             * considerarse ausencias.
+             * Evaluación de los 3 turnos (Mañana, Tarde y Noche)
+             * contemplando cruce de medianoche mediante obtenerVentanaTurno.
              */
-            if (fecha > hoy) {
+            const ventanaTurno =
+              obtenerVentanaTurno({
+                horaEntrada:
+                  estudiante.turno
+                    .horaEntrada,
+                horaSalida:
+                  estudiante.turno
+                    .horaSalida,
+                margenEntradaAnticipadaMinutos:
+                  estudiante.turno
+                    .margenEntradaAnticipadaMinutos ??
+                  60,
+                margenSalidaAnticipadaMinutos:
+                  estudiante.turno
+                    .margenSalidaAnticipadaMinutos ??
+                  0,
+                margenSalidaMinutos:
+                  estudiante.turno
+                    .margenSalidaMinutos ??
+                  60,
+                ahora,
+              });
+
+            /*
+             * Fechas futuras respecto a la fecha base operativa del turno
+             * nunca pueden considerarse ausencias.
+             */
+            if (
+              fecha >
+              ventanaTurno.fechaBase
+            ) {
               return false;
             }
 
             /*
-             * Para fechas anteriores:
-             * si el turno estaba habilitado y
-             * no existe entrada, se considera
-             * ausente.
+             * Para fechas anteriores a la fecha base operativa del turno:
+             * si el turno estaba habilitado y no existe entrada, se considera ausente.
              */
-            if (fecha < hoy) {
+            if (
+              fecha <
+              ventanaTurno.fechaBase
+            ) {
               return true;
             }
 
             /*
-             * Para hoy, solamente se confirma
-             * la ausencia después de finalizar
-             * el turno activo.
+             * Para la jornada vigente del turno, solamente se confirma
+             * la ausencia después de finalizar el horario de salida del turno.
              */
-            const horaFinTurno =
-              fechaHoraTurno(
-                fecha,
-                estudiante.turno
-                  .horaSalida
-              );
-
             return (
               ahora >=
-              horaFinTurno
+              ventanaTurno.horaSalida
             );
           }
         )

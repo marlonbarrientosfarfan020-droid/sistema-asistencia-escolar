@@ -26,7 +26,7 @@ export type ModuloDefinicion = {
 };
 
 export const MODULOS_OPERATIVOS: ModuloDefinicion[] = [
-  // 1. Panel (1 módulo)
+  // 1. Panel (2 módulos)
   {
     id: "dashboard",
     nombre: "Dashboard",
@@ -34,6 +34,15 @@ export const MODULOS_OPERATIVOS: ModuloDefinicion[] = [
     icono: "🏠",
     categoria: "Panel",
     descripcion: "Panel de control principal con indicadores operativos en tiempo real",
+  },
+  {
+    id: "ranking_vivo",
+    nombre: "Ranking en Vivo",
+    ruta: "/dashboard/ranking-vivo",
+    apis: ["/api/ranking-vivo"],
+    icono: "🏆",
+    categoria: "Panel",
+    descripcion: "Orden exacto de llegada en tiempo real por turnos (Mañana, Tarde y Noche), tardanzas y salidas",
   },
 
   // 2. Gestión (8 módulos)
@@ -284,6 +293,7 @@ export const PLANTILLAS_ROLES: Record<string, { etiqueta: string; modulos: strin
     etiqueta: "Directivo / Director",
     modulos: [
       "dashboard",
+      "ranking_vivo",
       "estudiantes",
       "padres",
       "asistencias",
@@ -307,6 +317,7 @@ export const PLANTILLAS_ROLES: Record<string, { etiqueta: string; modulos: strin
     etiqueta: "Docente / Auxiliar",
     modulos: [
       "dashboard",
+      "ranking_vivo",
       "estudiantes",
       "asistencias",
       "salidas",
@@ -320,6 +331,7 @@ export const PLANTILLAS_ROLES: Record<string, { etiqueta: string; modulos: strin
     etiqueta: "Secretaría Académica",
     modulos: [
       "dashboard",
+      "ranking_vivo",
       "estudiantes",
       "padres",
       "asistencias",
@@ -339,6 +351,7 @@ export const PLANTILLAS_ROLES: Record<string, { etiqueta: string; modulos: strin
     etiqueta: "Modo Demostración",
     modulos: [
       "dashboard",
+      "ranking_vivo",
       "estudiantes",
       "padres",
       "asistencias",
@@ -360,7 +373,7 @@ export function obtenerModulosPorRol(rol: string): string[] {
   if (PLANTILLAS_ROLES[r]) {
     return PLANTILLAS_ROLES[r].modulos;
   }
-  return ["dashboard", "asistencias", "marcar"];
+  return ["dashboard", "ranking_vivo", "asistencias", "marcar"];
 }
 
 /**
@@ -381,6 +394,18 @@ export function esRutaPermitida(
     pathname === "/"
   ) {
     return true;
+  }
+
+  // Autorizar /dashboard/ranking-vivo para usuarios con permiso de dashboard, asistencias o ranking_vivo
+  if (
+    pathname === "/dashboard/ranking-vivo" ||
+    pathname.startsWith("/dashboard/ranking-vivo/")
+  ) {
+    return (
+      modulosPermitidos.includes("ranking_vivo") ||
+      modulosPermitidos.includes("dashboard") ||
+      modulosPermitidos.includes("asistencias")
+    );
   }
 
   // Buscar el módulo al que corresponde la ruta

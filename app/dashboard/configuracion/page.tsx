@@ -124,7 +124,7 @@ const [tabActiva, setTabActiva] = useState<"general" | "terminal">("general");
   telefono: data.telefono || "",
   correo: data.correo || "",
   director: data.director || "",
-  logoUrl: data.logoUrl || "",
+  logoUrl: data.logoUrl || "/img/logo-santa-rita.png",
 
 
         reporteTelegramActivo:
@@ -517,15 +517,15 @@ async function enviarPadresAhora() {
              <div className="md:col-span-2 rounded-3xl border border-slate-200 bg-slate-50 p-5">
     <div className="flex flex-col gap-5 md:flex-row md:items-center">
       <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-3xl border border-slate-200 bg-white shadow">
-        {form.logoUrl ? (
-          <img
-            src={form.logoUrl}
-            alt="Logo institucional"
-            className="h-full w-full object-contain p-2"
-          />
-        ) : (
-          <span className="text-4xl">🏫</span>
-        )}
+        <img
+          src={form.logoUrl || "/img/logo-santa-rita.png"}
+          alt="Logo institucional"
+          className="h-full w-full object-contain p-2"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = "/img/logo-santa-rita.png";
+          }}
+        />
       </div>
 
       <div className="flex-1">

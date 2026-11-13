@@ -25,6 +25,21 @@ type BackupSistema = {
   riesgosIA?: RegistroBackup[];
   calendarioEscolar?: RegistroBackup[];
   historialReportes?: RegistroBackup[];
+
+  codigosFamiliares?: RegistroBackup[];
+  CodigoFamiliar?: RegistroBackup[];
+  salidasExcepcionales?: RegistroBackup[];
+  salidaExcepcional?: RegistroBackup[];
+  SalidaExcepcional?: RegistroBackup[];
+  biometriasFaciales?: RegistroBackup[];
+  biometriaFacial?: RegistroBackup[];
+  BiometriaFacial?: RegistroBackup[];
+  rostrosFaciales?: RegistroBackup[];
+  rostroFacial?: RegistroBackup[];
+  RostroFacial?: RegistroBackup[];
+  terminales?: RegistroBackup[];
+  terminal?: RegistroBackup[];
+  Terminal?: RegistroBackup[];
 };
 
 function esLista(valor: unknown): valor is RegistroBackup[] {
@@ -205,10 +220,46 @@ export async function POST(request: Request) {
       ["createdAt"]
     );
 
+    const codigosFamiliaresRaw = esLista(
+      backup.codigosFamiliares
+    )
+      ? backup.codigosFamiliares
+      : esLista(backup.CodigoFamiliar)
+      ? backup.CodigoFamiliar
+      : [];
+
+    const codigosFamiliares = normalizarFechas(
+      codigosFamiliaresRaw,
+      [
+        "bloqueadoHasta",
+        "ultimoIngresoAt",
+        "createdAt",
+        "updatedAt",
+      ]
+    );
+
+    const idsCodigosFamiliares = new Set<unknown>(
+      codigosFamiliares
+        .map((c) => c.id)
+        .filter((id) => id !== undefined && id !== null)
+    );
+
     const estudiantes = normalizarFechas(
       backup.estudiantes,
       ["createdAt"]
-    );
+    ).map((est) => {
+      if (
+        est.codigoFamiliarId !== null &&
+        est.codigoFamiliarId !== undefined &&
+        !idsCodigosFamiliares.has(est.codigoFamiliarId)
+      ) {
+        return {
+          ...est,
+          codigoFamiliarId: null,
+        };
+      }
+      return est;
+    });
 
     const asistencias = normalizarFechas(
       backup.asistencias,
@@ -216,6 +267,89 @@ export async function POST(request: Request) {
         "fecha",
         "horaEntrada",
         "horaSalida",
+      ]
+    );
+
+    const salidasExcepcionalesRaw = esLista(
+      backup.salidasExcepcionales
+    )
+      ? backup.salidasExcepcionales
+      : esLista(backup.salidaExcepcional)
+      ? backup.salidaExcepcional
+      : esLista(backup.SalidaExcepcional)
+      ? backup.SalidaExcepcional
+      : [];
+
+    const salidasExcepcionales = normalizarFechas(
+      salidasExcepcionalesRaw,
+      [
+        "fecha",
+        "horaSalida",
+        "createdAt",
+        "updatedAt",
+      ]
+    );
+
+    const biometriasFacialesRaw = esLista(
+      backup.biometriasFaciales
+    )
+      ? backup.biometriasFaciales
+      : esLista(backup.biometriaFacial)
+      ? backup.biometriaFacial
+      : esLista(backup.BiometriaFacial)
+      ? backup.BiometriaFacial
+      : [];
+
+    const biometriasFaciales = normalizarFechas(
+      biometriasFacialesRaw,
+      [
+        "ultimaActualizacionAt",
+        "createdAt",
+        "updatedAt",
+      ]
+    );
+
+    const idsBiometria = new Set<unknown>(
+      biometriasFaciales
+        .map((b) => b.id)
+        .filter((id) => id !== undefined && id !== null)
+    );
+
+    const rostrosFacialesRaw = esLista(
+      backup.rostrosFaciales
+    )
+      ? backup.rostrosFaciales
+      : esLista(backup.rostroFacial)
+      ? backup.rostroFacial
+      : esLista(backup.RostroFacial)
+      ? backup.RostroFacial
+      : [];
+
+    const rostrosFaciales = normalizarFechas(
+      rostrosFacialesRaw,
+      ["createdAt"]
+    ).filter(
+      (r) =>
+        idsBiometria.size === 0 ||
+        idsBiometria.has(r.biometriaId)
+    );
+
+    const terminalesRaw = esLista(
+      backup.terminales
+    )
+      ? backup.terminales
+      : esLista(backup.terminal)
+      ? backup.terminal
+      : esLista(backup.Terminal)
+      ? backup.Terminal
+      : [];
+
+    const terminales = normalizarFechas(
+      terminalesRaw,
+      [
+        "ultimaConexion",
+        "createdAt",
+        "updatedAt",
       ]
     );
 
@@ -228,6 +362,7 @@ export async function POST(request: Request) {
         "ultimoReporteTelegramAt",
         "ultimoReporteDirectorAt",
         "ultimoReportePadresAt",
+        "ultimaEjecucionAutomatizaciones",
       ]
     );
 
@@ -288,8 +423,12 @@ export async function POST(request: Request) {
     await prisma.$transaction(
       async (tx) => {
         /*
-         * Primero se eliminan las tablas dependientes.
+         * Primero se eliminan las tablas dependientes
+         * respetando estrictamente el orden de claves foráneas.
          */
+        await tx.salidaExcepcional.deleteMany();
+        await tx.rostroFacial.deleteMany();
+        await tx.biometriaFacial.deleteMany();
         await tx.historialReporteAutomatico.deleteMany();
         await tx.alertaAsistencia.deleteMany();
         await tx.riesgoEstudianteIA.deleteMany();
@@ -297,7 +436,9 @@ export async function POST(request: Request) {
         await tx.calendarioEscolar.deleteMany();
 
         await tx.estudiante.deleteMany();
+        await tx.codigoFamiliar.deleteMany();
         await tx.turno.deleteMany();
+        await tx.terminal.deleteMany();
 
         await tx.configuracion.deleteMany();
         await tx.auditoria.deleteMany();
@@ -313,15 +454,48 @@ export async function POST(request: Request) {
           });
         }
 
+        if (codigosFamiliares.length > 0) {
+          await tx.codigoFamiliar.createMany({
+            data: codigosFamiliares as never[],
+          });
+        }
+
         if (estudiantes.length > 0) {
           await tx.estudiante.createMany({
             data: estudiantes as never[],
           });
         }
 
+        if (biometriasFaciales.length > 0) {
+          await tx.biometriaFacial.createMany({
+            data: biometriasFaciales as never[],
+          });
+        }
+
+        if (
+          rostrosFaciales.length > 0 &&
+          biometriasFaciales.length > 0
+        ) {
+          await tx.rostroFacial.createMany({
+            data: rostrosFaciales as never[],
+          });
+        }
+
         if (asistencias.length > 0) {
           await tx.asistencia.createMany({
             data: asistencias as never[],
+          });
+        }
+
+        if (salidasExcepcionales.length > 0) {
+          await tx.salidaExcepcional.createMany({
+            data: salidasExcepcionales as never[],
+          });
+        }
+
+        if (terminales.length > 0) {
+          await tx.terminal.createMany({
+            data: terminales as never[],
           });
         }
 
@@ -393,8 +567,13 @@ export async function POST(request: Request) {
      */
     const tablas = [
       "Turno",
+      "CodigoFamiliar",
       "Estudiante",
+      "BiometriaFacial",
+      "RostroFacial",
       "Asistencia",
+      "SalidaExcepcional",
+      "Terminal",
       "Configuracion",
       "Auditoria",
       "AlertaAsistencia",
@@ -414,8 +593,17 @@ export async function POST(request: Request) {
         "Backup restaurado correctamente",
       resumen: {
         turnos: turnos.length,
+        codigosFamiliares:
+          codigosFamiliares.length,
         estudiantes: estudiantes.length,
+        biometriasFaciales:
+          biometriasFaciales.length,
+        rostrosFaciales:
+          rostrosFaciales.length,
         asistencias: asistencias.length,
+        salidasExcepcionales:
+          salidasExcepcionales.length,
+        terminales: terminales.length,
         configuraciones:
           configuracion.length,
         auditorias: auditoria.length,

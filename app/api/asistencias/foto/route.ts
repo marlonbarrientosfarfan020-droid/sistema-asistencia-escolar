@@ -28,6 +28,8 @@ export async function POST(request: Request) {
     return acceso.respuesta;
   }
 
+  const colegioId = acceso.sesion.colegioId || "SANTA_RITA_001";
+
   // FASE 4.3: Validar fotosActivo en el SuperMotor
   const validacionFotos = await verificarModuloActivo("fotos");
   if (!validacionFotos.autorizado) {
@@ -78,7 +80,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (asistenciaExistente.colegioId !== "SANTA_RITA_001") {
+    if (
+      asistenciaExistente.colegioId !== colegioId &&
+      acceso.sesion.rol !== "SUPER_ADMIN"
+    ) {
       return NextResponse.json(
         { ok: false, message: "La asistencia no pertenece a la institución educativa autorizada" },
         { status: 403 }

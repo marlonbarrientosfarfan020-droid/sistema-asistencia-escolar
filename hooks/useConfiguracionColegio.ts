@@ -16,11 +16,13 @@ export type ConfiguracionColegio = {
   canalPortalWebActivo?: boolean;
 };
 
+export const LOGO_COLEGIO_DEFECTO = "/img/logo-santa-rita.png";
+
 const CONFIGURACION_INICIAL: ConfiguracionColegio =
   {
     nombreColegio:
       "Santa Rita de Casia",
-    logoUrl: "",
+    logoUrl: LOGO_COLEGIO_DEFECTO,
     direccion: "",
     telefono: "",
     correo: "",
@@ -99,9 +101,11 @@ export function useConfiguracionColegio() {
             ).trim() ||
             "Santa Rita de Casia",
 
-          logoUrl: String(
-            data.logoUrl || ""
-          ).trim(),
+          logoUrl:
+            String(
+              data.logoUrl || ""
+            ).trim() ||
+            LOGO_COLEGIO_DEFECTO,
 
           direccion: String(
             data.direccion || ""
